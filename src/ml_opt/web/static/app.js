@@ -4,6 +4,7 @@ const byId = id => document.getElementById(id);
 const form = byId("model-form"), modelCanvas = byId("model-canvas"), topologyCanvas = byId("topology-canvas");
 const state = {model: null, density: null, running: false, ready: false, runId: null, initial: null, hover: null};
 const format = value => new Intl.NumberFormat("en", {maximumFractionDigits: 2}).format(value);
+const filterFormat = value => new Intl.NumberFormat("en", {maximumSignificantDigits: 4}).format(value);
 const signed = value => (Math.abs(value) < 1e-12 ? "0.00" : value.toFixed(2)).replace("-", "−");
 
 function readModel() {
@@ -29,13 +30,24 @@ function redraw() {
   drawTopology(topologyCanvas, state.model, state.density);
 }
 
-function updateLabels() {
+function updateLabels(resizeFilterRange = true) {
   const m = state.model;
   byId("mesh-description").textContent = `${format(m.nx * m.ny)} elements · ${format((m.nx + 1) * (m.ny + 1))} nodes`;
   byId("selection-description").textContent = `Load at node (${m.load_node_x}, ${m.load_node_y}) · x = ${format(m.load_node_x / m.nx * m.length)}, y = ${format(m.load_node_y / m.ny * m.height)}`;
   byId("volume-label").textContent = `${Math.round(m.volume_fraction * 100)}%`;
   byId("volume-target").textContent = `Target ${Math.round(m.volume_fraction * 100)}%`;
   byId("angle-slider").value = m.load_angle;
+  const radius = m.filter_radius;
+  const slider = byId("filter-slider");
+  const sliderMax = resizeFilterRange ? Math.max(Math.min(m.length, m.height) / 2, radius) : Number(slider.max);
+  slider.max = sliderMax;
+  slider.step = "any";
+  slider.value = radius;
+  byId("filter-range-max").textContent = filterFormat(sliderMax);
+  byId("filter-description").textContent = radius > 0 ?
+    `ℓ = ${filterFormat(radius)} model units · ${filterFormat(radius * m.nx / m.length)} × ${filterFormat(radius * m.ny / m.height)} cells` : "Filter off · design densities used directly";
+  byId("filter-status").textContent = radius > 0 ? "Helmholtz filter" : "Filter off";
+  byId("filter-legend").hidden = radius === 0;
   const rad = m.load_angle * Math.PI / 180;
   byId("force-components").textContent = `F = (${signed(m.load * Math.cos(rad))}, ${signed(m.load * Math.sin(rad))})`;
 }
@@ -68,12 +80,13 @@ function updateModel(event) {
   }
   if (!form.checkValidity()) return;
   state.model = readModel(); state.hover = null;
-  showError(); updateLabels(); clearResult(); redraw();
+  showError(); updateLabels(event?.target.id !== "filter-slider"); clearResult(); redraw();
 }
 
 function setRunning(running) {
   state.running = running;
   byId("settings").disabled = running;
+  byId("filter-settings").disabled = running;
   byId("run").disabled = running || !state.ready;
   byId("run-label").textContent = running ? "Optimising…" : "Run optimisation";
   byId("stop").disabled = !running || !state.runId;
@@ -99,7 +112,7 @@ function receive(event) {
     byId("iteration").innerHTML = `${row.iteration}<em> / ${state.model.max_iterations}</em>`;
     byId("density-change").textContent = `Density change ${row.design_change.toFixed(4)}`;
     byId("progress-bar").style.width = `${100 * row.iteration / state.model.max_iterations}%`;
-    byId("topology-description").textContent = `${state.model.optimizer.toUpperCase()} · Live element densities`;
+    byId("topology-description").textContent = `${state.model.optimizer.toUpperCase()} · ${state.model.filter_radius > 0 ? "Filtered" : "Unfiltered"} element densities`;
     byId("live-note").textContent = `Iteration ${row.iteration} · ${row.state_solves} state solves`;
     status("Running", "running");
     drawTopology(topologyCanvas, state.model, state.density);
@@ -168,6 +181,11 @@ byId("angle-slider").addEventListener("input", event => {
   byId("load_angle").value = event.target.value;
   updateModel();
 });
+byId("filter-slider").addEventListener("input", event => {
+  byId("filter_radius").value = Number(Number(event.target.value).toPrecision(4));
+  updateModel(event);
+});
+byId("filter_radius").addEventListener("input", updateModel);
 modelCanvas.addEventListener("click", event => {
   if (state.running) return;
   const node = pickNode(modelCanvas, state.model, event);

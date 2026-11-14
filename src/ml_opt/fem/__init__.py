@@ -1,6 +1,7 @@
-"""Structured quadrilateral meshes and PETSc linear elasticity."""
+"""Structured meshes, Helmholtz density filtering, and PETSc elasticity."""
 
 from .mesh import StructuredMesh
 from .elasticity import ElasticitySolver
+from .filter import HelmholtzFilter
 
-__all__ = ["StructuredMesh", "ElasticitySolver"]
+__all__ = ["StructuredMesh", "ElasticitySolver", "HelmholtzFilter"]

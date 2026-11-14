@@ -17,6 +17,8 @@ def main(argv: list[str] | None = None) -> int:
                  "minimum_modulus", "move_limit", "design_tolerance"):
         parser.add_argument("--" + name.replace("_", "-"), type=float, default=getattr(defaults, name))
     parser.add_argument("--optimizer", choices=("mma", "gcmma"), default=defaults.optimizer)
+    parser.add_argument("--filter-radius", type=float, default=defaults.filter_radius,
+                        help="Helmholtz length in model units; 0 disables filtering (default: 0)")
     parser.add_argument("--output", type=Path, help="Output directory (default: outputs/cantilever-<optimizer>)")
     parser.add_argument("--quiet", action="store_true")
     options = vars(parser.parse_args(argv))

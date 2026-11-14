@@ -28,6 +28,7 @@ class RunRequest(BaseModel):
     load_node_x: int = Field(default=60, ge=1)
     load_node_y: int = Field(default=10, ge=0)
     volume_fraction: float = Field(default=0.4, gt=0, lt=1)
+    filter_radius: float = Field(default=0.1, ge=0, le=1000)
     optimizer: Literal["mma", "gcmma"] = "mma"
     max_iterations: int = Field(default=100, ge=1, le=1000)
 

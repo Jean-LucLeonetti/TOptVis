@@ -8,6 +8,7 @@ import torch
 from .config import CantileverConfig
 from .fem import ElasticitySolver, StructuredMesh
 from .fem.elasticity import compliance
+from .fem.filter import HelmholtzFilter
 
 
 @dataclass
@@ -32,9 +33,17 @@ class CantileverProblem:
                                        load_angle=config.load_angle,
                                        load_node=None if config.load_node_x is None else
                                        (config.load_node_x, config.load_node_y))
+        try:
+            self.density_filter = HelmholtzFilter(self.mesh, config.filter_radius)
+        except BaseException:
+            self.solver.close()
+            raise
 
     def close(self) -> None:
-        self.solver.close()
+        try:
+            self.density_filter.close()
+        finally:
+            self.solver.close()
 
     def __enter__(self):
         return self
@@ -53,7 +62,7 @@ class CantileverProblem:
             raise ValueError("Design densities must lie in [0, 1]")
         x = torch.tensor(array, dtype=torch.float64, requires_grad=sensitivities)
         with torch.set_grad_enabled(sensitivities):
-            density = x
+            density = self.density_filter.apply(x)
             moduli = self.config.minimum_modulus + (self.config.young_modulus -
                       self.config.minimum_modulus) * density.pow(self.config.penalisation)
             objective = compliance(moduli, self.solver)

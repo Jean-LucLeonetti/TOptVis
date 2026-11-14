@@ -54,7 +54,13 @@ if port 8000 is already occupied.
 
 Model controls are locked during a run. Editing the model afterward clears
 the previous result so it cannot be mistaken for the updated load case.
-The interface uses the same unfiltered solver as the command-line example.
+The interface uses the same solver as the command-line example. The
+**Helmholtz size · ℓ** control beside the mesh sets the density filter length
+in model units (initially 0.1). Drag the slider or enter a value: the purple
+circle shows radius ℓ at the actual geometry scale, and the readout gives
+the size in x/y cell spacings. Geometry and mesh changes update that reference
+immediately. Set ℓ to 0 to disable filtering. Controls lock during a run;
+changing the size afterward clears the previous result.
 Mesh and load edits update the preview before the run starts. A local worker
 process starts in the background with the server and streams each evaluated
 outer iteration to the browser. It stays warm between runs; geometry, loads,
@@ -74,7 +80,33 @@ Defaults: 60 x 20 bilinear quadrilateral elements, a 3 x 1 domain, plane stress,
 unit thickness and load, Young's modulus 1, Poisson ratio 0.3, volume fraction
 0.4, and SIMP penalisation 3. The material law is
 `E(rho) = E_min + (E_solid - E_min) * rho**p`, with `E_min = 1e-6`.
-**No density filter is applied.** These are nondimensional benchmark parameters.
+These are nondimensional benchmark parameters. The Python/CLI default
+`filter_radius=0` retains the original unfiltered benchmark; the visual
+interface initially uses `filter_radius=0.1`.
+
+### Helmholtz density filter
+
+For a positive `filter_radius = ℓ`, the physical density solves
+`rho - ℓ² ∇²rho = x` with zero normal flux on every domain boundary. Here `x`
+is the bounded element design variable. A cell-centred finite-volume
+discretisation uses the actual x/y mesh spacings, including rectangular cells.
+The formulation preserves constant densities and material volume and keeps
+filtered densities within the input range, up to floating-point roundoff.
+SIMP, the volume constraint, saved density plots, and live topology frames all
+use the filtered physical density. Saved `design` arrays remain the raw
+optimiser variables, while saved `density` arrays hold the physical result.
+
+PETSc factors the fixed filter matrix once per problem and reuses those
+factors for the forward filter and its transpose adjoint. PyTorch propagates
+compliance and volume gradients back through the filter to the design
+variables. As with the elasticity bridge, this supports first derivatives on
+CPU float64 tensors. No projection is applied.
+
+ℓ is the coefficient length in the PDE, not a compact support radius or a
+guaranteed minimum member thickness. The visual circle is a size reference;
+the filter's influence decays beyond it. The Helmholtz PDE with homogeneous
+Neumann boundary conditions follows the approach of
+[Lazarov and Sigmund (2011)](https://orbit.dtu.dk/en/publications/filters-in-topology-optimization-based-on-helmholtztype-different/).
 
 Element contributions update a preallocated PETSc sparse matrix through COO
 assembly and use PETSc's sequential LU solver. PyTorch differentiates the SIMP material law and
@@ -89,6 +121,7 @@ After installing the project and dependencies:
 ```powershell
 .\.venv\Scripts\python.exe -m ml_opt --optimizer mma
 .\.venv\Scripts\python.exe -m ml_opt --optimizer gcmma
+.\.venv\Scripts\python.exe -m ml_opt --optimizer mma --filter-radius 0.1
 ```
 
 The equivalent console command is `toptvis-cantilever --optimizer mma` with

@@ -68,14 +68,27 @@
             </section>
           </fieldset>
         </form>
-        <div class="controls-footer"><span class="mini-dot"></span> Nondimensional model · No density filter</div>
+        <div class="controls-footer"><span class="mini-dot"></span> Nondimensional model · <span id="filter-status">Helmholtz filter</span></div>
       </aside>
 
       <div class="viewers">
         <section class="panel viewer-panel" aria-labelledby="model-title">
           <div class="panel-heading"><div><h2 id="model-title">Geometry & mesh</h2><p id="selection-description">Load at node (60, 10)</p></div><span class="viewer-badge"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3h14v14H3zM3 8h14M3 12h14M8 3v14M12 3v14"/></svg>Editable model</span></div>
-          <div class="canvas-wrap model-wrap"><canvas id="model-canvas" tabindex="0" role="img" aria-label="Cantilever mesh. Click a free node to select the load position. You can also use the node column and row inputs."></canvas></div>
-          <div class="viewer-footer"><div class="legend"><span><i class="legend-support"></i>Fixed edge</span><span><i class="legend-load"></i>Applied load</span></div><span id="force-components">F = (0.00, −1.00)</span></div>
+          <fieldset id="filter-settings" class="filter-controls">
+            <label for="filter_radius">Helmholtz size · ℓ
+              <input id="filter_radius" name="filter_radius" form="model-form" type="number" min="0" max="1000" step="any" value="0.1" aria-describedby="filter-description filter-hint" required>
+            </label>
+            <div class="filter-slider-block">
+              <input id="filter-slider" type="range" min="0" max="0.5" step="0.005" value="0.1" aria-label="Helmholtz filter size in model units">
+              <div class="range-labels"><span>Off</span><span id="filter-range-max">0.5</span></div>
+            </div>
+            <div class="filter-caption">
+              <div class="filter-description" id="filter-description" aria-live="polite">ℓ = 0.1 model units · 2 × 2 cells</div>
+              <p class="filter-hint" id="filter-hint">Circle radius ℓ in model units, not a cutoff. Set 0 to disable.</p>
+            </div>
+          </fieldset>
+          <div class="canvas-wrap model-wrap"><canvas id="model-canvas" tabindex="0" role="img" aria-label="Cantilever mesh with a Helmholtz size reference circle. Click a free node to select the load position. You can also use the node column and row inputs."></canvas></div>
+          <div class="viewer-footer"><div class="legend"><span><i class="legend-support"></i>Fixed edge</span><span><i class="legend-load"></i>Applied load</span><span id="filter-legend"><i class="legend-filter"></i>Helmholtz ℓ</span></div><span id="force-components">F = (0.00, −1.00)</span></div>
         </section>
 
         <section class="panel viewer-panel topology-panel" aria-labelledby="topology-title">

@@ -273,7 +273,7 @@ def web_benchmark(repeats):
                 for method in ("mma", "gcmma"):
                     for repetition in range(repeats):
                         body = {"nx": 60, "ny": 20, "load_node_x": 60, "load_node_y": 10,
-                                "optimizer": method, "max_iterations": 20}
+                                "optimizer": method, "max_iterations": 20, "filter_radius": 0}
                         request = urllib.request.Request(base + "/api/run", json.dumps(body).encode(),
                                                           {"Content-Type": "application/json"})
                         started = time.perf_counter()

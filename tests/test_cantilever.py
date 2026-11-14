@@ -94,18 +94,27 @@ def test_petsc_reuses_symbolic_factors_but_updates_numeric_factors():
 
 def test_runner_releases_native_objects_when_callback_fails(monkeypatch):
     from ml_opt.fem.elasticity import ElasticitySolver
+    from ml_opt.fem.filter import HelmholtzFilter
     closed = []
+    closed_filters = []
     original = ElasticitySolver.close
+    original_filter_close = HelmholtzFilter.close
     def close(solver):
         if not solver._closed:
             closed.append(solver)
         original(solver)
     monkeypatch.setattr(ElasticitySolver, "close", close)
+    def close_filter(density_filter):
+        if not density_filter._closed:
+            closed_filters.append(density_filter)
+        original_filter_close(density_filter)
+    monkeypatch.setattr(HelmholtzFilter, "close", close_filter)
     def broken_callback(entry):
         raise RuntimeError("callback failed")
     with pytest.raises(RuntimeError, match="callback failed"):
-        optimise(CantileverConfig(nx=4, ny=2), callback=broken_callback)
+        optimise(CantileverConfig(nx=4, ny=2, filter_radius=.1), callback=broken_callback)
     assert len(closed) == 1 and closed[0]._matrix is None
+    assert len(closed_filters) == 1 and closed_filters[0]._matrix is None
 
 
 @pytest.mark.parametrize("method", ["mma", "gcmma"])
