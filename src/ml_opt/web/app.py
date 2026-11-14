@@ -16,6 +16,7 @@ from .jobs import RunManager
 from .rom import create_rom_router, selected_basis_path
 from ..rom.solver import load_basis
 from .streams import stream_job
+from .runtime import source_revision
 
 
 class RunRequest(BaseModel):
@@ -65,6 +66,8 @@ class RunRequest(BaseModel):
 def create_app(*, training_root: Path | None = None) -> FastAPI:
     training_root = (training_root or Path(__file__).resolve().parents[3] / "outputs" / "rom-training").resolve()
     manager = RunManager()
+    # Capture at startup; recomputing in /health would misidentify old imported code.
+    revision = source_revision()
     @asynccontextmanager
     async def lifespan(app):
         manager.warmup()
@@ -85,7 +88,7 @@ def create_app(*, training_root: Path | None = None) -> FastAPI:
 
     @app.get("/api/health")
     async def health():
-        return {"status": "ready", "running": manager.active is not None,
+        return {"status": "ready", "server_revision": revision, "running": manager.active is not None,
                 "worker_ready": manager.worker_ready, "projection_supported": True,
                 "robust_supported": True,
                 "material_schedule_supported": True,

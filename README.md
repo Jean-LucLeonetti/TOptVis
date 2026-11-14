@@ -27,7 +27,10 @@ For the browser's actual canvas drawing functions, run
 Double-click **Start TOptVis.bat** in the project folder. It uses the existing
 `.venv`, starts the app, and opens the interface in your default browser once
 the server is ready. Keep the launcher window open while using the app.
-If TOptVis is already running on port 8000, the launcher opens that instance.
+The launcher reuses a running server only when it matches this checkout's
+current source. If an older server is still holding port 8000, it starts the
+updated app on an available nearby port and opens that URL. Existing runs
+stay undisturbed; the launcher prints the address it uses.
 
 Start the local interface from the project folder:
 
