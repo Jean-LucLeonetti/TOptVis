@@ -17,24 +17,29 @@
     <div class="header-context"><span class="context-divider"></span><span>Cantilever workspace</span><span class="tag">2D</span></div>
     <div class="connection" id="connection"><i></i><span>Connecting</span></div>
   </header>
-
   <main>
     <div class="page-heading">
-      <div><div class="eyebrow">DESIGN WORKSPACE</div><h1>Shape follows force.</h1><p>Set up the cantilever, place a load, and watch the material evolve.</p></div>
+      <div><div class="eyebrow">DESIGN WORKSPACE</div><h1>Shape follows force.</h1><p>Configure on the left. Explore the mesh and material in the workspace.</p></div>
       <div class="run-actions">
         <button class="button secondary" id="stop" type="button" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="5" width="10" height="10" rx="1"/></svg>Stop</button>
         <button class="button primary" id="run" type="submit" form="model-form" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 3.5 16 10 6 16.5z"/></svg><span id="run-label">Run optimisation</span></button>
       </div>
     </div>
     <div class="error-banner" id="error" role="alert" hidden></div>
-
     <div class="workspace">
+      <nav class="config-tabs" role="tablist" aria-label="Model configuration" aria-orientation="vertical">
+        <button id="tab-geometry" class="config-tab" type="button" role="tab" aria-selected="true" aria-controls="panel-geometry" data-panel="panel-geometry" data-title="Geometry & mesh" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM4 10h16M10 4v16"/></svg><span>Geometry</span></button>
+        <button id="tab-load" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-load" data-panel="panel-load" data-title="Applied load" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 19 5M9 5h10v10"/></svg><span>Load</span></button>
+        <button id="tab-filters" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-filters" data-panel="panel-filters" data-title="Density filters" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/><circle cx="12" cy="6" r="2"/><circle cx="10" cy="12" r="2"/></svg><span>Filters</span></button>
+        <button id="tab-optimisation" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-optimisation" data-panel="panel-optimisation" data-title="Optimisation" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 17 5-6 5 3 6-9M16 5h4v4"/></svg><span>Optimise</span></button>
+      </nav>
+
       <aside class="controls panel">
-        <div class="controls-title"><h2>Model setup</h2><span class="tag">Plane stress</span></div>
+        <div class="controls-title"><h2 id="config-title">Geometry & mesh</h2><span class="tag">2D</span></div>
         <form id="model-form">
           <fieldset id="settings">
-            <section class="control-section">
-              <h3><span>01</span> Geometry & mesh</h3>
+            <section id="panel-geometry" class="control-section" role="tabpanel" aria-labelledby="tab-geometry">
+              <p class="control-hint">Set the domain and the number of quadrilateral elements.</p>
               <div class="input-grid">
                 <label>Length<input id="length" name="length" type="number" min="0.01" max="1000" step="any" value="3" required></label>
                 <label>Height<input id="height" name="height" type="number" min="0.01" max="1000" step="any" value="1" required></label>
@@ -42,11 +47,11 @@
                 <label>Elements · y<input id="ny" name="ny" type="number" min="2" max="100" step="1" value="20" required></label>
               </div>
               <div class="section-note" id="mesh-description">1,200 elements · 1,281 nodes</div>
+              <div class="config-info">Plane stress · fixed left edge<br>Lengths use the same model units throughout.</div>
             </section>
 
-            <section class="control-section">
-              <h3><span>02</span> Applied load <span class="load-dot" aria-hidden="true"></span></h3>
-              <p class="control-hint">Click a node in the mesh to place the load.</p>
+            <section id="panel-load" class="control-section" role="tabpanel" aria-labelledby="tab-load" hidden>
+              <p class="control-hint">Click any free node in the mesh to place the load.</p>
               <div class="input-grid">
                 <label>Node column<input id="load_node_x" name="load_node_x" type="number" min="1" max="60" step="1" value="60" required></label>
                 <label>Node row<input id="load_node_y" name="load_node_y" type="number" min="0" max="20" step="1" value="10" required></label>
@@ -58,36 +63,43 @@
               <div class="section-note">Left-edge nodes are fixed. Positive angles rotate counterclockwise.</div>
             </section>
 
-            <section class="control-section last-section">
-              <h3><span>03</span> Optimisation</h3>
-              <label class="full-label">Optimiser<select id="optimizer" name="optimizer"><option value="mma">MMA</option><option value="gcmma">GCMMA</option></select></label>
+            <section id="panel-filters" class="control-section" role="tabpanel" aria-labelledby="tab-filters" hidden>
+              <h3>Helmholtz smoothing</h3>
+              <label for="filter_radius">Length · ℓ<input id="filter_radius" name="filter_radius" type="number" min="0" max="1000" step="any" value="0.1" aria-describedby="filter-description filter-hint" required></label>
+              <input id="filter-slider" type="range" min="0" max="0.5" step="0.005" value="0.1" aria-label="Helmholtz filter size in model units">
+              <div class="range-labels"><span>Off</span><span id="filter-range-max">0.5</span></div>
+              <div class="filter-description" id="filter-description" aria-live="polite">R ≈ 0.3464 · Ø ≈ 0.6928 model units</div>
+              <p class="filter-hint" id="filter-hint">Circle radius R ≈ 2√3 ℓ is an equivalent finite-filter scale, not a guaranteed member thickness. Set ℓ to 0 to disable.</p>
+              <div class="filter-divider"></div>
+              <h3>Heaviside projection</h3>
+              <div class="input-grid">
+                <label>Sharpness · β<input id="projection_beta" name="projection_beta" type="number" min="0" max="64" step="any" value="2" required></label>
+                <label>Threshold · η<input id="projection_eta" name="projection_eta" type="number" min="0.01" max="0.99" step="any" value="0.5" required></label>
+              </div>
+              <input id="projection-slider" type="range" min="0" max="16" step="0.25" value="2" aria-label="Projection sharpness">
+              <div class="range-labels"><span>Off</span><span id="projection-range-max">16</span></div>
+              <div class="filter-description" id="projection-description" aria-live="polite">β = 2 · η = 0.5</div>
+              <p class="filter-hint">Higher β sharpens the solid/void transition. Set β to 0 to disable. Values stay fixed during the run.</p>
+              <div class="config-info">Design → Helmholtz → projection → physical material</div>
+            </section>
+
+            <section id="panel-optimisation" class="control-section" role="tabpanel" aria-labelledby="tab-optimisation" hidden>
+              <label>Optimiser<select id="optimizer" name="optimizer"><option value="mma">MMA</option><option value="gcmma">GCMMA</option></select></label>
               <div class="label-row"><label for="volume_fraction">Material volume</label><output id="volume-label">40%</output></div>
               <input id="volume_fraction" name="volume_fraction" type="range" min="0.05" max="0.95" step="0.01" value="0.4">
               <div class="range-labels"><span>5%</span><span>95%</span></div>
-              <label class="full-label iteration-limit">Maximum iterations<input id="max_iterations" name="max_iterations" type="number" min="1" max="1000" step="1" value="100" required></label>
+              <label class="iteration-limit">Maximum iterations<input id="max_iterations" name="max_iterations" type="number" min="1" max="1000" step="1" value="100" required></label>
+              <div class="config-info">The volume limit is applied to the physical material after filtering and projection.</div>
             </section>
           </fieldset>
         </form>
-        <div class="controls-footer"><span class="mini-dot"></span> Nondimensional model · <span id="filter-status">Helmholtz filter</span></div>
+        <div class="controls-footer"><span class="mini-dot"></span><span id="filter-status">Helmholtz + projection</span></div>
       </aside>
 
       <div class="viewers">
         <section class="panel viewer-panel" aria-labelledby="model-title">
-          <div class="panel-heading"><div><h2 id="model-title">Geometry & mesh</h2><p id="selection-description">Load at node (60, 10)</p></div><span class="viewer-badge"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3h14v14H3zM3 8h14M3 12h14M8 3v14M12 3v14"/></svg>Editable model</span></div>
-          <fieldset id="filter-settings" class="filter-controls">
-            <label for="filter_radius">Helmholtz size · ℓ
-              <input id="filter_radius" name="filter_radius" form="model-form" type="number" min="0" max="1000" step="any" value="0.1" aria-describedby="filter-description filter-hint" required>
-            </label>
-            <div class="filter-slider-block">
-              <input id="filter-slider" type="range" min="0" max="0.5" step="0.005" value="0.1" aria-label="Helmholtz filter size in model units">
-              <div class="range-labels"><span>Off</span><span id="filter-range-max">0.5</span></div>
-            </div>
-            <div class="filter-caption">
-              <div class="filter-description" id="filter-description" aria-live="polite">R ≈ 0.3464 · Ø ≈ 0.6928 model units · radius 6.928 × 6.928 cells</div>
-              <p class="filter-hint" id="filter-hint">Circle radius R ≈ 2√3 ℓ: equivalent finite-filter scale, not a guaranteed member thickness. Set 0 to disable.</p>
-            </div>
-          </fieldset>
-          <div class="canvas-wrap model-wrap"><canvas id="model-canvas" tabindex="0" role="img" aria-label="Cantilever mesh with the equivalent finite-filter radius reference circle. Click a free node to select the load position. You can also use the node column and row inputs."></canvas></div>
+          <div class="panel-heading"><div><h2 id="model-title">Geometry & mesh</h2><p id="selection-description">Load at node (60, 10)</p></div><span class="viewer-badge" id="model-filter-summary">R ≈ 0.3464 · β = 2</span></div>
+          <div class="canvas-wrap model-wrap"><canvas id="model-canvas" tabindex="0" role="img" aria-label="Cantilever mesh with the equivalent finite-filter radius reference circle. Click a free node to select the load position."></canvas></div>
           <div class="viewer-footer"><div class="legend"><span><i class="legend-support"></i>Fixed edge</span><span><i class="legend-load"></i>Applied load</span><span id="filter-legend"><i class="legend-filter"></i>Equivalent radius R</span></div><span id="force-components">F = (0.00, −1.00)</span></div>
         </section>
 
@@ -98,7 +110,7 @@
             <div><span>MATERIAL VOLUME</span><strong id="current-volume">—</strong><small id="volume-target">Target 40%</small></div>
             <div><span>ITERATION</span><strong id="iteration">—<em> / 100</em></strong><small id="density-change">No iterations yet</small></div>
           </div>
-          <div class="canvas-wrap topology-wrap"><canvas id="topology-canvas" role="img" aria-label="Live material density with an equivalent finite-filter radius reference circle"></canvas><div class="empty-state" id="empty-state"><span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M4 4h8v8H4zm12 0h8v8h-8zM4 16h8v8H4zm12 0h8v8h-8z"/></svg></span><strong>Your design starts here</strong><span>Click Run optimisation to begin.</span></div></div>
+          <div class="canvas-wrap topology-wrap"><canvas id="topology-canvas" role="img" aria-label="Live physical material density after Helmholtz filtering and Heaviside projection, with an equivalent finite-filter radius reference circle"></canvas><div class="empty-state" id="empty-state"><span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M4 4h8v8H4zm12 0h8v8h-8zM4 16h8v8H4zm12 0h8v8h-8z"/></svg></span><strong>Your design starts here</strong><span>Click Run optimisation to begin.</span></div></div>
           <div class="iteration-progress"><span id="progress-bar"></span></div>
           <div class="viewer-footer"><div class="density-legend"><span>Void</span><i></i><span>Solid</span></div><span id="live-note">Updates after every evaluated iteration</span></div>
         </section>

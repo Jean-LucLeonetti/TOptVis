@@ -1,6 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
+set "PYTHONPATH=%~dp0src;%PYTHONPATH%"
 
 if not exist ".venv\Scripts\python.exe" (
     echo The local Python environment is missing. Run scripts\setup_windows.ps1 first.

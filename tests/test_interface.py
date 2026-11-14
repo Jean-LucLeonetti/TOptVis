@@ -58,16 +58,21 @@ def test_local_page_and_validation():
     with TestClient(create_app()) as client:
         assert client.get("/").status_code == 200
         assert 'id="filter_radius"' in client.get("/").text
+        assert 'role="tablist"' in client.get("/").text
+        assert 'id="projection_beta"' in client.get("/").text
         assert client.get("/static/app.js").status_code == 200
         health = client.get("/api/health").json()
         assert health["status"] == "ready" and not health["running"]
         assert isinstance(health["worker_ready"], bool)
+        assert health["projection_supported"] is True
         invalid = {"nx": 6, "ny": 2, "load_node_x": 0, "load_node_y": 1}
         assert client.post("/api/run", json=invalid).status_code == 422
         invalid["load_node_x"] = 7
         assert client.post("/api/run", json=invalid).status_code == 422
         assert client.post("/api/run/missing/stop").status_code == 404
         assert client.post("/api/run", json={"filter_radius": -.1}).status_code == 422
+        assert client.post("/api/run", json={"projection_beta": -1}).status_code == 422
+        assert client.post("/api/run", json={"projection_eta": 1}).status_code == 422
 
 
 @pytest.mark.parametrize("method", ["mma", "gcmma"])
@@ -76,12 +81,15 @@ def test_api_streams_real_topology_frames(method, radius):
     with TestClient(create_app()) as client:
         response = client.post("/api/run", json={"nx": 8, "ny": 3,
             "load_node_x": 5, "load_node_y": 1, "load_angle": -60,
-            "max_iterations": 4, "optimizer": method, "filter_radius": radius})
+            "max_iterations": 4, "optimizer": method, "filter_radius": radius,
+            "projection_beta": 4, "projection_eta": .4})
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("application/x-ndjson")
         events = [json.loads(line) for line in response.text.splitlines()]
         assert events[0]["event"] == "started"
         assert events[0]["config"]["filter_radius"] == radius
+        assert events[0]["config"]["projection_beta"] == 4
+        assert events[0]["config"]["projection_eta"] == .4
         assert events[-1]["event"] == "complete"
         frames = [event for event in events if event["event"] == "iteration"]
         assert [frame["history"]["iteration"] for frame in frames] == [0, 1, 2, 3, 4]
@@ -89,7 +97,8 @@ def test_api_streams_real_topology_frames(method, radius):
         assert frames[-1]["history"]["compliance"] < frames[0]["history"]["compliance"]
         assert frames[-1]["density"] != frames[0]["density"]
         expected = optimise(CantileverConfig(nx=8, ny=3, load_node_x=5, load_node_y=1,
-                            load_angle=-60, max_iterations=4, optimizer=method, filter_radius=radius))
+                            load_angle=-60, max_iterations=4, optimizer=method, filter_radius=radius,
+                            projection_beta=4, projection_eta=.4))
         np.testing.assert_allclose(frames[-1]["density"], expected.evaluation.density, rtol=1e-9, atol=1e-10)
         assert not client.get("/api/health").json()["running"]
 
@@ -140,6 +149,7 @@ def test_worker_reuses_process_and_resets_geometry_load_and_optimizer():
         manager.warmup()
         pid = manager._process.pid
         for config in (base, replace(base, nx=8, ny=3, optimizer="gcmma", load=2, filter_radius=.12,
+                                     projection_beta=3, projection_eta=.4,
                                      load_node_x=4, load_node_y=1), base):
             job = manager.start(config)
             assert job.process.pid == pid

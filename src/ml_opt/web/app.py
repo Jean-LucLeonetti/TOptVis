@@ -29,6 +29,8 @@ class RunRequest(BaseModel):
     load_node_y: int = Field(default=10, ge=0)
     volume_fraction: float = Field(default=0.4, gt=0, lt=1)
     filter_radius: float = Field(default=0.1, ge=0, le=1000)
+    projection_beta: float = Field(default=2.0, ge=0, le=64)
+    projection_eta: float = Field(default=0.5, gt=0, lt=1)
     optimizer: Literal["mma", "gcmma"] = "mma"
     max_iterations: int = Field(default=100, ge=1, le=1000)
 
@@ -64,7 +66,7 @@ def create_app() -> FastAPI:
     @app.get("/api/health")
     async def health():
         return {"status": "ready", "running": manager.active is not None,
-                "worker_ready": manager.worker_ready}
+                "worker_ready": manager.worker_ready, "projection_supported": True}
 
     @app.post("/api/run")
     async def run(request: RunRequest):

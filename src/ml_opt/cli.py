@@ -19,6 +19,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--optimizer", choices=("mma", "gcmma"), default=defaults.optimizer)
     parser.add_argument("--filter-radius", type=float, default=defaults.filter_radius,
                         help="Helmholtz length in model units; 0 disables filtering (default: 0)")
+    parser.add_argument("--projection-beta", type=float, default=defaults.projection_beta,
+                        help="Heaviside sharpness, fixed during the run; 0 disables projection")
+    parser.add_argument("--projection-eta", type=float, default=defaults.projection_eta,
+                        help="Heaviside threshold in (0, 1), default: 0.5")
     parser.add_argument("--output", type=Path, help="Output directory (default: outputs/cantilever-<optimizer>)")
     parser.add_argument("--quiet", action="store_true")
     options = vars(parser.parse_args(argv))

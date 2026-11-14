@@ -9,6 +9,7 @@ from .config import CantileverConfig
 from .fem import ElasticitySolver, StructuredMesh
 from .fem.elasticity import compliance
 from .fem.filter import HelmholtzFilter
+from .projection import heaviside_projection
 
 
 @dataclass
@@ -62,7 +63,9 @@ class CantileverProblem:
             raise ValueError("Design densities must lie in [0, 1]")
         x = torch.tensor(array, dtype=torch.float64, requires_grad=sensitivities)
         with torch.set_grad_enabled(sensitivities):
-            density = self.density_filter.apply(x)
+            filtered = self.density_filter.apply(x)
+            density = heaviside_projection(filtered, self.config.projection_beta,
+                                           self.config.projection_eta)
             moduli = self.config.minimum_modulus + (self.config.young_modulus -
                       self.config.minimum_modulus) * density.pow(self.config.penalisation)
             objective = compliance(moduli, self.solver)

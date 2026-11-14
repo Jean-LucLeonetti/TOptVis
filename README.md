@@ -41,21 +41,30 @@ The Windows setup script includes the interface dependencies. You can also
 launch it with `toptvis-ui` after activating the environment; use `--port 8001`
 if port 8000 is already occupied.
 
-1. Set the domain length, height, and number of elements. The geometry and mesh
+The far-left tabs separate **Geometry**, **Load**, **Filters**, and
+**Optimisation** settings. The configuration panel shows the selected tab;
+the mesh and live topology stay in the central workspace. Tab changes retain
+all values. Use arrow keys, Home, and End to navigate the tab rail.
+
+1. In **Geometry**, set the domain length, height, and number of elements. The geometry and mesh
    preview updates immediately.
-2. Click any free mesh node to place the load, or enter its column and row.
+2. Click any free mesh node to place the load, or enter its column and row in **Load**.
    The left edge remains clamped. Set the magnitude and direction; the arrow
    and force components update immediately. Angles are counterclockwise from
    the positive x direction, so -90 degrees points downward.
-3. Choose MMA or GCMMA, the material volume, and the iteration limit. Click
+3. In **Filters**, set the Helmholtz length and the Heaviside projection's
+   sharpness β and threshold η. Larger β sharpens the solid/void transition;
+   β = 0 disables projection. These values remain fixed during a run.
+4. In **Optimisation**, choose MMA or GCMMA, the material volume, and the iteration limit. Click
    **Run optimisation** to see the topology, compliance, volume, and iteration
    values update as the actual solver runs. **Stop** retains the last evaluated
    design.
 
-Model controls are locked during a run. Editing the model afterward clears
+Model inputs are locked during a run; tabs remain available for inspection.
+Editing the model afterward clears
 the previous result so it cannot be mistaken for the updated load case.
 The interface uses the same solver as the command-line example. The
-**Helmholtz size · ℓ** control beside the mesh sets the density filter length
+**Length · ℓ** control in the Filters tab sets the density filter length
 in model units (initially 0.1). Drag the slider or enter a value: the purple
 circle shows the conventional equivalent finite-filter radius
 `R ≈ 2√3 ℓ` at the actual geometry scale. The readout gives R, its diameter,
@@ -69,7 +78,10 @@ process starts in the background with the server and streams each evaluated
 outer iteration to the browser. It stays warm between runs; geometry, loads,
 and optimiser state are recreated for each run. Closing the live connection
 cancels that run; the server allows one active optimisation at a time.
-`/api/health` reports `worker_ready` separately from HTTP server readiness.
+`/api/health` reports `worker_ready` separately from HTTP server readiness and
+indicates projection support. If an older server is still running after an
+update, the page asks for a restart before enabling Run. Close the original
+launcher window, reopen **Start TOptVis.bat**, and refresh the page.
 
 ## 2D cantilever example
 
@@ -84,26 +96,49 @@ unit thickness and load, Young's modulus 1, Poisson ratio 0.3, volume fraction
 0.4, and SIMP penalisation 3. The material law is
 `E(rho) = E_min + (E_solid - E_min) * rho**p`, with `E_min = 1e-6`.
 These are nondimensional benchmark parameters. The Python/CLI default
-`filter_radius=0` retains the original unfiltered benchmark; the visual
-interface initially uses `filter_radius=0.1`.
+`filter_radius=0` and `projection_beta=0` retain the original unfiltered
+benchmark; the visual interface initially uses `filter_radius=0.1`,
+`projection_beta=2`, and `projection_eta=0.5`.
 
 ### Helmholtz density filter
 
-For a positive `filter_radius = ℓ`, the physical density solves
-`rho - ℓ² ∇²rho = x` with zero normal flux on every domain boundary. Here `x`
+For a positive `filter_radius = ℓ`, the smoothed density solves
+`rho_smooth - ℓ² ∇²rho_smooth = x` with zero normal flux on every domain boundary. Here `x`
 is the bounded element design variable. A cell-centred finite-volume
 discretisation uses the actual x/y mesh spacings, including rectangular cells.
 The formulation preserves constant densities and material volume and keeps
 filtered densities within the input range, up to floating-point roundoff.
 SIMP, the volume constraint, saved density plots, and live topology frames all
-use the filtered physical density. Saved `design` arrays remain the raw
+use the final physical density after any projection. Saved `design` arrays remain the raw
 optimiser variables, while saved `density` arrays hold the physical result.
 
 PETSc factors the fixed filter matrix once per problem and reuses those
 factors for the forward filter and its transpose adjoint. PyTorch propagates
 compliance and volume gradients back through the filter to the design
 variables. As with the elasticity bridge, this supports first derivatives on
-CPU float64 tensors. No projection is applied.
+CPU float64 tensors.
+
+### Heaviside projection
+
+The pointwise normalised smooth Heaviside projection follows Helmholtz
+smoothing, using the formulation of
+[Wang, Lazarov, and Sigmund (2011)](https://doi.org/10.1007/s00158-010-0602-y):
+
+```text
+rho_physical = [tanh(beta * eta) + tanh(beta * (rho_smooth - eta))]
+               / [tanh(beta * eta) + tanh(beta * (1 - eta))]
+```
+
+`projection_beta >= 0` controls sharpness; 0 bypasses the projection exactly.
+`0 < projection_eta < 1` sets its threshold. The UI starts at β = 2, η = 0.5;
+the Python/CLI default β = 0 preserves the previous benchmark. Beta and eta
+are fixed throughout a run, with no automatic continuation.
+
+Projection is generally not volume preserving, so the volume constraint uses
+`mean(rho_physical)`, not the raw or smoothed density mean. PyTorch carries
+both compliance and volume sensitivities through the projection and the
+Helmholtz adjoint. The live frames and saved `density` array contain exactly
+the physical density used for the state solve.
 
 ℓ is the coefficient length in the PDE. The displayed circle uses the
 approximate equivalent radius `R ≈ 2√3 ℓ` of the classical finite-support
@@ -129,6 +164,7 @@ After installing the project and dependencies:
 .\.venv\Scripts\python.exe -m ml_opt --optimizer mma
 .\.venv\Scripts\python.exe -m ml_opt --optimizer gcmma
 .\.venv\Scripts\python.exe -m ml_opt --optimizer mma --filter-radius 0.1
+.\.venv\Scripts\python.exe -m ml_opt --optimizer gcmma --filter-radius 0.1 --projection-beta 4 --projection-eta 0.5
 ```
 
 The equivalent console command is `toptvis-cantilever --optimizer mma` with
@@ -186,6 +222,7 @@ of 0.40000; these are local designs, not certified global optima.
 src/ml_opt/config.py          Benchmark and optimisation parameters
 src/ml_opt/fem/               Mesh, Q4 integration, PETSc solve/autograd bridge
 src/ml_opt/problem.py         SIMP objective, volume constraint, sensitivities
+src/ml_opt/projection.py      Differentiable smooth Heaviside projection
 src/ml_opt/optimizers/        MMA/GCMMA state and inner iterations
 src/ml_opt/runner.py          Outer optimisation and stopping criteria
 src/ml_opt/output.py          Result files and figures
@@ -211,6 +248,10 @@ Run the numerical tests with:
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]" --no-build-isolation
 .\.venv\Scripts\python.exe -m pytest -q
 ```
+
+When a Git worktree shares another checkout's environment, set
+`$env:PYTHONPATH = Join-Path $PWD 'src'` before running Python or tests, so
+the worktree's source is used. The launcher sets this automatically.
 
 ### Local Windows environment
 

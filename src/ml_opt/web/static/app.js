@@ -13,6 +13,36 @@ function readModel() {
   return model;
 }
 
+const configTabs = Array.from(document.querySelectorAll('[role="tab"]'));
+function selectPanel(panelId, focus = false) {
+  for (const tab of configTabs) {
+    const selected = tab.dataset.panel === panelId;
+    tab.setAttribute("aria-selected", String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+    byId(tab.dataset.panel).hidden = !selected;
+    if (selected) {
+      byId("config-title").textContent = tab.dataset.title;
+      if (focus) tab.focus();
+    }
+  }
+}
+for (const [index, tab] of configTabs.entries()) {
+  tab.addEventListener("click", () => selectPanel(tab.dataset.panel));
+  tab.addEventListener("keydown", event => {
+    let next;
+    if (event.key === "ArrowDown" || event.key === "ArrowRight") next = (index + 1) % configTabs.length;
+    if (event.key === "ArrowUp" || event.key === "ArrowLeft") next = (index + configTabs.length - 1) % configTabs.length;
+    if (event.key === "Home") next = 0;
+    if (event.key === "End") next = configTabs.length - 1;
+    if (next !== undefined) { event.preventDefault(); selectPanel(configTabs[next].dataset.panel, true); }
+  });
+}
+form.addEventListener("invalid", event => {
+  const invalid = form.querySelector("input:invalid, select:invalid") || event.target;
+  const panel = invalid.closest('[role="tabpanel"]');
+  if (panel) selectPanel(panel.id);
+}, true);
+
 function showError(message = "") {
   byId("error").textContent = message;
   byId("error").hidden = !message;
@@ -47,7 +77,16 @@ function updateLabels(resizeFilterRange = true) {
   const referenceRadius = equivalentFilterRadius(radius);
   byId("filter-description").textContent = radius > 0 ?
     `R ≈ ${filterFormat(referenceRadius)} · Ø ≈ ${filterFormat(2 * referenceRadius)} model units · radius ${filterFormat(referenceRadius * m.nx / m.length)} × ${filterFormat(referenceRadius * m.ny / m.height)} cells` : "Filter off · design densities used directly";
-  byId("filter-status").textContent = radius > 0 ? "Helmholtz filter" : "Filter off";
+  const beta = m.projection_beta, eta = m.projection_eta;
+  const projectionSlider = byId("projection-slider");
+  const projectionMax = resizeFilterRange ? Math.max(16, beta) : Number(projectionSlider.max);
+  projectionSlider.max = projectionMax;
+  projectionSlider.value = beta;
+  byId("projection-range-max").textContent = filterFormat(projectionMax);
+  byId("projection-description").textContent = beta > 0 ?
+    `β = ${filterFormat(beta)} · η = ${filterFormat(eta)} · fixed during run` : "Projection off · smoothed densities used directly";
+  byId("filter-status").textContent = [radius > 0 ? "Helmholtz" : null, beta > 0 ? "Projection" : null].filter(Boolean).join(" + ") || "Filters off";
+  byId("model-filter-summary").textContent = `${radius > 0 ? `R ≈ ${filterFormat(referenceRadius)}` : "Smoothing off"} · ${beta > 0 ? `β = ${filterFormat(beta)}` : "Projection off"}`;
   byId("filter-legend").hidden = radius === 0;
   const rad = m.load_angle * Math.PI / 180;
   byId("force-components").textContent = `F = (${signed(m.load * Math.cos(rad))}, ${signed(m.load * Math.sin(rad))})`;
@@ -81,13 +120,12 @@ function updateModel(event) {
   }
   if (!form.checkValidity()) return;
   state.model = readModel(); state.hover = null;
-  showError(); updateLabels(event?.target.id !== "filter-slider"); clearResult(); redraw();
+  showError(); updateLabels(!["filter-slider", "projection-slider"].includes(event?.target.id)); clearResult(); redraw();
 }
 
 function setRunning(running) {
   state.running = running;
   byId("settings").disabled = running;
-  byId("filter-settings").disabled = running;
   byId("run").disabled = running || !state.ready;
   byId("run-label").textContent = running ? "Optimising…" : "Run optimisation";
   byId("stop").disabled = !running || !state.runId;
@@ -113,7 +151,7 @@ function receive(event) {
     byId("iteration").innerHTML = `${row.iteration}<em> / ${state.model.max_iterations}</em>`;
     byId("density-change").textContent = `Density change ${row.design_change.toFixed(4)}`;
     byId("progress-bar").style.width = `${100 * row.iteration / state.model.max_iterations}%`;
-    byId("topology-description").textContent = `${state.model.optimizer.toUpperCase()} · ${state.model.filter_radius > 0 ? "Filtered" : "Unfiltered"} element densities`;
+    byId("topology-description").textContent = `${state.model.optimizer.toUpperCase()} · ${state.model.projection_beta > 0 ? "Projected" : state.model.filter_radius > 0 ? "Filtered" : "Unfiltered"} physical densities`;
     byId("live-note").textContent = `Iteration ${row.iteration} · ${row.state_solves} state solves`;
     status("Running", "running");
     drawTopology(topologyCanvas, state.model, state.density);
@@ -142,7 +180,12 @@ async function start(event) {
     const response = await fetch("/api/run", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(state.model)});
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(typeof error.detail === "string" ? error.detail : error.detail?.map(item => item.msg).join("; ") || "Could not start the solver.");
+      const details = error.detail;
+      if (Array.isArray(details) && details.some(item => item.type === "extra_forbidden" &&
+          ["projection_beta", "projection_eta"].includes(item.loc?.at(-1)))) {
+        throw new Error("The running server needs an update. Restart TOptVis, then refresh this page to use projection.");
+      }
+      throw new Error(typeof details === "string" ? details : details?.map(item => `${item.loc?.at(-1) || "Input"}: ${item.msg}`).join("; ") || "Could not start the solver.");
     }
     const reader = response.body.getReader(), decoder = new TextDecoder();
     let buffer = "";
@@ -186,7 +229,10 @@ byId("filter-slider").addEventListener("input", event => {
   byId("filter_radius").value = Number(Number(event.target.value).toPrecision(4));
   updateModel(event);
 });
-byId("filter_radius").addEventListener("input", updateModel);
+byId("projection-slider").addEventListener("input", event => {
+  byId("projection_beta").value = Number(Number(event.target.value).toPrecision(4));
+  updateModel(event);
+});
 modelCanvas.addEventListener("click", event => {
   if (state.running) return;
   const node = pickNode(modelCanvas, state.model, event);
@@ -215,11 +261,17 @@ try {
   const response = await fetch("/api/health");
   if (!response.ok) throw new Error("Local solver unavailable");
   const health = await response.json();
-  state.ready = true;
-  byId("connection").dataset.ready = "true";
-  byId("connection").lastElementChild.textContent = "Local solver connected";
-  if (health.running) showError("Another run is active in this server. Wait for it to finish before starting.");
-  setRunning(false);
+  if (!health.projection_supported) {
+    byId("connection").lastElementChild.textContent = "Server restart needed";
+    showError("Restart TOptVis and refresh this page to load the projection controls in the server.");
+    setRunning(false);
+  } else {
+    state.ready = true;
+    byId("connection").dataset.ready = "true";
+    byId("connection").lastElementChild.textContent = "Local solver connected";
+    if (health.running) showError("Another run is active in this server. Wait for it to finish before starting.");
+    setRunning(false);
+  }
 } catch {
   byId("connection").lastElementChild.textContent = "Solver unavailable";
   showError("Could not reach the local solver. Start it with python -m ml_opt.web, then reload this page.");

@@ -21,6 +21,8 @@ class CantileverConfig:
     volume_fraction: float = 0.4
     penalisation: float = 3.0
     filter_radius: float = 0.0
+    projection_beta: float = 0.0
+    projection_eta: float = 0.5
     optimizer: str = "mma"
     move_limit: float = 0.2
     max_iterations: int = 100
@@ -56,6 +58,10 @@ class CantileverConfig:
             raise ValueError("penalisation must be at least 1")
         if not math.isfinite(self.filter_radius) or self.filter_radius < 0:
             raise ValueError("filter_radius must be finite and nonnegative")
+        if not math.isfinite(self.projection_beta) or self.projection_beta < 0:
+            raise ValueError("projection_beta must be finite and nonnegative")
+        if not math.isfinite(self.projection_eta) or not 0 < self.projection_eta < 1:
+            raise ValueError("projection_eta must be finite and lie between 0 and 1")
         if not 0 < self.move_limit <= 1:
             raise ValueError("move_limit must lie in (0, 1]")
         if self.optimizer not in ("mma", "gcmma"):
