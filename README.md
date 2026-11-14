@@ -41,6 +41,12 @@ The Windows setup script includes the interface dependencies. You can also
 launch it with `toptvis-ui` after activating the environment; use `--port 8001`
 if port 8000 is already occupied.
 
+The top tabs separate **Cantilever 2D** from **ROM Training**. Switching tabs
+preserves the cantilever settings, results, and any active run. ROM Training
+is a dedicated workspace for the planned offline training workflow; training
+and model generation are not available yet. The workspaces can be opened
+directly with `/#cantilever-2d` and `/#rom-training`.
+
 The far-left tabs separate **Geometry**, **Load**, **Filters**, and
 **Optimisation** settings. The configuration panel shows the selected tab;
 the mesh and live topology stay in the central workspace. Tab changes retain

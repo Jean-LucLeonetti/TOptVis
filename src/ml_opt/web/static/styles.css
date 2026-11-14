@@ -12,8 +12,11 @@ a {color:inherit;text-decoration:none}
 .brand-mark {height:38px;width:38px;display:grid;place-items:center;background:var(--teal);border-radius:10px}
 .brand-mark svg {height:27px;width:27px;fill:white}
 .brand-caption {display:block;font-size:10px;font-weight:450;letter-spacing:.65px;color:var(--muted);margin-top:3px}
-.header-context {display:flex;align-items:center;gap:12px;font-size:12px;color:#62747c}
-.context-divider {width:1px;height:27px;background:var(--line);margin-right:8px}
+.workspace-tabs {align-self:stretch;display:flex;align-items:stretch;gap:22px;min-width:0}
+.workspace-tab {position:relative;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--muted);padding:3px 2px 0;font-size:12px;font-weight:600;white-space:nowrap}
+.workspace-tab:hover {color:var(--teal)}
+.workspace-tab[aria-selected=true] {border-bottom-color:var(--teal);color:var(--teal)}
+.workspace-page:focus-visible {outline:2px solid var(--focus);outline-offset:4px}
 .tag {font-size:10px;color:#697b83;background:#f0f4f5;border:1px solid #e8edef;border-radius:5px;padding:4px 6px;font-weight:600;white-space:nowrap}
 .connection {margin-left:auto;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
 .connection i,.mini-dot {height:6px;width:6px;display:inline-block;border-radius:50%;background:#aeb9c0}
@@ -111,6 +114,16 @@ input[type=range]:disabled {cursor:default}
 .iteration-progress span {display:block;background:#4b9b8d;height:100%;width:0;transition:width .2s}
 .page-footer {margin-top:17px;display:flex;justify-content:space-between;color:#a1adb4;font-size:9px;letter-spacing:.2px}
 .error-banner {background:#fff0eb;border:1px solid #f0d3c8;border-radius:7px;color:#a44f3e;padding:12px 15px;font-size:12px;margin-bottom:18px}
+.training-overview {display:flex;align-items:flex-start;gap:22px;padding:32px;max-width:1100px}
+.training-icon {width:54px;height:54px;flex-shrink:0;display:grid;place-items:center;border-radius:12px;background:#e6f1ee;color:var(--teal)}
+.training-icon svg {width:32px;height:32px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.training-overview h2 {font-size:18px;margin:2px 0 10px}
+.training-overview p,.training-stage p {font-size:12px;line-height:1.8;color:var(--muted);margin:0;max-width:620px}
+.training-overview .training-note {margin-top:16px;padding-top:16px;border-top:1px solid var(--line);font-size:11px}
+.training-stages {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;max-width:1100px;margin-top:18px}
+.training-stage {padding:24px}
+.training-stage .eyebrow {display:block;margin-bottom:16px}
+.training-stage h2 {margin-bottom:9px}
 @keyframes pulse {50%{opacity:.35}}
 @media(min-width:1600px) {.workspace{grid-template-columns:76px 286px minmax(0,1fr);gap:20px}.viewers{min-height:680px}}
 @media(max-width:1100px) {.workspace{grid-template-columns:62px 240px minmax(0,1fr);gap:12px}main{padding:18px 16px 12px}.controls-title,.control-section{padding-left:17px;padding-right:17px}.config-tab{font-size:9px}.viewer-badge{font-size:9px}.panel-heading{padding-left:17px;padding-right:17px}.viewer-footer{padding-left:17px;padding-right:17px;font-size:9px}.metrics{margin:0 17px}.metrics>div{padding-left:12px}.metrics strong{font-size:20px}.metrics>div>span{font-size:7px;letter-spacing:.7px}.legend{gap:11px}.header-context{gap:8px}}
@@ -118,3 +131,4 @@ input[type=range]:disabled {cursor:default}
 @media(max-width:700px) {.app-header{height:65px;padding:0 16px}.brand{font-size:21px}.brand-mark{height:34px;width:34px}.brand-caption{font-size:9px}.connection{font-size:10px}main{padding:15px 12px 12px}.page-heading{flex-wrap:wrap;gap:13px;position:relative;margin-bottom:14px}.page-heading p{font-size:11px}h1{font-size:24px}.run-actions{width:100%}.run-actions .primary{flex:1}.workspace{grid-template-columns:1fr;gap:12px}.config-tabs{position:static;flex-direction:row;padding:0;gap:6px}.config-tab{flex:1;min-height:62px;font-size:10px;gap:5px;padding:8px 4px}.config-tab svg{width:19px;height:19px}.controls{position:static}.controls-title{min-height:48px}.control-section{padding:18px}.controls-footer{padding:10px}.viewers{height:auto;grid-template-rows:300px 380px;min-height:0;gap:14px}.panel-heading{padding:15px 17px 12px}.viewer-badge{display:block;font-size:9px}.metrics strong{font-size:20px}.metrics small{font-size:9px}.metrics>div>span{font-size:7px}.canvas-wrap{min-height:140px}.page-footer{font-size:8px}.topology-panel{scroll-margin-top:12px}}
 @media(prefers-reduced-motion:reduce) {*{animation:none!important;transition:none!important}}
 @media(max-width:700px) {.controls{max-height:none}.controls form{overflow:visible}}
+@media(max-width:700px) {.app-header{height:auto;min-height:65px;flex-wrap:wrap;gap:0 16px;padding-top:12px}.connection{font-size:9px}.workspace-tabs{order:3;width:100%;height:48px;gap:24px;margin-top:9px}.workspace-tab{font-size:12px}.training-overview{padding:22px;gap:16px}.training-stages{grid-template-columns:1fr;gap:12px}.training-stage{padding:22px}.training-overview h2{font-size:16px}}

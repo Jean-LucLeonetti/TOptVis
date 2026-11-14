@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TOptVis · Cantilever workspace</title>
+  <title>TOptVis · Cantilever 2D</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23196964'/%3E%3Cpath d='M7 8h18v5h-6v12h-6V13H7z' fill='white'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/static/styles.css">
   <script type="module" src="/static/app.js"></script>
@@ -14,10 +14,14 @@
       <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M6 7h20v6h-7v13h-6V13H6z"/></svg></span>
       <span>TOptVis<span class="brand-caption">Topology optimisation</span></span>
     </a>
-    <div class="header-context"><span class="context-divider"></span><span>Cantilever workspace</span><span class="tag">2D</span></div>
+    <nav class="workspace-tabs" role="tablist" aria-label="Workspaces">
+      <button id="tab-cantilever" class="workspace-tab" type="button" role="tab" aria-selected="true" aria-controls="workspace-cantilever" data-workspace="cantilever-2d" tabindex="0">Cantilever 2D</button>
+      <button id="tab-rom-training" class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="workspace-rom-training" data-workspace="rom-training" tabindex="-1">ROM Training</button>
+    </nav>
     <div class="connection" id="connection"><i></i><span>Connecting</span></div>
   </header>
   <main>
+    <section id="workspace-cantilever" class="workspace-page" role="tabpanel" aria-labelledby="tab-cantilever" tabindex="0">
     <div class="page-heading">
       <div><div class="eyebrow">DESIGN WORKSPACE</div><h1>Shape follows force.</h1><p>Configure on the left. Explore the mesh and material in the workspace.</p></div>
       <div class="run-actions">
@@ -116,7 +120,23 @@
         </section>
       </div>
     </div>
-    <footer class="page-footer"><span>TOptVis · Cantilever workspace</span><span>PyTorch + PETSc</span></footer>
+    </section>
+    <section id="workspace-rom-training" class="workspace-page" role="tabpanel" aria-labelledby="tab-rom-training" tabindex="0" hidden>
+      <div class="page-heading">
+        <div><div class="eyebrow">OFFLINE MODEL TRAINING</div><h1>ROM Training</h1><p>Build and validate a reusable reduced-order model for elasticity.</p></div>
+        <span class="status-badge"><i></i>In development</span>
+      </div>
+      <section class="panel training-overview" aria-labelledby="training-title">
+        <span class="training-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M5 8h22M5 16h22M5 24h22M11 5v22M21 5v22"/><path d="m13 20 4-8 4 8"/></svg></span>
+        <div><h2 id="training-title">A dedicated space for training</h2><p>Prepare training cases, collect full-order solutions, and build a reduced basis to reuse in elasticity solves.</p><p class="training-note">The training workflow is in development. No training runs or trained models are available yet.</p></div>
+      </section>
+      <div class="training-stages" aria-label="Planned training workflow">
+        <section class="panel training-stage"><span class="eyebrow">01 · TRAINING DATA</span><h2>Collect snapshots</h2><p>Define representative load cases and material layouts, then collect displacement solutions.</p></section>
+        <section class="panel training-stage"><span class="eyebrow">02 · REDUCED BASIS</span><h2>Build the model</h2><p>Compress the snapshots into a reusable basis and choose the model size.</p></section>
+        <section class="panel training-stage"><span class="eyebrow">03 · VALIDATION</span><h2>Check accuracy</h2><p>Compare against full-order solves on unseen cases before using the model for optimisation.</p></section>
+      </div>
+    </section>
+    <footer class="page-footer"><span id="workspace-label">TOptVis · Cantilever 2D</span><span>PyTorch + PETSc</span></footer>
   </main>
 </body>
 </html>
