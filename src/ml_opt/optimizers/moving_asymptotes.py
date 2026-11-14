@@ -25,7 +25,7 @@ class OptimizerStep:
 class MovingAsymptotes:
     def __init__(self, initial_design: np.ndarray, method: str = "mma",
                  move_limit: float = 0.2, max_inner_iterations: int = 30, *, robust: bool = False,
-                 max_size: bool = False):
+                 max_size: bool = False, max_void: bool = False):
         if method not in ("mma", "gcmma"):
             raise ValueError("Unknown moving-asymptote method")
         if not 0 < move_limit <= 1 or max_inner_iterations < 1:
@@ -33,7 +33,8 @@ class MovingAsymptotes:
         self.method = method
         self.robust = robust
         self.max_size = max_size
-        self.m = (4 if robust else 1) + int(max_size)
+        self.max_void = max_void
+        self.m = (4 if robust else 1) + int(max_size) + int(max_void)
         self.move = move_limit
         self.max_inner_iterations = max_inner_iterations
         self.n = len(initial_design)
@@ -68,6 +69,10 @@ class MovingAsymptotes:
             if evaluation.max_size_constraint is None:
                 raise ValueError("Maximum-size MMA requires its evaluated constraint")
             values.append(evaluation.max_size_constraint)
+        if self.max_void:
+            if evaluation.max_void_constraint is None:
+                raise ValueError("Maximum-void MMA requires its evaluated constraint")
+            values.append(evaluation.max_void_constraint)
         return objective, np.asarray(values).reshape(-1, 1)
 
     def step(self, design: np.ndarray, current: Evaluation,
@@ -94,6 +99,10 @@ class MovingAsymptotes:
             if current.max_size_gradient is None:
                 raise ValueError("Maximum-size MMA requires its constraint gradient")
             constraint_gradient = np.vstack([constraint_gradient, current.max_size_gradient])
+        if self.max_void:
+            if current.max_void_gradient is None:
+                raise ValueError("Maximum-void MMA requires its constraint gradient")
+            constraint_gradient = np.vstack([constraint_gradient, current.max_void_gradient])
         inner_iterations = 0
         # PERF B2: retain mmapy's subproblem algorithm, with diagonal row
         # scaling performed by broadcasting instead of allocating sparse matrices.

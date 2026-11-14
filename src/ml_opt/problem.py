@@ -8,12 +8,13 @@ import torch
 from .config import CantileverConfig
 from .fem import StructuredMesh
 from .fem.state_solver import create_state_solver
+from .fem.cache import CachedStateSolver
 from .fem.elasticity import compliance
 from .fem.filter import HelmholtzFilter
 from .fem.fields import FieldSolves, field_compliance
 from .projection import heaviside_projection
 from .material import elastic_modulus
-from .morphology import MaximumSolidSize
+from .morphology import MaximumSolidSize, MorphologicalSize
 
 
 @dataclass
@@ -39,34 +40,43 @@ class Evaluation:
     max_size_constraint: float | None = None
     max_size_eroded_volume: float | None = None
     max_size_gradient: np.ndarray | None = None
+    max_void_constraint: float | None = None
+    max_void_remaining_volume: float | None = None
+    max_void_gradient: np.ndarray | None = None
 
 
 class CantileverProblem:
-    def __init__(self, config: CantileverConfig, *, state_solver=None):
+    def __init__(self, config: CantileverConfig, *, state_solver=None, field_pool=None):
         if state_solver is not None and config.robust:
             raise ValueError("A supplied state solver is supported only for single-field problems")
         self.config = config
         self.projection_beta = config.projection_beta
         self.mesh = StructuredMesh(config.nx, config.ny, config.length, config.height)
         self.solver = state_solver if state_solver is not None else create_state_solver(config)
+        self._compliance_solver = CachedStateSolver(self.solver)
         self.rom_info = getattr(self.solver, "rom_info", None)
         if self.rom_info is not None:
             config = self.config = replace(config, rom_basis_sha256=self.rom_info["basis_sha256"])
         self.fields = None
         self.density_filter = None
         self.max_size = None
+        self.max_void = None
         try:
             if config.max_solid_size > 0:
                 self.max_size = MaximumSolidSize(self.mesh, config.max_solid_size,
                                                  config.max_size_beta, config.max_size_tolerance)
+            if config.max_void_size > 0:
+                self.max_void = MorphologicalSize(self.mesh, config.max_void_size,
+                                                  config.max_void_beta, config.max_void_tolerance)
             self.density_filter = HelmholtzFilter(self.mesh, config.filter_radius)
             if config.robust:
-                self.fields = FieldSolves(config, self.solver)
+                self.fields = FieldSolves(config, self.solver, worker_pool=field_pool)
         except BaseException:
             self.close()
             raise
 
     def close(self) -> None:
+        self._compliance_solver.cache.clear()
         try:
             if self.fields is not None:
                 self.fields.close()
@@ -129,9 +139,9 @@ class CantileverProblem:
                 residual = max(s.relative_residual for s in states)
                 iterations = sum(s.iterations for s in states)
             else:
-                objective = compliance(moduli, self.solver)
+                objective = compliance(moduli, self._compliance_solver)
                 volume = density.mean()
-                state = self.solver.last_state
+                state = self._compliance_solver.last_state
                 residual, iterations = state.relative_residual, state.iterations
             constraint = volume / self.config.volume_fraction - 1.0
             size_volume = size_constraint = None
@@ -139,8 +149,14 @@ class CantileverProblem:
                 size_density = densities[2] if self.config.robust else density
                 size_volume = self.max_size.eroded(size_density).mean()
                 size_constraint = size_volume / self.config.max_size_tolerance - 1
+            void_volume = void_constraint = None
+            if self.max_void is not None:
+                void_density = densities[0] if self.config.robust else density
+                void_volume = self.max_void.remaining_void(void_density).mean()
+                void_constraint = void_volume / self.config.max_void_tolerance - 1
             objective_gradient = constraint_gradient = None
             max_size_gradient = None
+            max_void_gradient = None
             if sensitivities:
                 if self.config.robust:
                     field_gradients = {name: torch.autograd.grad(compliances[index], x, retain_graph=True)[0].numpy().copy()
@@ -148,9 +164,13 @@ class CantileverProblem:
                     objective_gradient = field_gradients[worst_field].copy()
                 else:
                     objective_gradient = torch.autograd.grad(objective, x, retain_graph=True)[0].numpy().copy()
-                constraint_gradient = torch.autograd.grad(constraint, x, retain_graph=size_constraint is not None)[0].numpy().copy()
+                constraint_gradient = torch.autograd.grad(constraint, x,
+                    retain_graph=size_constraint is not None or void_constraint is not None)[0].numpy().copy()
                 if size_constraint is not None:
-                    max_size_gradient = torch.autograd.grad(size_constraint, x)[0].numpy().copy()
+                    max_size_gradient = torch.autograd.grad(size_constraint, x,
+                        retain_graph=void_constraint is not None)[0].numpy().copy()
+                if void_constraint is not None:
+                    max_void_gradient = torch.autograd.grad(void_constraint, x)[0].numpy().copy()
         return Evaluation(float(objective.detach()), float(volume.detach()), float(constraint.detach()),
                           density.detach().numpy().copy(), state.displacement.copy(),
                           residual, iterations, objective_gradient, constraint_gradient,
@@ -158,4 +178,7 @@ class CantileverProblem:
                           field_gradients, projection_beta=self.projection_beta,
                           max_size_constraint=None if size_constraint is None else float(size_constraint.detach()),
                           max_size_eroded_volume=None if size_volume is None else float(size_volume.detach()),
-                          max_size_gradient=max_size_gradient)
+                          max_size_gradient=max_size_gradient,
+                          max_void_constraint=None if void_constraint is None else float(void_constraint.detach()),
+                          max_void_remaining_volume=None if void_volume is None else float(void_volume.detach()),
+                          max_void_gradient=max_void_gradient)

@@ -8,6 +8,7 @@ from pathlib import Path
 
 from ..config import CantileverConfig
 from ..runner import optimise
+from ..fem.worker_pool import FieldWorkerPool
 
 
 class _RunMessages:
@@ -19,21 +20,30 @@ class _RunMessages:
 
 
 def worker_loop(commands, messages, cancel, ready) -> None:
+    field_pool = FieldWorkerPool()
     ready.set()
     try:
         while not _parent_gone():
             try:
                 command = commands.get(timeout=0.25)
             except queue.Empty:
+                field_pool.evict_idle()
                 continue
             if command is None:
                 return
             run_id, configuration = command
             # Each command constructs and closes a fresh problem and optimiser.
             task=configuration.get('task','')
-            target = run_model_lab if task.startswith('ml_') else run_training if task in ("rom_snapshots", "rom_basis", "rom_validation") else run_optimization
-            target(configuration, _RunMessages(messages, run_id), cancel)
+            if task.startswith('ml_'):
+                field_pool.clear()
+                run_model_lab(configuration,_RunMessages(messages,run_id),cancel)
+            elif task in ("rom_snapshots", "rom_basis", "rom_validation"):
+                field_pool.clear()
+                run_training(configuration, _RunMessages(messages, run_id), cancel)
+            else:
+                run_optimization(configuration, _RunMessages(messages, run_id), cancel, field_pool=field_pool)
     finally:
+        field_pool.close()
         if _parent_gone():
             # No reader remains to drain the feeder thread after a forced parent exit.
             messages.cancel_join_thread()
@@ -108,27 +118,32 @@ def run_training(configuration, messages, cancel):
         messages.put({"event": "error", "message": str(error) or type(error).__name__})
 
 
-def run_optimization(configuration: dict, messages, cancel) -> None:
+def run_optimization(configuration: dict, messages, cancel, *, field_pool=None) -> None:
     try:
         config = CantileverConfig(**configuration)
+        if field_pool is not None and not (config.robust and config.field_execution == "parallel"):
+            field_pool.clear()
         def snapshot(entry, fields):
             event = {"event": "iteration", "history": asdict(entry), "density": fields["nominal"].tolist()}
             if config.robust:
                 event["field_densities"] = {name: density.tolist() for name, density in fields.items()}
             messages.put(event)
         result = optimise(config, field_snapshot_callback=snapshot,
-                          stop_requested=lambda: cancel.is_set() or _parent_gone())
+                          stop_requested=lambda: cancel.is_set() or _parent_gone(), field_pool=field_pool)
         volume_feasible = result.evaluation.constraint <= config.feasibility_tolerance
         epigraph_feasible = (not config.robust or
             result.evaluation.epigraph_constraint <= config.feasibility_tolerance)
         max_size_feasible = (result.evaluation.max_size_constraint is None or
                             result.evaluation.max_size_constraint <= config.feasibility_tolerance)
+        max_void_feasible = (result.evaluation.max_void_constraint is None or
+                            result.evaluation.max_void_constraint <= config.feasibility_tolerance)
         messages.put({"event": "complete", "stop_reason": result.stop_reason,
                       "converged": result.converged, "volume_feasible": volume_feasible,
                       "epigraph_feasible": epigraph_feasible,
                       "max_size_feasible": max_size_feasible,
+                      "max_void_feasible": max_void_feasible,
                       "state_solver": result.config.state_solver, "rom_basis": result.rom_basis,
-                      "feasible": volume_feasible and epigraph_feasible and max_size_feasible})
+                      "feasible": volume_feasible and epigraph_feasible and max_size_feasible and max_void_feasible})
     except Exception as error:
         traceback.print_exc()
         messages.put({"event": "error", "message": str(error) or type(error).__name__})

@@ -1,4 +1,4 @@
-"""Maximum solid size from compact averaging and relaxed morphological erosion.
+"""Maximum phase sizes from compact averaging and relaxed morphology.
 
 Lazarov & Wang (2017), section 5, DOI: 10.1016/j.cma.2017.02.018.
 The disk diameter is in model units. Outside the design domain is void.
@@ -27,7 +27,7 @@ class _Average(torch.autograd.Function):
         return torch.from_numpy(ctx.operator.average(gradient.detach().numpy())), None
 
 
-class MaximumSolidSize:
+class MorphologicalSize:
     def __init__(self, mesh: StructuredMesh, diameter: float, beta: float, tolerance: float):
         self.mesh, self.beta, self.tolerance = mesh, beta, tolerance
         radius = diameter / 2
@@ -52,3 +52,18 @@ class MaximumSolidSize:
         # roundoff at 1 would incorrectly zero the derivative of solid interiors.
         averaged = _Average.apply(density, self)
         return 1 - torch.tanh(self.beta * (1 - averaged)) / math.tanh(self.beta)
+
+    def remaining_void(self, density: torch.Tensor) -> torch.Tensor:
+        """Void left after material dilation at threshold zero.
+
+        Convolve material with zero extension, so outside remains void. Eroding
+        1-density with zero extension would incorrectly make the exterior solid.
+        """
+        if density.device.type != "cpu" or density.dtype != torch.float64:
+            raise ValueError("Maximum-size dilation requires CPU float64 density")
+        averaged = _Average.apply(density, self)
+        return 1 - torch.tanh(self.beta * averaged) / math.tanh(self.beta)
+
+
+class MaximumSolidSize(MorphologicalSize):
+    """Solid-size operator retained for existing callers."""

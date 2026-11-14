@@ -17,7 +17,7 @@ function readModel() {
   const model = {};
   for (const [key, value] of new FormData(form)) {
     model[key] = key === "robust" ? value === "true" :
-      ["optimizer", "field_execution", "state_solver", "rom_training_id", "material_model", "projection_schedule"].includes(key) ? value : Number(value);
+      ["optimizer", "field_execution", "state_solver", "linear_solver", "rom_training_id", "material_model", "projection_schedule"].includes(key) ? value : Number(value);
   }
   if (model.state_solver !== "rom") delete model.rom_training_id;
   return model;
@@ -33,7 +33,9 @@ function updateSolverDescription() {
   const latest = state.history.at(-1);
   byId("run-solver-description").textContent = config?.state_solver === "rom" ?
     `ROM · ${latest?.rom_basis_rank || romChoice.selected?.basis.rank || "—"} modes · basis ${config.rom_basis_sha256?.slice(0,12) || romChoice.selected?.id.slice(0,8) || "not selected"} · approximate compliance and sensitivities` :
-    "FOM · full-order elasticity";
+    `FOM · ${(config?.linear_solver || "lu").toUpperCase()} · full-order elasticity`;
+  byId("fom-linear-options").hidden = state.model?.state_solver === "rom";
+  byId("fom-method-hint").hidden = state.model?.state_solver === "rom";
 }
 
 const configTabs = Array.from(document.querySelectorAll('.config-tabs [role="tab"]'));
@@ -93,6 +95,8 @@ function updateConvergence() {
   byId("history-beta").textContent = Number.isFinite(latest?.projection_beta) ? filterFormat(latest.projection_beta) : "—";
   byId("history-max-size-summary").hidden = !(config.max_solid_size > 0);
   byId("history-max-size").textContent = Number.isFinite(latest?.max_size_constraint) ? filterFormat(latest.max_size_constraint) : "—";
+  byId("history-max-void-summary").hidden = !(config.max_void_size > 0);
+  byId("history-max-void").textContent = Number.isFinite(latest?.max_void_constraint) ? filterFormat(latest.max_void_constraint) : "—";
   byId("convergence-description").textContent = latest ?
     `${state.model.optimizer.toUpperCase()} · ${(config.state_solver || "fom").toUpperCase()} · ${state.history.length} evaluated history ${state.history.length === 1 ? "point" : "points"} · iterations 0–${latest.iteration}` :
     "Run an optimisation to build the convergence history.";
@@ -122,6 +126,9 @@ function syncControls() {
   const spacing = Math.max(Number(byId("length").value)/Number(byId("nx").value), Number(byId("height").value)/Number(byId("ny").value));
   byId("max_solid_size").setCustomValidity(size > 0 && size <= 2*spacing ? "Maximum diameter must exceed two element spacings in both directions. Increase the diameter or refine the mesh." : "");
   byId("max-size-options").hidden = !(size > 0);
+  const voidSize = Number(byId("max_void_size").value);
+  byId("max_void_size").setCustomValidity(voidSize > 0 && voidSize <= 2*spacing ? "Maximum void diameter must exceed two element spacings in both directions. Increase the diameter or refine the mesh." : "");
+  byId("max-void-options").hidden = !(voidSize > 0);
   const ramp = byId("material_model").value === "ramp";
   byId("penalisation").min = ramp ? "0" : "1";
   byId("penalty-label").textContent = ramp ? "Penalty parameter · q" : "Penalty exponent · p";
@@ -152,6 +159,11 @@ function updateMaxSizeStatus() {
     "Maximum-size constraint off";
   byId("max-size-status").textContent = Number.isFinite(row?.max_size_constraint) ?
     `Eroded fraction ${filterFormat(100*row.max_size_eroded_volume)}% · ${row.max_size_constraint <= (state.runConfig?.feasibility_tolerance ?? 1e-4) ? "satisfied" : "violated"} · g = ${filterFormat(row.max_size_constraint)}` : "";
+  byId("max-void-description").textContent = m.max_void_size > 0 ?
+    `Diameter ${filterFormat(m.max_void_size)} model units · ${m.robust ? "eroded material" : "physical"} field · allowed remaining void ${filterFormat(100*m.max_void_tolerance)}%. Outside the domain is void.` :
+    "Maximum void-size constraint off";
+  byId("max-void-status").textContent = Number.isFinite(row?.max_void_constraint) ?
+    `Remaining void ${filterFormat(100*row.max_void_remaining_volume)}% · ${row.max_void_constraint <= (state.runConfig?.feasibility_tolerance ?? 1e-4) ? "satisfied" : "violated"} · g = ${filterFormat(row.max_void_constraint)}` : "";
 }
 
 function updateLabels(resizeFilterRange = true) {
@@ -184,6 +196,7 @@ function updateLabels(resizeFilterRange = true) {
     (finalStage > m.max_iterations ? `The iteration limit will be reached before the maximum β (first used at iteration ${format(finalStage)}).` :
       `Maximum β is first used at iteration ${format(finalStage)}. Convergence stopping waits for this stage.`);
   byId("robust-options").hidden = !m.robust;
+  byId("solver-field-options").hidden = !m.robust;
   byId("robust-description").hidden = !m.robust;
   byId("field-view").hidden = !m.robust;
   byId("compliance-label").textContent = `${m.state_solver === "rom" ? "ROM " : ""}${m.robust ? "WORST COMPLIANCE" : "COMPLIANCE"}`;
@@ -310,7 +323,8 @@ function receive(event) {
       event.stop_reason === "maximum_iterations" ? "Iteration limit reached. Showing the last evaluated design." : "Design and objective reached the stopping tolerances.";
     if (state.runConfig?.state_solver === "rom") byId("topology-description").textContent += " ROM objective and sensitivities; full-order accuracy is not certified by this stopping test.";
     if (!event.feasible) showError(event.max_size_feasible === false ?
-      "The final design has not met the maximum solid-size constraint. The last evaluated design is shown." : event.volume_feasible !== false && event.epigraph_feasible === false ?
+      "The final design has not met the maximum solid-size constraint. The last evaluated design is shown." : event.max_void_feasible === false ?
+      "The final design has not met the maximum void-size constraint. The last evaluated design is shown." : event.volume_feasible !== false && event.epigraph_feasible === false ?
       "The final epigraph bound is below a field's compliance. Increase the iteration limit and run again." :
       "The final design has not met the volume constraint. Increase the iteration limit and run again.");
     return;
@@ -335,7 +349,7 @@ async function start(event) {
       const error = await response.json();
       const details = error.detail;
       if (Array.isArray(details) && details.some(item => item.type === "extra_forbidden" &&
-          ["max_solid_size", "max_size_beta", "max_size_tolerance", "projection_beta", "projection_eta", "robust", "robust_eta_offset", "field_execution", "material_model", "penalisation", "projection_schedule", "projection_beta_interval", "projection_beta_multiplier", "projection_beta_max"].includes(item.loc?.at(-1)))) {
+          ["linear_solver", "max_void_size", "max_void_beta", "max_void_tolerance", "max_solid_size", "max_size_beta", "max_size_tolerance", "projection_beta", "projection_eta", "robust", "robust_eta_offset", "field_execution", "material_model", "penalisation", "projection_schedule", "projection_beta_interval", "projection_beta_multiplier", "projection_beta_max"].includes(item.loc?.at(-1)))) {
         throw new Error("Open Start TOptVis.bat again to launch the updated server. Use the browser page it opens.");
       }
       throw new Error(typeof details === "string" ? details : details?.map(item => `${item.loc?.at(-1) || "Input"}: ${item.msg}`).join("; ") || "Could not start the solver.");
@@ -429,9 +443,9 @@ async function connectSolver() {
     const health = await response.json();
     state.romSupported = !!health.rom_optimisation_supported;
     await romChoice.refresh(state.romSupported);
-    if (!health.projection_supported || !health.robust_supported || !health.material_schedule_supported || !health.max_size_supported) {
+    if (!health.projection_supported || !health.robust_supported || !health.material_schedule_supported || !health.max_size_supported || !health.max_void_supported || !health.linear_solver_supported) {
       byId("connection").lastElementChild.textContent = "Server restart needed";
-      showError("Open Start TOptVis.bat again to launch the updated server with maximum-size support. Use the browser page it opens.");
+      showError("Open Start TOptVis.bat again to launch the updated server with the current solver and size controls. Use the browser page it opens.");
       setRunning(false);
     } else {
       state.ready = true;

@@ -5,6 +5,23 @@ A Python project for topology optimisation with PyTorch and PETSc through
 
 ## Performance
 
+Exact state caching and persistent three-field workers are described in
+[`benchmarks/SOLVER_RESULTS.md`](benchmarks/SOLVER_RESULTS.md), including
+comparisons of LU, Cholesky, CG/ICC, and CG/GAMG. In **Solver parameters → Full-order
+method**, choose the PETSc solver; LU remains the default. Cholesky was fastest
+for the larger measured optimisation case. The iterative choices were accurate
+but slower on these meshes. The CLI accepts `--linear-solver cholesky` (or
+`lu`, `cg-icc`, `cg-gamg`). These methods apply to full-order elasticity.
+
+An exact match of the latest element moduli reuses displacement and element
+energies while rebuilding the PyTorch graph. This avoids the repeated accepted
+trial solve in GCMMA and keeps material/projection gradients current. State
+solve counters count actual numerical solves. Parallel robust app runs reuse
+three compatible workers between Run clicks, with fresh per-run caches and
+counters. Changed state-solver inputs recreate the group; workers retire after
+60 idle seconds, when a nonparallel/training job starts, or at shutdown.
+Numerical factors and iterative preconditioners are rebuilt for changed moduli.
+
 Measured timings, bottleneck locations, methodology, and raw data are in
 [`benchmarks/IMPROVEMENTS.md`](benchmarks/IMPROVEMENTS.md), with the original
 baseline retained in [`benchmarks/RESULTS.md`](benchmarks/RESULTS.md). Source comments `PERF B1`–`B4`
@@ -60,8 +77,11 @@ locally. These are experimental models; correction performs a full-order
 solve and does not establish raw-model accuracy or a speedup. See
 [Model Lab](docs/MODEL_LAB.md) for supported inputs, controls, limits and APIs.
 
-Within Cantilever 2D, the far-left tabs separate **Geometry**, **Load**, **Filters**,
-**Optimisation**, and **Visualisation**. The configuration panel shows the selected
+Within Cantilever 2D, the far-left tabs separate **Geometry**, **Load**, **Material**,
+**Filters**, **Optimise**, **Solver parameters**, and **Visualisation**.
+**Solver parameters** contains the FOM/ROM selection, full-order method, saved
+ROM model, and sequential/parallel state execution for three-field robustness.
+The configuration panel shows the selected
 tab; the central workspace displays the mesh/topology or convergence graphs. Tab changes retain
 all values. Use arrow keys, Home, and End to navigate the tab rail.
 
@@ -240,7 +260,7 @@ The API adds `POST /api/rom/<id>/validate` (streamed),
 
 ### Optimise with a saved ROM
 
-In **Cantilever 2D → Optimise**, choose **Elasticity solver → ROM** and select
+In **Cantilever 2D → Solver parameters**, choose **Elasticity solver → ROM** and select
 a saved model. **Refresh ROMs** reloads the training library. A model requires
 a completed basis, but an absent or failed validation does not block explicit
 selection; its validation status is displayed alongside the model. **Use ROM
@@ -365,6 +385,40 @@ is the target structuring element, not a measured thickness certificate.
 
 ```powershell
 python -m ml_opt --filter-radius 0.04 --projection-beta 8 --max-solid-size 0.35
+```
+
+### Morphological maximum void size
+
+**Optimise → Maximum void size** adds the matching void-phase option from
+[Lazarov and Wang (2017), section 5](https://doi.org/10.1016/j.cma.2017.02.018).
+Choose a disk diameter in model units; `0` disables it. Its green circle is
+independent of the blue solid-size circle, and either or both constraints may
+be enabled. The mesh-resolution requirements are the same as for solid size.
+
+The constraint limits the void left after a material dilation at threshold zero:
+
+```text
+s = W_R rho_physical, R = max_void_size / 2
+v_remaining = 1 - tanh(b_void * s) / tanh(b_void)
+g_void = mean(v_remaining) / epsilon_void - 1 <= 0
+```
+
+Material is zero outside the design domain, preserving the existing exterior
+void convention. Simply eroding `1 - rho` with zero padding would instead
+introduce fictitious exterior solid. In robust mode the void constraint uses
+the **eroded material field**, which has the largest void regions; the solid
+constraint continues to use dilated material.
+
+Void sharpness `max_void_beta=16` and allowed remaining fraction
+`max_void_tolerance=0.001` are independently adjustable. Their gradients,
+MMA/GCMMA trial checks, convergence, final feasibility, live summaries and
+exports include the void constraint. These are relaxed size targets with the
+same finite-sharpness and mesh limitations as the solid option.
+
+```powershell
+python -m ml_opt --filter-radius 0.04 --projection-beta 8 --max-void-size 0.8
+# Both phases, with independently chosen diameters:
+python -m ml_opt --filter-radius 0.04 --projection-beta 8 --max-solid-size 0.45 --max-void-size 0.8
 ```
 
 ### Helmholtz density filter

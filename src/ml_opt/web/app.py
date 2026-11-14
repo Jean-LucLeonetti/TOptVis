@@ -34,6 +34,9 @@ class RunRequest(BaseModel):
     max_solid_size: float = Field(default=0, ge=0, le=1000)
     max_size_beta: float = Field(default=16, gt=0, le=64)
     max_size_tolerance: float = Field(default=.001, gt=0, lt=1)
+    max_void_size: float = Field(default=0, ge=0, le=1000)
+    max_void_beta: float = Field(default=16, gt=0, le=64)
+    max_void_tolerance: float = Field(default=.001, gt=0, lt=1)
     material_model: Literal["simp", "ramp"] = "simp"
     penalisation: float = Field(default=3.0, ge=0)
     filter_radius: float = Field(default=0.1, ge=0, le=1000)
@@ -49,6 +52,7 @@ class RunRequest(BaseModel):
     optimizer: Literal["mma", "gcmma"] = "mma"
     max_iterations: int = Field(default=100, ge=1, le=1000)
     state_solver: Literal["fom", "rom"] = "fom"
+    linear_solver: Literal["lu", "cholesky", "cg-icc", "cg-gamg"] = "lu"
     rom_training_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{32}$")
 
     @model_validator(mode="after")
@@ -98,10 +102,12 @@ def create_app(*, training_root: Path | None = None, model_root: Path | None = N
                 "robust_supported": True,
                 "material_schedule_supported": True,
                 "max_size_supported": True,
+                "max_void_supported": True,
                 "rom_training_supported": True,
                 "rom_validation_supported": True,
                 "rom_optimisation_supported": True,
                 "model_lab_supported": True,
+                "linear_solver_supported": True,
                 "active_kind": manager.active.kind if manager.active else None}
 
     @app.post("/api/run")
