@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 import math
+import re
 
 
 @dataclass(frozen=True)
@@ -36,8 +37,20 @@ class CantileverConfig:
     convergence_patience: int = 5
     max_inner_iterations: int = 30
     linear_tolerance: float = 1e-10
+    state_solver: str = "fom"
+    rom_basis_path: str | None = None
+    rom_basis_sha256: str | None = None
 
     def __post_init__(self) -> None:
+        if self.state_solver not in ("fom", "rom"):
+            raise ValueError("state_solver must be fom or rom")
+        if self.state_solver == "rom" and (not isinstance(self.rom_basis_path, str) or not self.rom_basis_path):
+            raise ValueError("ROM optimisation requires a rom_basis_path")
+        if self.state_solver == "fom" and (self.rom_basis_path is not None or self.rom_basis_sha256 is not None):
+            raise ValueError("ROM basis options require state_solver='rom'")
+        if self.rom_basis_sha256 is not None and (not isinstance(self.rom_basis_sha256, str) or
+                                                  not re.fullmatch(r"[0-9a-f]{64}", self.rom_basis_sha256)):
+            raise ValueError("rom_basis_sha256 must be a lowercase SHA-256 digest")
         for name in ("nx", "ny", "max_iterations", "min_iterations",
                      "convergence_patience", "max_inner_iterations"):
             value = getattr(self, name)

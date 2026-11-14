@@ -7,16 +7,13 @@ from pathlib import Path
 import uuid
 
 import numpy as np
-from scipy.linalg import cho_factor, cho_solve
-from scipy.sparse import coo_matrix
 
 from ..config import CantileverConfig
-from ..fem.element import q4_stiffness
-from ..fem.elasticity import ElasticityState
 from ..fem.mesh import StructuredMesh
 from ..problem import CantileverProblem
 from ..runner import optimise
 from .training import SnapshotConfig, _now, _save_arrays, read_metadata, save_metadata
+from .solver import GalerkinSolver
 
 
 @dataclass(frozen=True)
@@ -88,63 +85,6 @@ def validation_cases(metadata, options: ValidationConfig):
     if 8 * (2*free + 4*base.nx*base.ny) * options.maximum_states > 128*1024**2:
         raise ValueError("Validation arrays exceed 128 MiB; reduce comparison states")
     return cases
-
-
-class GalerkinSolver:
-    """Solve V.T K V a = V.T f; never fit or enrich V during validation."""
-
-    def __init__(self, config: CantileverConfig, basis):
-        self.mesh = StructuredMesh(config.nx, config.ny, config.length, config.height)
-        self.basis = np.array(basis, dtype=np.float64, copy=True)
-        count = len(self.mesh.free_dofs)
-        if (self.basis.ndim != 2 or self.basis.shape[0] != count or not 1 <= self.basis.shape[1] <= count
-                or not np.all(np.isfinite(self.basis))):
-            raise ValueError("Basis must contain finite free-DOF columns for this mesh")
-        if not np.allclose(self.basis.T @ self.basis, np.eye(self.basis.shape[1]), atol=1e-8, rtol=1e-8):
-            raise ValueError("Expected an orthonormal displacement basis")
-        self.basis.flags.writeable = False
-        self.element_stiffness = q4_stiffness(config.length/config.nx, config.height/config.ny,
-                                              config.poisson_ratio, config.thickness)
-        node = None if config.load_node_x is None else (config.load_node_x, config.load_node_y)
-        self.force = self.mesh.cantilever_force(config.load, config.load_angle, node)
-        self.rhs = self.force[self.mesh.free_dofs]
-        self.reduced_rhs = self.basis.T @ self.rhs
-        mapping = np.full(self.mesh.dof_count, -1, dtype=np.int64)
-        mapping[self.mesh.free_dofs] = np.arange(count)
-        dofs = mapping[self.mesh.element_dofs]
-        rows, columns = np.repeat(dofs, 8, axis=1).ravel(), np.tile(dofs, (1, 8)).ravel()
-        self.mask = (rows >= 0) & (columns >= 0)
-        self.rows, self.columns = rows[self.mask], columns[self.mask]
-        self.last_state = None
-        self.solve_count = 0
-        self._closed = False
-
-    def solve(self, moduli):
-        if self._closed:
-            raise RuntimeError("The reduced solver is closed")
-        moduli = np.asarray(moduli, dtype=np.float64)
-        if moduli.shape != (self.mesh.element_count,) or not np.all(np.isfinite(moduli)) or np.any(moduli <= 0):
-            raise ValueError("Expected one finite positive modulus per element")
-        entries = (moduli[:, None, None] * self.element_stiffness).ravel()[self.mask]
-        matrix = coo_matrix((entries, (self.rows, self.columns)),
-                            shape=(len(self.rhs), len(self.rhs))).tocsr()
-        reduced = self.basis.T @ (matrix @ self.basis)
-        reduced = .5 * (reduced + reduced.T)
-        coefficients = cho_solve(cho_factor(reduced, check_finite=True), self.reduced_rhs)
-        free_u = self.basis @ coefficients
-        displacement = np.zeros(self.mesh.dof_count)
-        displacement[self.mesh.free_dofs] = free_u
-        element_u = displacement[self.mesh.element_dofs]
-        energy = np.einsum("ei,ij,ej->e", element_u, self.element_stiffness, element_u)
-        residual = float(np.linalg.norm(matrix @ free_u - self.rhs) / np.linalg.norm(self.rhs))
-        if not np.all(np.isfinite(displacement)) or not np.all(np.isfinite(energy)) or not np.isfinite(residual):
-            raise ValueError("The reduced solve produced nonfinite results")
-        self.last_state = ElasticityState(displacement, float(self.force @ displacement), energy, residual, 1)
-        self.solve_count += 1
-        return self.last_state
-
-    def close(self):
-        self._closed = True
 
 
 def _relative_error(approximate, reference):

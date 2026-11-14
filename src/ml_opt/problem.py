@@ -1,12 +1,13 @@
 """Element-density SIMP compliance objective with a volume inequality."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 import torch
 
 from .config import CantileverConfig
-from .fem import ElasticitySolver, StructuredMesh
+from .fem import StructuredMesh
+from .fem.state_solver import create_state_solver
 from .fem.elasticity import compliance
 from .fem.filter import HelmholtzFilter
 from .fem.fields import FieldSolves, field_compliance
@@ -40,13 +41,10 @@ class CantileverProblem:
             raise ValueError("A supplied state solver is supported only for single-field problems")
         self.config = config
         self.mesh = StructuredMesh(config.nx, config.ny, config.length, config.height)
-        # Validation can supply a frozen Galerkin solver, retaining the identical
-        # material/filter/projection/autograd path. Normal optimisation uses PETSc.
-        self.solver = state_solver if state_solver is not None else ElasticitySolver(self.mesh, config.poisson_ratio, config.thickness,
-                                       config.load, config.linear_tolerance,
-                                       load_angle=config.load_angle,
-                                       load_node=None if config.load_node_x is None else
-                                       (config.load_node_x, config.load_node_y))
+        self.solver = state_solver if state_solver is not None else create_state_solver(config)
+        self.rom_info = getattr(self.solver, "rom_info", None)
+        if self.rom_info is not None:
+            config = self.config = replace(config, rom_basis_sha256=self.rom_info["basis_sha256"])
         self.fields = None
         self.density_filter = None
         try:

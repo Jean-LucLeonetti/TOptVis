@@ -17,6 +17,9 @@ def main(argv: list[str] | None = None) -> int:
                  "minimum_modulus", "move_limit", "design_tolerance"):
         parser.add_argument("--" + name.replace("_", "-"), type=float, default=getattr(defaults, name))
     parser.add_argument("--optimizer", choices=("mma", "gcmma"), default=defaults.optimizer)
+    parser.add_argument("--state-solver", choices=("fom", "rom"), default="fom",
+                        help="Full-order PETSc or a saved frozen Galerkin ROM")
+    parser.add_argument("--rom-basis-path", help="Path to a saved basis.npz for --state-solver rom")
     parser.add_argument("--filter-radius", type=float, default=defaults.filter_radius,
                         help="Helmholtz length in model units; 0 disables filtering (default: 0)")
     parser.add_argument("--projection-beta", type=float, default=defaults.projection_beta,
@@ -39,7 +42,7 @@ def main(argv: list[str] | None = None) -> int:
             if entry.iteration % 5 == 0:
                 print(f"{entry.iteration:4d}  compliance={entry.compliance:.6f}  "
                       f"volume={entry.volume_fraction:.5f}  change={entry.design_change:.4f}  "
-                      f"inner={entry.inner_iterations}", flush=True)
+                      f"inner={entry.inner_iterations}  solver={entry.state_solver.upper()}", flush=True)
         result = optimise(config, None if quiet else progress)
         destination = save_results(result, output or Path("outputs") / f"cantilever-{config.optimizer}")
     except (ValueError, RuntimeError) as error:

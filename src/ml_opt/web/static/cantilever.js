@@ -1,10 +1,12 @@
 import {drawModel, drawTopology, pickNode} from "/static/viewer.js";
 import {ConvergencePlots} from "/static/convergence.js";
+import {RomChoice} from "/static/rom-choice.js";
 
 const byId = id => document.getElementById(id);
 const form = byId("model-form"), modelCanvas = byId("model-canvas"), topologyCanvas = byId("topology-canvas");
 const state = {model: null, density: null, fields: null, fieldRow: null, running: false, ready: false, externalBusy: false, runId: null, initial: null,
-  hover: null, history: [], runConfig: null, activePanel: "panel-geometry"};
+  hover: null, history: [], runConfig: null, activePanel: "panel-geometry", romSupported: false};
+const romChoice = new RomChoice({onChange: () => updateModel(), onStateChange: updateRunAvailability, isRunning: () => state.running});
 const convergencePlots = new ConvergencePlots();
 let convergenceFrame = null;
 const format = value => new Intl.NumberFormat("en", {maximumFractionDigits: 2}).format(value);
@@ -15,9 +17,23 @@ function readModel() {
   const model = {};
   for (const [key, value] of new FormData(form)) {
     model[key] = key === "robust" ? value === "true" :
-      ["optimizer", "field_execution"].includes(key) ? value : Number(value);
+      ["optimizer", "field_execution", "state_solver", "rom_training_id"].includes(key) ? value : Number(value);
   }
+  if (model.state_solver !== "rom") delete model.rom_training_id;
   return model;
+}
+
+function updateRunAvailability() {
+  byId("run").disabled = state.running || !state.ready || state.externalBusy || (byId("state_solver").value === "rom" && (!state.romSupported || !romChoice.allowed));
+  if (!state.running) byId("run-label").textContent = byId("state_solver").value === "rom" ? "Run ROM optimisation" : "Run optimisation";
+}
+
+function updateSolverDescription() {
+  const config = state.runConfig || state.model;
+  const latest = state.history.at(-1);
+  byId("run-solver-description").textContent = config?.state_solver === "rom" ?
+    `ROM · ${latest?.rom_basis_rank || romChoice.selected?.basis.rank || "—"} modes · basis ${config.rom_basis_sha256?.slice(0,12) || romChoice.selected?.id.slice(0,8) || "not selected"} · approximate compliance and sensitivities` :
+    "FOM · full-order elasticity";
 }
 
 const configTabs = Array.from(document.querySelectorAll('.config-tabs [role="tab"]'));
@@ -75,7 +91,7 @@ function updateConvergence() {
   byId("history-volume").textContent = latest ? `${(100*latest.volume_fraction).toFixed(2)}%` : "—";
   byId("history-elapsed").textContent = Number.isFinite(latest?.elapsed_seconds) ? `${filterFormat(latest.elapsed_seconds)} s` : "—";
   byId("convergence-description").textContent = latest ?
-    `${state.model.optimizer.toUpperCase()} · ${state.history.length} evaluated history ${state.history.length === 1 ? "point" : "points"} · iterations 0–${latest.iteration}` :
+    `${state.model.optimizer.toUpperCase()} · ${(config.state_solver || "fom").toUpperCase()} · ${state.history.length} evaluated history ${state.history.length === 1 ? "point" : "points"} · iterations 0–${latest.iteration}` :
     "Run an optimisation to build the convergence history.";
   byId("volume-reference").textContent = `Target ${filterFormat(100*config.volume_fraction)}%`;
   byId("design-reference").textContent = Number.isFinite(config.design_tolerance) ?
@@ -125,7 +141,7 @@ function updateLabels(resizeFilterRange = true) {
   byId("robust-options").hidden = !m.robust;
   byId("robust-description").hidden = !m.robust;
   byId("field-view").hidden = !m.robust;
-  byId("compliance-label").textContent = m.robust ? "WORST COMPLIANCE" : "COMPLIANCE";
+  byId("compliance-label").textContent = `${m.state_solver === "rom" ? "ROM " : ""}${m.robust ? "WORST COMPLIANCE" : "COMPLIANCE"}`;
   byId("material-volume-label").textContent = m.robust ? "DILATED VOLUME" : "MATERIAL VOLUME";
   byId("volume-description").textContent = m.robust ?
     "The volume limit applies to the dilated field. Nominal and eroded material use less volume." :
@@ -154,6 +170,7 @@ function clearResult() {
   byId("topology-description").textContent = "Run optimisation to see the material distribution.";
   byId("live-note").textContent = "Updates after every evaluated iteration";
   status("Ready", "ready");
+  updateSolverDescription();
   updateConvergence();
 }
 
@@ -182,6 +199,7 @@ function updateModel(event) {
       byId("load_node_y").value = Math.round(state.model.load_node_y / state.model.ny * ny);
     }
   }
+  romChoice.sync();
   if (!form.checkValidity()) return;
   state.model = readModel(); state.hover = null;
   showError(); updateLabels(!["filter-slider", "projection-slider"].includes(event?.target.id)); clearResult(); redraw();
@@ -190,10 +208,11 @@ function updateModel(event) {
 function setRunning(running) {
   state.running = running;
   byId("settings").disabled = running;
-  byId("run").disabled = running || !state.ready || state.externalBusy;
-  byId("run-label").textContent = running ? "Optimising…" : "Run optimisation";
+  updateRunAvailability();
+  byId("run-label").textContent = running ? "Optimising…" : romChoice.isRom ? "Run ROM optimisation" : "Run optimisation";
   byId("stop").disabled = !running || !state.runId;
   modelCanvas.style.cursor = running ? "default" : "crosshair";
+  romChoice.sync();
   document.dispatchEvent(new CustomEvent("solveractivity", {detail: {workspace: "cantilever", running}}));
 }
 
@@ -201,6 +220,7 @@ function receive(event) {
   if (event.event === "started") {
     state.runId = event.run_id;
     state.runConfig = event.config;
+    updateSolverDescription();
     updateConvergence();
     byId("stop").disabled = false;
     return;
@@ -208,6 +228,7 @@ function receive(event) {
   if (event.event === "iteration") {
     const row = event.history;
     state.history.push(row);
+    updateSolverDescription();
     if (state.initial === null) state.initial = row.compliance;
     state.fields = event.field_densities || null;
     state.fieldRow = row;
@@ -225,7 +246,7 @@ function receive(event) {
     byId("topology-description").textContent = state.model.robust ?
       `${state.model.optimizer.toUpperCase()} · Three fields · worst: ${row.worst_field} · ${state.model.field_execution}` :
       `${state.model.optimizer.toUpperCase()} · ${state.model.projection_beta > 0 ? "Projected" : state.model.filter_radius > 0 ? "Filtered" : "Unfiltered"} physical densities`;
-    byId("live-note").textContent = `Iteration ${row.iteration} · ${row.state_solves} state solves`;
+    byId("live-note").textContent = `Iteration ${row.iteration} · ${row.state_solves} ${(row.state_solver || "fom").toUpperCase()} state solves · residual ${row.linear_residual.toExponential(2)}`;
     status("Running", "running");
     if (topologyCanvas.getClientRects().length) drawTopology(topologyCanvas, state.model, state.density);
     updateConvergence();
@@ -236,6 +257,7 @@ function receive(event) {
     status(labels[event.stop_reason] || "Finished", event.stop_reason === "cancelled" ? "ready" : "complete");
     byId("topology-description").textContent = event.stop_reason === "cancelled" ? "Run stopped. Showing the last evaluated design." :
       event.stop_reason === "maximum_iterations" ? "Iteration limit reached. Showing the last evaluated design." : "Design and objective reached the stopping tolerances.";
+    if (state.runConfig?.state_solver === "rom") byId("topology-description").textContent += " ROM objective and sensitivities; full-order accuracy is not certified by this stopping test.";
     if (!event.feasible) showError(event.volume_feasible !== false && event.epigraph_feasible === false ?
       "The final epigraph bound is below a field's compliance. Increase the iteration limit and run again." :
       "The final design has not met the volume constraint. Increase the iteration limit and run again.");
@@ -246,7 +268,7 @@ function receive(event) {
 
 async function start(event) {
   event.preventDefault();
-  if (state.running || state.externalBusy || !state.ready || !form.reportValidity()) return;
+  if (state.running || state.externalBusy || !state.ready || !romChoice.allowed || !form.reportValidity()) return;
   state.model = readModel(); state.runId = null;
   clearResult(); showError(); setRunning(true); status("Starting", "running");
   byId("topology-description").textContent = "Starting the solver…";
@@ -254,7 +276,9 @@ async function start(event) {
     .scrollIntoView({behavior: "smooth", block: "start"});
   let terminal = false;
   try {
-    const response = await fetch("/api/run", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(state.model)});
+    const payload = {...state.model};
+    if (!state.romSupported) delete payload.state_solver;
+    const response = await fetch("/api/run", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload)});
     if (!response.ok) {
       const error = await response.json();
       const details = error.detail;
@@ -338,11 +362,12 @@ new ResizeObserver(redraw).observe(document.querySelector(".central-workspace"))
 document.addEventListener("solveractivity", event => {
   if (event.detail.workspace !== "cantilever") {
     state.externalBusy = event.detail.running;
-    byId("run").disabled = state.running || !state.ready || state.externalBusy;
+    updateRunAvailability();
+    if (!event.detail.running && state.romSupported) romChoice.refresh();
   }
 });
 document.addEventListener("workspacechange", event => {
-  if (event.detail === "cantilever-2d") requestAnimationFrame(redraw);
+  if (event.detail === "cantilever-2d") { requestAnimationFrame(redraw); if (state.romSupported) romChoice.refresh(); }
 });
 state.model = readModel(); updateLabels(); clearResult(); redraw();
 async function connectSolver() {
@@ -350,6 +375,8 @@ async function connectSolver() {
     const response = await fetch("/api/health");
     if (!response.ok) throw new Error("Local solver unavailable");
     const health = await response.json();
+    state.romSupported = !!health.rom_optimisation_supported;
+    await romChoice.refresh(state.romSupported);
     if (!health.projection_supported || !health.robust_supported) {
       byId("connection").lastElementChild.textContent = "Server restart needed";
       showError("Restart TOptVis and refresh this page to load the robust formulation in the server.");

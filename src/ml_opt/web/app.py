@@ -2,7 +2,7 @@
 
 import asyncio
 from contextlib import asynccontextmanager
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Literal
 
@@ -13,7 +13,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..config import CantileverConfig
 from .jobs import RunManager
-from .rom import create_rom_router
+from .rom import create_rom_router, selected_basis_path
+from ..rom.solver import load_basis
 from .streams import stream_job
 
 
@@ -36,19 +37,27 @@ class RunRequest(BaseModel):
     field_execution: Literal["sequential", "parallel"] = "sequential"
     optimizer: Literal["mma", "gcmma"] = "mma"
     max_iterations: int = Field(default=100, ge=1, le=1000)
+    state_solver: Literal["fom", "rom"] = "fom"
+    rom_training_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{32}$")
 
     @model_validator(mode="after")
     def valid_node(self):
         if self.load_node_x > self.nx or self.load_node_y > self.ny:
             raise ValueError("The selected load node must be inside the mesh")
-        self.configuration()  # Validate coupled robust thresholds before starting a stream.
+        if self.state_solver == "rom" and self.rom_training_id is None:
+            raise ValueError("Choose a saved ROM basis for ROM optimisation")
+        if self.state_solver == "fom" and self.rom_training_id is not None:
+            raise ValueError("A saved ROM selection requires state_solver='rom'")
+        # File selection is resolved against this app's training root in /api/run.
+        CantileverConfig(**{**self.model_dump(exclude={"rom_training_id"}), "state_solver": "fom"})
         return self
 
-    def configuration(self) -> CantileverConfig:
-        return CantileverConfig(**self.model_dump())
+    def configuration(self, *, rom_basis_path=None) -> CantileverConfig:
+        return CantileverConfig(**self.model_dump(exclude={"rom_training_id"}), rom_basis_path=rom_basis_path)
 
 
 def create_app(*, training_root: Path | None = None) -> FastAPI:
+    training_root = (training_root or Path(__file__).resolve().parents[3] / "outputs" / "rom-training").resolve()
     manager = RunManager()
     @asynccontextmanager
     async def lifespan(app):
@@ -60,7 +69,7 @@ def create_app(*, training_root: Path | None = None) -> FastAPI:
 
     app = FastAPI(title="TOptVis", lifespan=lifespan)
     app.state.manager = manager
-    app.include_router(create_rom_router(manager, training_root or Path(__file__).resolve().parents[3] / "outputs" / "rom-training"))
+    app.include_router(create_rom_router(manager, training_root))
     static = Path(__file__).with_name("static")
     app.mount("/static", StaticFiles(directory=static), name="static")
 
@@ -75,11 +84,23 @@ def create_app(*, training_root: Path | None = None) -> FastAPI:
                 "robust_supported": True,
                 "rom_training_supported": True,
                 "rom_validation_supported": True,
+                "rom_optimisation_supported": True,
                 "active_kind": manager.active.kind if manager.active else None}
 
     @app.post("/api/run")
     async def run(request: RunRequest):
-        config = request.configuration()
+        try:
+            if request.state_solver == "rom":
+                path = selected_basis_path(training_root, request.rom_training_id)
+                config = request.configuration(rom_basis_path=str(path))
+                _, info = load_basis(path, config)
+                if info["training_id"] != request.rom_training_id:
+                    raise ValueError("The ROM artifact does not belong to the selected training dataset")
+                config = replace(config, rom_basis_sha256=info["basis_sha256"])
+            else:
+                config = request.configuration()
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
         try:
             job = manager.start(config)
         except RuntimeError as error:

@@ -10,8 +10,7 @@ import queue
 import numpy as np
 import torch
 
-from .elasticity import ElasticitySolver
-from .mesh import StructuredMesh
+from .state_solver import create_state_solver
 
 
 def _field_worker(config, index, commands, results):
@@ -19,10 +18,7 @@ def _field_worker(config, index, commands, results):
     parent = mp.parent_process()
     try:
         torch.set_num_threads(1)
-        solver = ElasticitySolver(StructuredMesh(config.nx, config.ny, config.length, config.height),
-            config.poisson_ratio, config.thickness, config.load, config.linear_tolerance,
-            load_angle=config.load_angle, load_node=None if config.load_node_x is None else
-            (config.load_node_x, config.load_node_y))
+        solver = create_state_solver(config)
         while parent is None or parent.is_alive():
             try:
                 moduli = commands.get(timeout=0.25)

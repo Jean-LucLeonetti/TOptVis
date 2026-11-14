@@ -22,7 +22,7 @@ from ml_opt.config import CantileverConfig
 from ml_opt.fem.elasticity import ElasticitySolver
 from ml_opt.optimizers._mmapy import mmasub, gcmmasub
 import ml_opt.optimizers.moving_asymptotes as methods
-import ml_opt.problem as problem_module
+import ml_opt.fem.state_solver as solver_module
 from ml_opt.runner import optimise
 
 BASELINE = "b6596a7"
@@ -55,13 +55,13 @@ def benchmark(repeats):
                 config = CantileverConfig(nx=nx, ny=ny, optimizer=method, max_iterations=20)
                 trials = {name: [] for name in variants}
                 for solver, mma, gcmma in variants.values():
-                    problem_module.ElasticitySolver, methods.mmasub, methods.gcmmasub = solver, mma, gcmma
+                    solver_module.ElasticitySolver, methods.mmasub, methods.gcmmasub = solver, mma, gcmma
                     optimise(replace(config, max_iterations=2))
                 for repetition in range(repeats):
                     names = list(variants)
                     names = names[repetition % len(names):] + names[:repetition % len(names)]
                     for name in names:
-                        problem_module.ElasticitySolver, methods.mmasub, methods.gcmmasub = variants[name]
+                        solver_module.ElasticitySolver, methods.mmasub, methods.gcmmasub = variants[name]
                         started = time.perf_counter()
                         run = optimise(config)
                         elapsed = time.perf_counter() - started
@@ -77,7 +77,7 @@ def benchmark(repeats):
                 print(f"{nx}x{ny} {method}: " + "; ".join(
                     f"{name} {item['timing']['median']:.3f}s" for name, item in case["variants"].items()), flush=True)
     finally:
-        problem_module.ElasticitySolver, methods.mmasub, methods.gcmmasub = ElasticitySolver, mmasub, gcmmasub
+        solver_module.ElasticitySolver, methods.mmasub, methods.gcmmasub = ElasticitySolver, mmasub, gcmmasub
     return result
 
 

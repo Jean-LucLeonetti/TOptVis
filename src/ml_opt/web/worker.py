@@ -86,6 +86,7 @@ def run_optimization(configuration: dict, messages, cancel) -> None:
         messages.put({"event": "complete", "stop_reason": result.stop_reason,
                       "converged": result.converged, "volume_feasible": volume_feasible,
                       "epigraph_feasible": epigraph_feasible,
+                      "state_solver": result.config.state_solver, "rom_basis": result.rom_basis,
                       "feasible": volume_feasible and epigraph_feasible})
     except Exception as error:
         traceback.print_exc()

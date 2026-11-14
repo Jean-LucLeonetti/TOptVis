@@ -30,6 +30,8 @@ class HistoryEntry:
     worst_field: str | None = None
     epigraph_compliance: float | None = None
     epigraph_constraint: float | None = None
+    state_solver: str = "fom"
+    rom_basis_rank: int | None = None
 
 
 @dataclass
@@ -39,6 +41,7 @@ class OptimizationResult:
     evaluation: Evaluation
     history: list[HistoryEntry]
     stop_reason: str
+    rom_basis: dict | None = None
 
     @property
     def converged(self) -> bool:
@@ -62,6 +65,7 @@ def optimise(config: CantileverConfig,
 def _optimise_problem(problem, callback, snapshot_callback, stop_requested, started,
                       state_snapshot_callback=None, field_snapshot_callback=None, evaluation_callback=None) -> OptimizationResult:
     config = problem.config
+    rom_rank = problem.rom_info["rank"] if problem.rom_info else None
     design = problem.initial_design()
     current = problem.evaluate(design)
     if config.robust:
@@ -75,7 +79,8 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
                             field_compliances=current.field_compliances,
                             field_volumes=current.field_volumes, worst_field=current.worst_field,
                             epigraph_compliance=current.epigraph_compliance,
-                            epigraph_constraint=current.epigraph_constraint)]
+                            epigraph_constraint=current.epigraph_constraint,
+                            state_solver=config.state_solver, rom_basis_rank=rom_rank)]
     if callback:
         callback(history[-1])
     if snapshot_callback:
@@ -112,7 +117,8 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
                                      field_compliances=updated.field_compliances,
                                      field_volumes=updated.field_volumes, worst_field=updated.worst_field,
                                      epigraph_compliance=updated.epigraph_compliance,
-                                     epigraph_constraint=updated.epigraph_constraint))
+                                     epigraph_constraint=updated.epigraph_constraint,
+                                     state_solver=config.state_solver, rom_basis_rank=rom_rank))
         if callback:
             callback(history[-1])
         if snapshot_callback:
@@ -134,4 +140,4 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
         if stable_iterations >= config.convergence_patience:
             stop_reason = "design_and_objective_stable"
             break
-    return OptimizationResult(config, design.copy(), current, history, stop_reason)
+    return OptimizationResult(config, design.copy(), current, history, stop_reason, problem.rom_info)

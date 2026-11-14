@@ -150,9 +150,10 @@ snapshot magnitudes. Rank selection respects numerical rank and the mode
 limit, and explicitly reports an unmet energy target when the cap is too low.
 The spectrum and maximum per-snapshot relative reconstruction error describe
 training displacements, not elastic strain energy or unseen-case accuracy.
-Use **Validate on unseen cases** for held-out accuracy checks. Using the ROM
-to drive Cantilever 2D optimisation is not enabled; its state solves remain
-full order.
+Use **Validate on unseen cases** for held-out accuracy checks. To use a saved
+basis in optimisation, choose **ROM** in Cantilever 2D's elasticity solver
+control (see below). Offline snapshot generation and held-out reference
+trajectories always use full-order state solves.
 
 Datasets persist in `outputs/rom-training/<id>/`, relative to the source
 checkout. Refreshing or restarting reloads the dataset library. Downloads:
@@ -220,6 +221,47 @@ The API adds `POST /api/rom/<id>/validate` (streamed),
 `GET /api/rom/<id>/validation` and downloads at
 `GET /api/rom/<id>/artifacts/{validation,comparisons}`. Python callers can use
 `ValidationConfig` and `validate_basis` from `ml_opt.rom`.
+
+### Optimise with a saved ROM
+
+In **Cantilever 2D → Optimise**, choose **Elasticity solver → ROM** and select
+a saved model. **Refresh ROMs** reloads the training library. A model requires
+a completed basis, but an absent or failed validation does not block explicit
+selection; its validation status is displayed alongside the model. **Use ROM
+mesh** applies its element counts and domain dimensions, preserving the load's
+relative node position. The API independently rejects incompatible mesh,
+geometry, Poisson ratio, thickness, DOF mapping, or malformed basis artifacts
+before a worker job starts. Loads whose projection into the basis is effectively
+zero are rejected rather than optimising an unrepresented force.
+
+Both MMA and GCMMA use the frozen Galerkin state and its consistent adjoint
+sensitivities at every evaluation, including GCMMA trials. The same material,
+filter and projection differentiation path is used as with FOM. Robust
+three-field optimisation uses the selected basis for all three material fields;
+both sequential and parallel field execution are supported. Single-field
+held-out validation does not certify robust-field or other untested accuracy.
+The ROM still performs assembly/projection and residual evaluation; choosing
+a reduced model does not by itself guarantee a speedup.
+
+The selected artifact's SHA-256 is pinned before the job and rechecked when
+each solver loads it. Rebuilding a basis cannot change an active run's basis.
+Model type, mode count, basis identity, and full equilibrium residual are
+reported in the live interface and histories. ROM compliance, gradients, and
+stopping decisions are approximate; reaching the stopping criteria does not
+certify full-order accuracy. There is no implicit fallback to a full state solve.
+The default remains **FOM**.
+
+Saved `summary.json` and `result.npz` identify the state solver and ROM basis.
+CLI/Python configurations use `state_solver="rom"` and `rom_basis_path`:
+
+```powershell
+.\.venv\Scripts\python.exe -m ml_opt --nx 30 --ny 10 --state-solver rom --rom-basis-path outputs/rom-training/<id>/basis.npz
+```
+
+The web API takes `state_solver="rom"` and `rom_training_id=<id>` in
+`POST /api/run`. Browser requests select only datasets within the app's training
+root; arbitrary artifact paths are not accepted. Omit the selection or use
+`state_solver="fom"` for the original full-order solve.
 
 ## 2D cantilever example
 

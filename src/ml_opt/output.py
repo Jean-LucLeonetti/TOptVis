@@ -28,7 +28,8 @@ def save_results(result: OptimizationResult, directory: str | Path) -> Path:
                         coordinates=mesh.coordinates, elements=mesh.elements,
                         force=mesh.cantilever_force(config.load, config.load_angle,
                               None if config.load_node_x is None else
-                              (config.load_node_x, config.load_node_y)).reshape(-1, 2), **fields)
+                              (config.load_node_x, config.load_node_y)).reshape(-1, 2),
+                        state_solver=np.array(config.state_solver), rom_basis_json=np.array(json.dumps(result.rom_basis)), **fields)
     def history_row(entry):
         row = asdict(entry)
         compliances, volumes = row.pop("field_compliances"), row.pop("field_volumes")
@@ -52,6 +53,8 @@ def save_results(result: OptimizationResult, directory: str | Path) -> Path:
         "relative_equilibrium_residual": evaluation.residual,
         "state_solves": result.history[-1].state_solves,
         "elapsed_seconds": result.history[-1].elapsed_seconds,
+        "state_solver": config.state_solver, "rom_basis": result.rom_basis,
+        "objective_model": "approximate frozen Galerkin ROM" if config.state_solver == "rom" else "full-order elasticity",
     }
     if config.robust:
         epigraph_feasible = evaluation.epigraph_constraint <= config.feasibility_tolerance
@@ -91,7 +94,7 @@ def _save_figures(result: OptimizationResult, directory: Path) -> None:
                   arrowprops={"arrowstyle": "->", "color": "tab:red", "lw": 2})
     axes.set(xlim=(min(-pad, tip[0] - pad), max(config.length + pad, tip[0] + pad)),
              ylim=(min(-0.03 * config.height, tip[1] - pad), max(1.03 * config.height, tip[1] + pad)),
-             xlabel="x", ylabel="y", title=f"Cantilever | {config.optimizer.upper()} | "
+             xlabel="x", ylabel="y", title=f"Cantilever | {config.optimizer.upper()} | {config.state_solver.upper()} | "
              f"{'nominal density | dilated volume' if config.robust else 'volume'} "
              f"{result.evaluation.volume_fraction:.3f} | compliance {result.evaluation.compliance:.3f}")
     axes.set_aspect("equal")

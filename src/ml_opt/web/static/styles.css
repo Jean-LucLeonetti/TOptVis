@@ -118,6 +118,11 @@ input[type=range]:disabled {cursor:default}
 .iteration-progress span {display:block;background:#4b9b8d;height:100%;width:0;transition:width .2s}
 .page-footer {margin-top:17px;display:flex;justify-content:space-between;color:#a1adb4;font-size:9px;letter-spacing:.2px}
 .error-banner {background:#fff0eb;border:1px solid #f0d3c8;border-radius:7px;color:#a44f3e;padding:12px 15px;font-size:12px;margin-bottom:18px}
+.solver-run-description {font-size:11px;line-height:1.7;color:var(--teal);margin:0 0 15px}
+.rom-solver-options {padding:14px 0 18px}
+.rom-model-actions {display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.rom-model-actions .button {font-size:10px;height:32px;padding:0 10px}
+#state_solver {margin-bottom:16px}
 .training-overview {display:flex;align-items:flex-start;gap:22px;padding:32px;max-width:1100px}
 .training-icon {width:54px;height:54px;flex-shrink:0;display:grid;place-items:center;border-radius:12px;background:#e6f1ee;color:var(--teal)}
 .training-icon svg {width:32px;height:32px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}

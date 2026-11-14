@@ -66,17 +66,36 @@ class ValidationRequest(BaseModel):
         return ValidationConfig(**self.model_dump())
 
 
+def training_directory(root: Path, training_id):
+    root = root.resolve()
+    if not isinstance(training_id, str) or not re.fullmatch(r"[0-9a-f]{32}", training_id):
+        raise HTTPException(404, "Training dataset not found")
+    directory = root / training_id
+    if directory.resolve().parent != root:
+        raise HTTPException(404, "Training dataset not found")
+    return directory
+
+
+def selected_basis_path(root: Path, training_id):
+    directory = training_directory(root, training_id)
+    try:
+        metadata = read_metadata(directory)
+    except (OSError, ValueError):
+        raise HTTPException(404, "Training dataset not found") from None
+    if metadata.get("status") != "basis_ready" or not metadata.get("basis"):
+        raise HTTPException(409, "Build the selected ROM basis in ROM Training first")
+    path = directory / "basis.npz"
+    if not path.is_file() or path.is_symlink():
+        raise HTTPException(404, "Selected ROM basis artifact not found")
+    return path
+
+
 def create_rom_router(manager, root: Path):
     router = APIRouter(prefix="/api/rom")
     root = root.resolve()
 
     def directory_for(training_id):
-        if not re.fullmatch(r"[0-9a-f]{32}", training_id):
-            raise HTTPException(404, "Training dataset not found")
-        directory = root / training_id
-        if directory.resolve().parent != root:
-            raise HTTPException(404, "Training dataset not found")
-        return directory
+        return training_directory(root, training_id)
 
     def metadata_for(training_id):
         try:
