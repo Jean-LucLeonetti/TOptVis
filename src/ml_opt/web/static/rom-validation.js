@@ -95,7 +95,7 @@ export class ValidationView {
     const verdict = summary.status === "cancelled" ? "Partial validation" : summary.meets_tolerances ? "Within tolerances" : "Outside tolerances";
     byId("rom-validation-verdict").textContent = verdict;
     byId("rom-validation-verdict").dataset.status = summary.meets_tolerances ? "complete" : "ready";
-    byId("rom-validation-note").textContent = `${verdict} · ${summary.passed_states}/${summary.state_count} designs within all tolerances · ${summary.completed_cases}/${summary.case_count} cases completed. Scope: these held-out designs only.`;
+    byId("rom-validation-note").textContent = `${verdict} · ${summary.passed_states}/${summary.state_count} designs within all tolerances · ${summary.completed_cases}/${summary.case_count} cases completed. Saved limits: displacement ${percentage(summary.options.displacement_tolerance)}, compliance ${percentage(summary.options.compliance_tolerance)}, design gradient ${percentage(summary.options.gradient_tolerance)}. Scope: these held-out designs only.`;
     byId("rom-validation-provenance").textContent = `Basis SHA-256 ${summary.basis_sha256.slice(0,12)}…`;
     for (const artifact of ["validation", "comparisons"]) byId(`rom-download-${artifact}`).href = `/api/rom/${record.id}/artifacts/${artifact}`;
     try {

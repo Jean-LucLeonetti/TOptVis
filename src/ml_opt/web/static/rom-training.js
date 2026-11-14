@@ -234,7 +234,7 @@ async function run(endpoint, payload, kind) {
     byId("rom-progress").value = 0;
     canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
   }
-  let terminal = false;
+  let terminal = false, failed = false;
   try {
     const response = await fetch(endpoint, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload)});
     if (!response.ok) {
@@ -258,12 +258,14 @@ async function run(endpoint, payload, kind) {
     }
     if (!terminal) throw new Error("The connection ended before training finished. Refresh datasets to inspect saved work.");
   } catch (e) {
+    failed = true;
     error(e.message); status("Error", "error");
     if (state.jobId) fetch(`/api/run/${state.jobId}/stop`, {method: "POST"}).catch(() => {});
   } finally {
     state.jobId = null; setBusy(false);
     try { await refreshLibrary(state.completedId || dataset.value); } catch (e) { error(e.message); }
     if (state.terminal) complete(state.terminal);
+    if (failed) status("Error", "error");
   }
 }
 

@@ -35,10 +35,18 @@ class ValidationConfig:
             value = getattr(self, name)
             if not np.isfinite(value) or not 0 < value <= 1:
                 raise ValueError(f"{name} must lie in (0, 1]")
-        # Reuse training's numeric/list validation before any worker is started.
-        SnapshotConfig(nx=2, ny=100, load_heights=self.load_heights, load_angles=self.load_angles,
-                       volume_fractions=self.volume_fractions, iterations_per_case=self.iterations_per_case,
-                       snapshot_stride=self.comparison_stride)
+        for name in ("iterations_per_case", "comparison_stride"):
+            if type(getattr(self, name)) is not int or not 1 <= getattr(self, name) <= 300:
+                raise ValueError(f"{name} must be an integer between 1 and 300")
+        for name, lower, upper, exclusive in (("load_heights", 0, 1, False),
+                    ("load_angles", -180, 180, False), ("volume_fractions", 0, 1, True)):
+            values = getattr(self, name)
+            if not values or len(values) > 16 or len(set(values)) != len(values):
+                raise ValueError(f"{name} needs between 1 and 16 distinct values")
+            if any(not np.isfinite(value) or (not lower < value < upper if exclusive else
+                                              not lower <= value <= upper) for value in values):
+                raise ValueError(f"{name} contains an invalid value")
+        # Mesh-node snapping belongs to validation_cases, on the selected mesh.
         if self.case_count > 16 or self.maximum_states > 128:
             raise ValueError("Validation allows at most 16 cases and 128 comparison states")
 

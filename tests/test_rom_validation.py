@@ -74,6 +74,14 @@ def test_unseen_cases_reject_training_overlap_snapped_nodes_and_periodic_angles(
     assert len(validation_cases(metadata, options())) == 2
 
 
+def test_load_heights_are_snapped_only_on_the_selected_mesh(tmp_path):
+    metadata = training(tmp_path / "trained")
+    metadata["settings"]["ny"] = 90
+    metadata["cases"][0]["ny"] = 90
+    selected = options(load_heights=(.005, .006))
+    assert [case.load_node_y for case in validation_cases(metadata, selected)] == [0, 1]
+
+
 def test_validation_metrics_match_saved_vectors_and_leave_basis_and_training_untouched(tmp_path):
     directory = tmp_path / "trained"
     training(directory)
