@@ -197,6 +197,9 @@ function receive(event) {
   } else if (event.event === "basis_started") {
     status("Building basis", "running");
     byId("rom-progress-note").textContent = `Computing POD from ${event.snapshot_count} displacement snapshots…`;
+  } else if (event.event === "operators_started") {
+    status("Preparing reduced model", "running");
+    byId("rom-progress-note").textContent = `Preparing element stiffness operators for ${event.rank} modes…`;
   } else if (event.event === "complete") {
     state.terminal = event;
     complete(event);
@@ -215,7 +218,7 @@ function complete(event) {
   }
   status(stopped ? "Stopped" : event.training?.basis ? "Basis ready" : "Snapshots ready", stopped ? "ready" : "complete");
   byId("rom-progress-note").textContent = stopped ? "Stopped. Previously saved data and collected snapshots are retained." :
-    event.training?.basis ? "Basis saved. Download it below, or rebuild with different POD settings." : "Snapshots saved. Build the reduced basis below.";
+    event.training?.basis ? "Basis and reduced element operators saved. Choose this model in Cantilever 2D to optimise with it." : "Snapshots saved. Build the reduced basis below.";
   if (!stopped) byId("rom-progress").value = 100;
 }
 

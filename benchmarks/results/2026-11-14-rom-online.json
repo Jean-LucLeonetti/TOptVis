@@ -1,0 +1,628 @@
+{
+  "created_at": "2026-11-14T22:18:58.164201+00:00",
+  "source_commit": "c3eeee11549ee219c537aa1cd3e0c23e3d6aec06",
+  "working_tree_diff_sha256": "a501eb05a1959de020eb97f352be403dd831d803f2df0a820fbee847f3d1c552",
+  "baseline": "c3eeee1",
+  "environment": {
+    "python": "3.14.4",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+    "logical_cpus": 20,
+    "torch_threads": 14,
+    "torch_interop_threads": 14,
+    "versions": {
+      "numpy": "2.5.4",
+      "scipy": "1.18.1",
+      "torch": "2.15.0",
+      "petsc4py": "3.26.1",
+      "mmapy": "0.3.1",
+      "fastapi": "0.162.7",
+      "uvicorn": "0.54.0"
+    },
+    "thread_environment": {
+      "OMP_NUM_THREADS": null,
+      "MKL_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": null
+    },
+    "parallel_info": "ATen/Parallel:\n\tat::get_num_threads() : 14\n\tat::get_num_interop_threads() : 14\nOpenMP 2019\n\tomp_get_max_threads() : 14\nIntel(R) oneAPI Math Kernel Library Version 2026.2-Product Build 20260915 for Intel(R) 64 architecture applications\n\tmkl_get_max_threads() : 14\nIntel(R) MKL-DNN v3.13.3 (Git Hash b38f97eb6f2173513112f15a0481750b8a66e901)\nstd::thread::hardware_concurrency() : 20\nEnvironment variables:\n\tOMP_NUM_THREADS : [not set]\n\tMKL_NUM_THREADS : [not set]\nATen parallel backend: OpenMP\n",
+    "memory": {
+      "total_ram_bytes": 16866312192,
+      "available_ram_bytes": 2033549312,
+      "memory_load_percent": 87
+    }
+  },
+  "options": {
+    "meshes": [
+      [
+        120,
+        40
+      ],
+      [
+        240,
+        80
+      ]
+    ],
+    "repeats": 3,
+    "iterations": 20,
+    "training_iterations": 20,
+    "modes": 64,
+    "energy": 0.99999999,
+    "baseline": "c3eeee1",
+    "reuse_training": false,
+    "output": "C:\\Users\\jeanl\\Desktop\\python_library\\ml-opt-project\\outputs\\benchmarks\\rom-online"
+  },
+  "timing_scope": "Warmed serial CPU process; online timings include model loading, setup, gradient evaluation and teardown; exclude offline training, browser/startup/output files.",
+  "quality_scope": "Unseen load/volume combination; final ROM design independently evaluated with FOM. Equal iterations do not establish equal accuracy or convergence.",
+  "cases": [
+    {
+      "mesh": [
+        120,
+        40
+      ],
+      "free_dofs": 9840,
+      "basis_rank": 48,
+      "basis_target_met": true,
+      "operator_bytes": 45158400,
+      "offline": {
+        "snapshot_generation_seconds": 15.708983700023964,
+        "snapshot_write_seconds": 0.2259446999814827,
+        "basis_operators_and_write_seconds": 1.5183609999949113,
+        "total_seconds": 17.453289400000358
+      },
+      "training_directory": "C:\\Users\\jeanl\\Desktop\\python_library\\ml-opt-project\\outputs\\benchmarks\\rom-online\\120x40\\a8d576dfbced4d5b93502f667f4dcc0b",
+      "config": {
+        "nx": 120,
+        "ny": 40,
+        "length": 3.0,
+        "height": 1.0,
+        "young_modulus": 1.0,
+        "minimum_modulus": 1e-06,
+        "poisson_ratio": 0.3,
+        "thickness": 1.0,
+        "load": 1.0,
+        "load_angle": -75,
+        "load_node_x": 120,
+        "load_node_y": 16,
+        "volume_fraction": 0.35,
+        "material_model": "simp",
+        "penalisation": 3.0,
+        "filter_radius": 0.1,
+        "projection_beta": 2,
+        "projection_eta": 0.5,
+        "projection_schedule": "fixed",
+        "projection_beta_interval": 25,
+        "projection_beta_multiplier": 2.0,
+        "projection_beta_max": 16.0,
+        "robust": false,
+        "robust_eta_offset": 0.1,
+        "field_execution": "sequential",
+        "optimizer": "mma",
+        "move_limit": 0.2,
+        "max_iterations": 20,
+        "min_iterations": 20,
+        "design_tolerance": 0.005,
+        "objective_tolerance": 0.0001,
+        "feasibility_tolerance": 0.0001,
+        "convergence_patience": 5,
+        "max_inner_iterations": 30,
+        "linear_tolerance": 1e-10,
+        "state_solver": "fom",
+        "rom_basis_path": null,
+        "rom_basis_sha256": null
+      },
+      "optimisation": {
+        "mma": {
+          "fom": {
+            "timing": {
+              "median": 1.8881045999878552,
+              "min": 1.5936176000104751,
+              "max": 1.8907812999968883,
+              "samples": [
+                1.5936176000104751,
+                1.8907812999968883,
+                1.8881045999878552
+              ]
+            },
+            "trials": [
+              {
+                "seconds": 1.5936176000104751,
+                "iterations": 20,
+                "state_solves": 21,
+                "compliance": 750.8862957498061,
+                "volume": 0.34859746615354237,
+                "stop_reason": "maximum_iterations"
+              },
+              {
+                "seconds": 1.8907812999968883,
+                "iterations": 20,
+                "state_solves": 21,
+                "compliance": 750.8862957498061,
+                "volume": 0.34859746615354237,
+                "stop_reason": "maximum_iterations"
+              },
+              {
+                "seconds": 1.8881045999878552,
+                "iterations": 20,
+                "state_solves": 21,
+                "compliance": 750.8862957498061,
+                "volume": 0.34859746615354237,
+                "stop_reason": "maximum_iterations"
+              }
+            ]
+          },
+          "rom": {
+            "timing": {
+              "median": 1.313365000009071,
+              "min": 1.1873523999820463,
+              "max": 1.4113811000133865,
+              "samples": [
+                1.1873523999820463,
+                1.313365000009071,
+                1.4113811000133865
+              ]
+            },
+            "trials": [
+              {
+                "seconds": 1.1873523999820463,
+                "iterations": 20,
+                "state_solves": 21,
+                "compliance": 490.489557395749,
+                "volume": 0.34888907899103233,
+                "stop_reason": "maximum_iterations"
+              },
+              {
+                "seconds": 1.313365000009071,
+                "iterations": 20,
+                "state_solves": 21,
+                "compliance": 490.489557395749,
+                "volume": 0.34888907899103233,
+                "stop_reason": "maximum_iterations"
+              },
+              {
+                "seconds": 1.4113811000133865,
+                "iterations": 20,
+                "state_solves": 21,
+                "compliance": 490.489557395749,
+                "volume": 0.34888907899103233,
+                "stop_reason": "maximum_iterations"
+              }
+            ]
+          },
+          "rom_final_fom_check": {
+            "displacement_error": 0.9720361792362378,
+            "compliance_error": 0.9720956063894306,
+            "gradient_error": 0.9993452413451497,
+            "passed": false,
+            "full_compliance": 17577.502820558082,
+            "rom_compliance": 490.489557395749,
+            "full_residual": 4.631966565622687e-11,
+            "rom_residual": 1.8730876341108418,
+            "full_volume": 0.34888907899103233,
+            "reported_volume": 0.34888907899103233,
+            "full_volume_constraint": -0.0031740600256218165
+          },
+          "rom_design_full_compliance_vs_fom_design_ratio": 23.409007355775305,
+          "speedup": 1.4376084332800207,
+          "timing_only_break_even_runs": 31
+        },
+        "gcmma": {
+          "fom": {
+            "timing": {
+              "median": 3.298098300001584,
+              "min": 3.2248648999957368,
+              "max": 3.729558699997142,
+              "samples": [
+                3.729558699997142,
+                3.2248648999957368,
+                3.298098300001584
+              ]
+            },
+            "trials": [
+              {
+                "seconds": 3.729558699997142,
+                "iterations": 20,
+                "state_solves": 53,
+                "compliance": 685.4715588196276,
+                "volume": 0.3497377400064373,
+                "stop_reason": "maximum_iterations"
+              },
+              {
+                "seconds": 3.2248648999957368,
+                "iterations": 20,
+                "state_solves": 53,
+                "compliance": 685.4715588196276,
+                "volume": 0.3497377400064373,
+                "stop_reason": "maximum_iterations"
+              },
+              {
+                "seconds": 3.298098300001584,
+                "iterations": 20,
+                "state_solves": 53,
+                "compliance": 685.4715588196276,
+                "volume": 0.3497377400064373,
+                "stop_reason": "maximum_iterations"
+              }
+            ]
+          },
+          "rom": {
+            "timing": {
+              "median": 1.8280509000178427,
+              "min": 1.8000306000176352,
+              "max": 1.979259700019611,
+              "samples": [
+                1.8280509000178427,
+                1.8000306000176352,
+                1.979259700019611
+              ]
+            },
+            "trials": [
+              {
+                "seconds": 1.8280509000178427,
+                "iterations": 20,
+                "state_solves": 48,
+                "compliance": 490.21507592198134,
+                "volume": 0.34919605693931666,
+                "stop_reason": "maximum_iterations"
+              },
+              {
+                "seconds": 1.8000306000176352,
+                "iterations": 20,
+                "state_solves": 48,
+                "compliance": 490.21507592198134,
+                "volume": 0.34919605693931666,
+                "stop_reason": "maximum_iterations"
+              },
+              {
+                "seconds": 1.979259700019611,
+                "iterations": 20,
+                "state_solves": 48,
+                "compliance": 490.21507592198134,
+                "volume": 0.34919605693931666,
+                "stop_reason": "maximum_iterations"
+              }
+            ]
+          },
+          "rom_final_fom_check": {
+            "displacement_error": 0.9533030512943677,
+            "compliance_error": 0.9568923471678122,
+            "gradient_error": 0.9990334671310175,
+            "passed": false,
+            "full_compliance": 11371.8804832711,
+            "rom_compliance": 490.21507592198134,
+            "full_residual": 2.4290646715405072e-11,
+            "rom_residual": 1.8211520138537267,
+            "full_volume": 0.34919605693931666,
+            "reported_volume": 0.34919605693931666,
+            "full_volume_constraint": -0.0022969801733808692
+          },
+          "rom_design_full_compliance_vs_fom_design_ratio": 16.589864797386078,
+          "speedup": 1.8041610876203682,
+          "timing_only_break_even_runs": 12
+        }
+      },
+      "basis_sha256": "7053f034103288605019facd51551d83749997e82e7f400307be06b64ded05b7",
+      "state_solve_seconds": {
+        "fom": {
+          "median": 0.024779185713712303,
+          "min": 0.024770752381300554,
+          "max": 0.025342223809621783,
+          "samples": [
+            0.025342223809621783,
+            0.024779185713712303,
+            0.024770752381300554
+          ]
+        },
+        "rom": {
+          "median": 0.004106580951927407,
+          "min": 0.003915004762044798,
+          "max": 0.0053665285716609406,
+          "samples": [
+            0.0053665285716609406,
+            0.003915004762044798,
+            0.004106580951927407
+          ]
+        },
+        "previous_rom": {
+          "median": 0.012373509524401189,
+          "min": 0.011718728571265404,
+          "max": 0.014535323809555155,
+          "samples": [
+            0.014535323809555155,
+            0.012373509524401189,
+            0.011718728571265404
+          ]
+        }
+      },
+      "max_previous_rom_compliance_difference": 5.290714393423202e-13
+    },
+    {
+      "mesh": [
+        240,
+        80
+      ],
+      "free_dofs": 38880,
+      "basis_rank": 46,
+      "basis_target_met": true,
+      "operator_bytes": 166041600,
+      "offline": {
+        "snapshot_generation_seconds": 81.97346239999752,
+        "snapshot_write_seconds": 0.7579269999987446,
+        "basis_operators_and_write_seconds": 5.276548699999694,
+        "total_seconds": 88.00793809999595
+      },
+      "training_directory": "C:\\Users\\jeanl\\Desktop\\python_library\\ml-opt-project\\outputs\\benchmarks\\rom-online\\240x80\\3ec9278f30194b97b652071e2197deb4",
+      "config": {
+        "nx": 240,
+        "ny": 80,
+        "length": 3.0,
+        "height": 1.0,
+        "young_modulus": 1.0,
+        "minimum_modulus": 1e-06,
+        "poisson_ratio": 0.3,
+        "thickness": 1.0,
+        "load": 1.0,
+        "load_angle": -75,
+        "load_node_x": 240,
+        "load_node_y": 32,
+        "volume_fraction": 0.35,
+        "material_model": "simp",
+        "penalisation": 3.0,
+        "filter_radius": 0.1,
+        "projection_beta": 2,
+        "projection_eta": 0.5,
+        "projection_schedule": "fixed",
+        "projection_beta_interval": 25,
+        "projection_beta_multiplier": 2.0,
+        "projection_beta_max": 16.0,
+        "robust": false,
+        "robust_eta_offset": 0.1,
+        "field_execution": "sequential",
+        "optimizer": "mma",
+        "move_limit": 0.2,
+        "max_iterations": 20,
+        "min_iterations": 20,
+        "design_tolerance": 0.005,
+        "objective_tolerance": 0.0001,
+        "feasibility_tolerance": 0.0001,
+        "convergence_patience": 5,
+        "max_inner_iterations": 30,
+        "linear_tolerance": 1e-10,
+        "state_solver": "fom",
+        "rom_basis_path": null,
+        "rom_basis_sha256": null
+      },
+      "optimisation": {
+        "mma": {
+          "fom": {
+            "timing": {
+              "median": 7.112111900001764,
+              "min": 7.0393567999999505,
+              "max": 7.2938431999937166,
+              "samples": [
+                7.0393567999999505,
+                7.2938431999937166,
+                7.112111900001764
+              ]
+            },
+            "trials": [
+              {
+                "seconds": 7.0393567999999505,
+                "iterations": 20,
+                "state_solves": 21,
+                "compliance": 720.6706000369729,
+                "volume": 0.349335906480845,
+                "stop_reason": "maximum_iterations"
+              },
+              {
+                "seconds": 7.2938431999937166,
+                "iterations": 20,
+                "state_solves": 21,
+                "compliance": 720.6706000369729,
+                "volume": 0.349335906480845,
+                "stop_reason": "maximum_iterations"
+              },
+              {
+                "seconds": 7.112111900001764,
+                "iterations": 20,
+                "state_solves": 21,
+                "compliance": 720.6706000369729,
+                "volume": 0.349335906480845,
+                "stop_reason": "maximum_iterations"
+              }
+            ]
+          },
+          "rom": {
+            "timing": {
+              "median": 4.9470885999908205,
+              "min": 4.849178300006315,
+              "max": 5.035025099990889,
+              "samples": [
+                4.9470885999908205,
+                5.035025099990889,
+                4.849178300006315
+              ]
+            },
+            "trials": [
+              {
+                "seconds": 4.9470885999908205,
+                "iterations": 20,
+                "state_solves": 21,
+                "compliance": 524.4427873959072,
+                "volume": 0.34895832303851915,
+                "stop_reason": "maximum_iterations"
+              },
+              {
+                "seconds": 5.035025099990889,
+                "iterations": 20,
+                "state_solves": 21,
+                "compliance": 524.4427873959072,
+                "volume": 0.34895832303851915,
+                "stop_reason": "maximum_iterations"
+              },
+              {
+                "seconds": 4.849178300006315,
+                "iterations": 20,
+                "state_solves": 21,
+                "compliance": 524.4427873959072,
+                "volume": 0.34895832303851915,
+                "stop_reason": "maximum_iterations"
+              }
+            ]
+          },
+          "rom_final_fom_check": {
+            "displacement_error": 0.9336972911819306,
+            "compliance_error": 0.92754791168572,
+            "gradient_error": 0.9989740858082694,
+            "passed": false,
+            "full_compliance": 7238.477172955993,
+            "rom_compliance": 524.4427873959072,
+            "full_residual": 4.719980083060254e-11,
+            "rom_residual": 1.1956521514221052,
+            "full_volume": 0.34895832303851915,
+            "reported_volume": 0.34895832303851915,
+            "full_volume_constraint": -0.002976219889945231
+          },
+          "rom_design_full_compliance_vs_fom_design_ratio": 10.044085567781778,
+          "speedup": 1.4376358450533837,
+          "timing_only_break_even_runs": 41
+        },
+        "gcmma": {
+          "fom": {
+            "timing": {
+              "median": 16.66385359998094,
+              "min": 16.244466300006025,
+              "max": 18.887406199995894,
+              "samples": [
+                16.244466300006025,
+                16.66385359998094,
+                18.887406199995894
+              ]
+            },
+            "trials": [
+              {
+                "seconds": 16.244466300006025,
+                "iterations": 20,
+                "state_solves": 52,
+                "compliance": 690.3796534758345,
+                "volume": 0.3497728346287196,
+                "stop_reason": "maximum_iterations"
+              },
+              {
+                "seconds": 16.66385359998094,
+                "iterations": 20,
+                "state_solves": 52,
+                "compliance": 690.3796534758345,
+                "volume": 0.3497728346287196,
+                "stop_reason": "maximum_iterations"
+              },
+              {
+                "seconds": 18.887406199995894,
+                "iterations": 20,
+                "state_solves": 52,
+                "compliance": 690.3796534758345,
+                "volume": 0.3497728346287196,
+                "stop_reason": "maximum_iterations"
+              }
+            ]
+          },
+          "rom": {
+            "timing": {
+              "median": 8.295019200013485,
+              "min": 7.978417400008766,
+              "max": 9.162068299978273,
+              "samples": [
+                7.978417400008766,
+                8.295019200013485,
+                9.162068299978273
+              ]
+            },
+            "trials": [
+              {
+                "seconds": 7.978417400008766,
+                "iterations": 20,
+                "state_solves": 53,
+                "compliance": 520.6910872504117,
+                "volume": 0.34929645703956813,
+                "stop_reason": "maximum_iterations"
+              },
+              {
+                "seconds": 8.295019200013485,
+                "iterations": 20,
+                "state_solves": 53,
+                "compliance": 520.6910872504117,
+                "volume": 0.34929645703956813,
+                "stop_reason": "maximum_iterations"
+              },
+              {
+                "seconds": 9.162068299978273,
+                "iterations": 20,
+                "state_solves": 53,
+                "compliance": 520.6910872504117,
+                "volume": 0.34929645703956813,
+                "stop_reason": "maximum_iterations"
+              }
+            ]
+          },
+          "rom_final_fom_check": {
+            "displacement_error": 0.7195789517822866,
+            "compliance_error": 0.7586762486365635,
+            "gradient_error": 0.9699260521500156,
+            "passed": false,
+            "full_compliance": 2157.645421590702,
+            "rom_compliance": 520.6910872504117,
+            "full_residual": 1.1089493392193154e-11,
+            "rom_residual": 1.2341750182296594,
+            "full_volume": 0.34929645703956813,
+            "reported_volume": 0.34929645703956813,
+            "full_volume_constraint": -0.0020101227440909586
+          },
+          "rom_design_full_compliance_vs_fom_design_ratio": 3.1253027384681267,
+          "speedup": 2.0088987376851217,
+          "timing_only_break_even_runs": 11
+        }
+      },
+      "basis_sha256": "adbd43d3d74f5d964069213c67406f47b9b1d5bb294586c387e7b41d1ac3601b",
+      "state_solve_seconds": {
+        "fom": {
+          "median": 0.2057491666665079,
+          "min": 0.2029536190481546,
+          "max": 0.21707674285668568,
+          "samples": [
+            0.21707674285668568,
+            0.2057491666665079,
+            0.2029536190481546
+          ]
+        },
+        "rom": {
+          "median": 0.014615033334675467,
+          "min": 0.01403137142880864,
+          "max": 0.01574272380925582,
+          "samples": [
+            0.01574272380925582,
+            0.014615033334675467,
+            0.01403137142880864
+          ]
+        },
+        "previous_rom": {
+          "median": 0.04799135238170579,
+          "min": 0.0444940523801571,
+          "max": 0.05185575238040959,
+          "samples": [
+            0.05185575238040959,
+            0.0444940523801571,
+            0.04799135238170579
+          ]
+        }
+      },
+      "max_previous_rom_compliance_difference": 5.231397212176424e-12
+    }
+  ],
+  "numerical_source_files_sha256": {
+    "src/ml_opt/rom/solver.py": "f2da37bc6a0080c68aad80cb17f171b43582733e02247aaf0592817427828c19",
+    "src/ml_opt/rom/operators.py": "dc132464df3745d36379b702e56d68323e6d2905e21e38a5826d269244c477d6",
+    "src/ml_opt/rom/training.py": "8825d51d5440bd869f79023cf33250e49770bb5f43103236802a6cab36b747b1",
+    "src/ml_opt/rom/validation.py": "b398aaf8b89a7745f690add15a3adc63206db92f21f6e2c8b323ecfaedc0a61b",
+    "src/ml_opt/fem/state_solver.py": "b16722e98ac1382766f06ac5f476ab75dd22217bcbfa970f0f06546cad4290df"
+  },
+  "source_note": "Measured in the feature worktree before commit. Numerical source fingerprints include the subsequent early cancellation guard; active-run numerical assembly is unchanged."
+}
