@@ -42,9 +42,9 @@ launch it with `toptvis-ui` after activating the environment; use `--port 8001`
 if port 8000 is already occupied.
 
 The top tabs separate **Cantilever 2D** from **ROM Training**. Switching tabs
-preserves the cantilever settings, results, and any active run. ROM Training
-is a dedicated workspace for the planned offline training workflow; training
-and model generation are not available yet. The workspaces can be opened
+preserves settings, results, and any active job. ROM Training generates
+full-order displacement snapshots and builds reusable POD reduced bases.
+The workspaces can be opened
 directly with `/#cantilever-2d` and `/#rom-training`.
 
 Within Cantilever 2D, the far-left tabs separate **Geometry**, **Load**, **Filters**,
@@ -121,6 +121,57 @@ cancels that run; the server allows one active optimisation at a time.
 indicates projection support. If an older server is still running after an
 update, the page asks for a restart before enabling Run. Close the original
 launcher window, reopen **Start TOptVis.bat**, and refresh the page.
+
+## Offline ROM training
+
+Open **ROM Training** and configure its independent mesh, right-edge load
+heights (fractions of domain height), load angles, volume fractions, filter,
+projection, iteration limit, and snapshot spacing. Comma-separated lists form
+the Cartesian product of training cases. Click **Generate snapshots** to run
+the existing full-order MMA/PETSc optimiser for each case. Initial states,
+every selected outer iterate, and final states are captured; trial evaluations
+are excluded. Loads are unit magnitude, rounded to the nearest right-edge
+node. Material defaults and support conditions match the cantilever solver.
+
+Progress shows actual full-order compliance, equilibrium residuals, and the
+latest physical density. **Stop training** preserves collected snapshots as
+a partial dataset. Training and cantilever optimisation share one worker and
+cannot run simultaneously. Switching workspaces keeps a job running;
+disconnecting its live stream cancels it. The server supports up to 24 cases,
+512 snapshots, and 128 MiB of uncompressed displacement/density arrays per
+dataset, rejecting larger requests before starting work.
+
+Choose a saved dataset under **Build the reduced basis**, set the target POD
+energy and maximum mode count, then click **Build reduced basis**. This is
+uncentred displacement POD on free DOFs, using an economy SVD. Equal snapshot
+weighting (the default) normalises each column before SVD, preventing large
+displacements in soft designs from dominating. Turning it off uses the raw
+snapshot magnitudes. Rank selection respects numerical rank and the mode
+limit, and explicitly reports an unmet energy target when the cap is too low.
+The spectrum and maximum per-snapshot relative reconstruction error describe
+training displacements, not elastic strain energy or unseen-case accuracy.
+Validation on held-out cases and using the ROM in Cantilever 2D are future
+steps; this change does not replace the full-order elasticity solve.
+
+Datasets persist in `outputs/rom-training/<id>/`, relative to the source
+checkout. Refreshing or restarting reloads the dataset library. Downloads:
+
+- `snapshots.npz`: free-DOF displacement columns, corresponding physical
+  densities, case indices, outer iteration numbers, compliances, residuals,
+  free-DOF indices, mesh coordinates/connectivity, and JSON provenance.
+- `basis.npz`: orthonormal free-DOF basis columns, free-DOF mapping, singular
+  values, cumulative POD energy, original snapshot norms, reconstruction
+  errors, and JSON provenance. Clamped displacement components are zero.
+- `metadata.json`: complete training cases, settings, completion state, and
+  basis diagnostics. Load NPZ files with `numpy.load(..., allow_pickle=False)`.
+
+A dataset can be used to rebuild a basis with different settings. Cancelled
+builds leave the previous saved basis intact. The numerical workflow is also
+available through `ml_opt.rom` (`SnapshotConfig`, `generate_snapshots`, and
+`build_basis`). HTTP endpoints are `POST /api/rom/snapshots`,
+`POST /api/rom/<id>/basis`, `GET /api/rom/trainings`, and
+`GET /api/rom/<id>/artifacts/{snapshots,basis,metadata}`. Generation and building
+stream NDJSON events; `POST /api/run/<job-id>/stop` cancels either stage.
 
 ## 2D cantilever example
 
@@ -288,6 +339,8 @@ saved `density` array use nominal material. `Evaluation.displacement` and the
 saved `displacement` use the worst field; `volume_fraction` is the dilated
 volume used in the constraint. The evaluation also exposes `field_densities`,
 `field_compliances`, `field_volumes`, `field_displacements`, and `worst_field`.
+The optional state snapshot callback receives a matching displacement/density
+pair for the worst field in robust mode, suitable for equilibrium snapshots.
 Robust outputs include `density_eroded/nominal/dilated` and corresponding
 `displacement_*` arrays in `result.npz`, a `robust-fields.png` comparison,
 per-field history columns, and field metadata in `summary.json`. History and
@@ -359,6 +412,7 @@ src/ml_opt/problem.py         SIMP objective, volume constraint, sensitivities
 src/ml_opt/projection.py      Differentiable smooth Heaviside projection
 src/ml_opt/optimizers/        MMA/GCMMA state and inner iterations
 src/ml_opt/runner.py          Outer optimisation and stopping criteria
+src/ml_opt/rom/               Offline snapshots, POD, and training artifacts
 src/ml_opt/output.py          Result files and figures
 src/ml_opt/cli.py             Command-line entry point
 src/ml_opt/web/               Local HTTP server, solver worker, streaming API

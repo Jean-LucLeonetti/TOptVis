@@ -48,13 +48,17 @@ def optimise(config: CantileverConfig,
              callback: Callable[[HistoryEntry], None] | None = None, *,
              snapshot_callback: Callable[[HistoryEntry, np.ndarray], None] | None = None,
              field_snapshot_callback: Callable[[HistoryEntry, dict[str, np.ndarray]], None] | None = None,
-             stop_requested: Callable[[], bool] | None = None) -> OptimizationResult:
+             stop_requested: Callable[[], bool] | None = None,
+             state_snapshot_callback: Callable[[HistoryEntry, np.ndarray, np.ndarray], None] | None = None) -> OptimizationResult:
+    """State snapshots copy an equilibrium pair: worst field in robust mode."""
     started = perf_counter()
     with CantileverProblem(config) as problem:
-        return _optimise_problem(problem, callback, snapshot_callback, stop_requested, started, field_snapshot_callback)
+        return _optimise_problem(problem, callback, snapshot_callback, stop_requested, started,
+                                 state_snapshot_callback, field_snapshot_callback)
 
 
-def _optimise_problem(problem, callback, snapshot_callback, stop_requested, started, field_snapshot_callback=None) -> OptimizationResult:
+def _optimise_problem(problem, callback, snapshot_callback, stop_requested, started,
+                      state_snapshot_callback=None, field_snapshot_callback=None) -> OptimizationResult:
     config = problem.config
     design = problem.initial_design()
     current = problem.evaluate(design)
@@ -77,6 +81,9 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
     if field_snapshot_callback:
         field_snapshot_callback(history[-1], {name: density.copy() for name, density in
             (current.field_densities or {"nominal": current.density}).items()})
+    if state_snapshot_callback:
+        state_density = current.field_densities[current.worst_field] if config.robust else current.density
+        state_snapshot_callback(history[-1], current.displacement.copy(), state_density.copy())
     stable_iterations = 0
     stop_reason = "maximum_iterations"
     for iteration in range(1, config.max_iterations + 1):
@@ -109,6 +116,9 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
         if field_snapshot_callback:
             field_snapshot_callback(history[-1], {name: density.copy() for name, density in
                 (updated.field_densities or {"nominal": updated.density}).items()})
+        if state_snapshot_callback:
+            state_density = updated.field_densities[updated.worst_field] if config.robust else updated.density
+            state_snapshot_callback(history[-1], updated.displacement.copy(), state_density.copy())
         design, current = step.design, updated
         stable = (iteration >= config.min_iterations and change <= config.design_tolerance and
                   relative_change <= config.objective_tolerance and

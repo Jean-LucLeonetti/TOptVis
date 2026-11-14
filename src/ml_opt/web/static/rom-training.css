@@ -1,0 +1,27 @@
+.rom-workspace {display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;align-items:start}
+.rom-configuration {overflow:hidden}
+.rom-configuration .control-section+.control-section {border-top:1px solid var(--line)}
+.rom-configuration label+label {margin-top:14px}
+.rom-configuration .input-grid label {margin-top:0}
+.rom-configuration input[type=text] {height:36px;border:1px solid #dfe6ea;border-radius:6px;background:white;color:var(--ink);padding:0 10px;margin-top:7px;width:100%;min-width:0}
+.rom-note {font-size:11px;line-height:1.7;color:var(--muted);margin:12px 0 0}
+#rom-availability {margin:0 0 16px}
+.rom-estimate {font-size:11px;color:var(--teal);line-height:1.6;margin:15px 0 0}
+.rom-results {display:flex;flex-direction:column;gap:18px;min-width:0}
+.rom-preview {height:250px;min-height:250px;flex:none}
+.rom-preview p {position:absolute;inset:0;display:grid;place-items:center;margin:0;padding:25px;text-align:center;color:var(--muted);font-size:12px}
+#rom-progress {width:100%;height:5px;display:block;border:0;accent-color:var(--teal)}
+#rom-progress::-webkit-progress-bar {background:#edf3f2}
+#rom-progress::-webkit-progress-value {background:var(--teal)}
+.rom-basis-form {padding:4px 22px 22px}
+.rom-basis-options {display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:16px;align-items:end;margin-top:18px}
+.rom-check {display:flex;align-items:center;gap:7px;min-height:36px;line-height:1.5}
+.rom-check input {accent-color:var(--teal);margin:0}
+.rom-basis-form>.button {margin-top:16px}
+.rom-basis-result {padding-bottom:10px}
+#rom-spectrum {display:block;width:100%;max-height:220px;padding:12px 22px 0;overflow:visible;font-family:inherit;font-size:11px}
+.rom-download-links {display:flex;flex-wrap:wrap;gap:14px}
+.rom-download-links a {color:var(--teal);text-decoration:underline;text-underline-offset:3px}
+.rom-validation-note {margin:0;padding:0 4px 12px}
+@media(max-width:1000px) {.rom-workspace{grid-template-columns:260px minmax(0,1fr);gap:14px}.rom-basis-options{grid-template-columns:1fr 1fr}.rom-check{grid-column:1/-1}.rom-results .panel-heading{flex-wrap:wrap}.rom-results .metrics strong{font-size:18px}}
+@media(max-width:700px) {.rom-workspace{grid-template-columns:1fr}.rom-preview{height:220px;min-height:220px}.rom-basis-form{padding:4px 17px 20px}.rom-results .metrics strong{font-size:17px}.rom-results .metrics>div{padding-left:10px}.rom-results .metrics>div:first-child{padding-left:0}.rom-results .metrics>div>span{font-size:6px;letter-spacing:.5px}.rom-results .metrics{margin:0 17px}.rom-results .viewer-footer{row-gap:12px}.rom-results .panel-heading p{line-height:1.6}}

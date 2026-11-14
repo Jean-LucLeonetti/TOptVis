@@ -3,18 +3,18 @@
 import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-import json
 from pathlib import Path
-import queue
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..config import CantileverConfig
 from .jobs import RunManager
+from .rom import create_rom_router
+from .streams import stream_job
 
 
 class RunRequest(BaseModel):
@@ -48,7 +48,7 @@ class RunRequest(BaseModel):
         return CantileverConfig(**self.model_dump())
 
 
-def create_app() -> FastAPI:
+def create_app(*, training_root: Path | None = None) -> FastAPI:
     manager = RunManager()
     @asynccontextmanager
     async def lifespan(app):
@@ -60,6 +60,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title="TOptVis", lifespan=lifespan)
     app.state.manager = manager
+    app.include_router(create_rom_router(manager, training_root or Path(__file__).resolve().parents[3] / "outputs" / "rom-training"))
     static = Path(__file__).with_name("static")
     app.mount("/static", StaticFiles(directory=static), name="static")
 
@@ -71,7 +72,9 @@ def create_app() -> FastAPI:
     async def health():
         return {"status": "ready", "running": manager.active is not None,
                 "worker_ready": manager.worker_ready, "projection_supported": True,
-                "robust_supported": True}
+                "robust_supported": True,
+                "rom_training_supported": True,
+                "active_kind": manager.active.kind if manager.active else None}
 
     @app.post("/api/run")
     async def run(request: RunRequest):
@@ -81,27 +84,7 @@ def create_app() -> FastAPI:
         except RuntimeError as error:
             raise HTTPException(409, str(error)) from error
 
-        async def events():
-            try:
-                yield json.dumps({"event": "started", "run_id": job.id,
-                                  "config": asdict(config)}) + "\n"
-                while True:
-                    try:
-                        event = await asyncio.to_thread(job.messages.get, True, 0.25)
-                    except queue.Empty:
-                        if not job.process.is_alive():
-                            yield json.dumps({"event": "error", "message": "The solver process exited unexpectedly."}) + "\n"
-                            break
-                        continue
-                    yield json.dumps(event, allow_nan=False) + "\n"
-                    if event["event"] in ("complete", "error"):
-                        break
-            finally:
-                job.cancel.set()
-                await asyncio.shield(asyncio.to_thread(manager.finish, job))
-
-        return StreamingResponse(events(), media_type="application/x-ndjson",
-                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+        return stream_job(manager, job, {"config": asdict(config)})
 
     @app.post("/api/run/{run_id}/stop")
     async def stop(run_id: str):

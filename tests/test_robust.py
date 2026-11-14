@@ -210,3 +210,17 @@ def test_stopping_requires_the_true_epigraph_bound_to_be_feasible(monkeypatch):
     assert result.evaluation.constraint <= result.config.feasibility_tolerance
     assert result.evaluation.epigraph_constraint == .5
     assert result.stop_reason == "maximum_iterations"
+
+
+def test_state_snapshots_match_the_reported_worst_field_equilibrium():
+    config = configuration(max_iterations=2)
+    states = []
+    result = optimise(config, state_snapshot_callback=lambda row, u, rho: states.append((row, u, rho)))
+    assert len(states) == 3
+    with CantileverProblem(config) as problem:
+        for row, displacement, density in states:
+            moduli = config.minimum_modulus + (config.young_modulus - config.minimum_modulus) * density**config.penalisation
+            expected = problem.solver.solve(moduli)
+            np.testing.assert_allclose(displacement, expected.displacement, rtol=1e-10)
+            np.testing.assert_allclose(row.compliance, expected.compliance, rtol=1e-10)
+    np.testing.assert_array_equal(states[-1][2], result.evaluation.field_densities[result.evaluation.worst_field])

@@ -6,6 +6,7 @@
   <title>TOptVis · Cantilever 2D</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23196964'/%3E%3Cpath d='M7 8h18v5h-6v12h-6V13H7z' fill='white'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/rom-training.css">
   <script type="module" src="/static/app.js"></script>
 </head>
 <body>
@@ -182,16 +183,94 @@
     <section id="workspace-rom-training" class="workspace-page" role="tabpanel" aria-labelledby="tab-rom-training" tabindex="0" hidden>
       <div class="page-heading">
         <div><div class="eyebrow">OFFLINE MODEL TRAINING</div><h1>ROM Training</h1><p>Build and validate a reusable reduced-order model for elasticity.</p></div>
-        <span class="status-badge"><i></i>In development</span>
+        <div class="run-actions">
+          <button id="rom-stop" class="button secondary" type="button" disabled>Stop training</button>
+          <button id="rom-generate" class="button primary" type="submit" form="rom-snapshot-form" disabled>Generate snapshots</button>
+        </div>
       </div>
-      <section class="panel training-overview" aria-labelledby="training-title">
-        <span class="training-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M5 8h22M5 16h22M5 24h22M11 5v22M21 5v22"/><path d="m13 20 4-8 4 8"/></svg></span>
-        <div><h2 id="training-title">A dedicated space for training</h2><p>Prepare training cases, collect full-order solutions, and build a reduced basis to reuse in elasticity solves.</p><p class="training-note">The training workflow is in development. No training runs or trained models are available yet.</p></div>
-      </section>
-      <div class="training-stages" aria-label="Planned training workflow">
-        <section class="panel training-stage"><span class="eyebrow">01 · TRAINING DATA</span><h2>Collect snapshots</h2><p>Define representative load cases and material layouts, then collect displacement solutions.</p></section>
-        <section class="panel training-stage"><span class="eyebrow">02 · REDUCED BASIS</span><h2>Build the model</h2><p>Compress the snapshots into a reusable basis and choose the model size.</p></section>
-        <section class="panel training-stage"><span class="eyebrow">03 · VALIDATION</span><h2>Check accuracy</h2><p>Compare against full-order solves on unseen cases before using the model for optimisation.</p></section>
+      <div id="rom-error" class="error-banner" role="alert" hidden></div>
+      <p id="rom-availability" class="rom-note" role="status">Connecting to the training worker…</p>
+      <div class="rom-workspace">
+        <aside class="panel rom-configuration">
+          <div class="controls-title"><h2>01 · Snapshot generation</h2><span class="tag">Full order</span></div>
+          <form id="rom-snapshot-form">
+            <fieldset id="rom-snapshot-settings">
+              <section class="control-section">
+                <h3>Fixed mesh</h3>
+                <div class="input-grid">
+                  <label>Training length<input name="length" type="number" min="0.01" max="1000" step="any" value="3" required></label>
+                  <label>Training height<input name="height" type="number" min="0.01" max="1000" step="any" value="1" required></label>
+                  <label>Training elements · x<input name="nx" type="number" min="2" max="160" step="1" value="30" required></label>
+                  <label>Training elements · y<input name="ny" type="number" min="2" max="100" step="1" value="10" required></label>
+                </div>
+                <p class="rom-note">Plane stress · fixed left edge · unit load and solid modulus. A basis belongs to this mesh.</p>
+              </section>
+              <section class="control-section">
+                <h3>Training cases</h3>
+                <label>Load heights · fraction of height<input name="load_heights" type="text" value="0.25, 0.5, 0.75" required></label>
+                <label>Load angles · degrees<input name="load_angles" type="text" value="-90" required></label>
+                <label>Volume fractions<input name="volume_fractions" type="text" value="0.3, 0.4, 0.5" required></label>
+                <p class="rom-note">Comma-separated values. Every combination is a case; loads act on the right edge at the nearest mesh node.</p>
+                <div class="input-grid">
+                  <label>Iterations per case<input name="iterations_per_case" type="number" min="1" max="300" step="1" value="20" required></label>
+                  <label>Snapshot spacing<input name="snapshot_stride" type="number" min="1" max="300" step="1" value="2" required></label>
+                </div>
+                <p id="rom-estimate" class="rom-estimate" aria-live="polite"></p>
+              </section>
+              <section class="control-section">
+                <h3>Material filtering</h3>
+                <label>Training Helmholtz length · ℓ<input name="filter_radius" type="number" min="0" max="1000" step="any" value="0.1" required></label>
+                <div class="input-grid">
+                  <label>Training sharpness · β<input name="projection_beta" type="number" min="0" max="64" step="any" value="2" required></label>
+                  <label>Training threshold · η<input name="projection_eta" type="number" min="0.01" max="0.99" step="any" value="0.5" required></label>
+                </div>
+                <p class="rom-note">MMA generates initial, intermediate, and final material layouts using the full PETSc solve.</p>
+              </section>
+            </fieldset>
+          </form>
+        </aside>
+        <div class="rom-results">
+          <section class="panel viewer-panel" aria-labelledby="rom-progress-title">
+            <div class="panel-heading"><div><h2 id="rom-progress-title">Training progress</h2><p id="rom-case-label">Ready to collect full-order displacement snapshots.</p></div><span id="rom-status" class="status-badge" data-status="ready">Ready</span></div>
+            <div class="metrics" aria-live="polite">
+              <div><span>SNAPSHOTS</span><strong id="rom-snapshot-count">0</strong><small id="rom-case-count">No cases evaluated</small></div>
+              <div><span>LATEST COMPLIANCE</span><strong id="rom-compliance">—</strong><small id="rom-iteration">No snapshots yet</small></div>
+              <div><span>EQUILIBRIUM RESIDUAL</span><strong id="rom-residual">—</strong><small>Full-order solutions</small></div>
+            </div>
+            <div class="canvas-wrap rom-preview"><canvas id="rom-preview" role="img" aria-label="Physical density of the latest full-order training snapshot"></canvas><p id="rom-preview-empty">A material snapshot will appear here during generation.</p></div>
+            <progress id="rom-progress" max="100" value="0" aria-label="Snapshot generation progress"></progress>
+            <div class="viewer-footer"><span id="rom-progress-note" role="status">Initial and final states are always included. Stop keeps collected snapshots.</span></div>
+          </section>
+          <section class="panel" aria-labelledby="rom-basis-title">
+            <div class="panel-heading"><div><h2 id="rom-basis-title">02 · Build the reduced basis</h2><p>Choose a saved dataset and compress its displacement snapshots with POD.</p></div><button id="rom-refresh" class="button secondary" type="button">Refresh datasets</button></div>
+            <form id="rom-basis-form" class="rom-basis-form">
+              <fieldset id="rom-basis-settings">
+                <label>Snapshot dataset<select id="rom-dataset" required><option value="">No saved datasets</option></select></label>
+                <p id="rom-dataset-description" class="rom-note">Generate snapshots to create your first dataset.</p>
+                <div class="rom-basis-options">
+                  <label>Target POD energy · %<input name="energy_percent" type="number" min="0.01" max="100" step="any" value="99.9" required></label>
+                  <label>Maximum modes<input name="max_modes" type="number" min="1" max="256" step="1" value="32" required></label>
+                  <label class="rom-check"><input name="normalize" type="checkbox" checked>Weight snapshots equally</label>
+                </div>
+                <p class="rom-note">Equal weighting normalises each displacement snapshot before POD. No mean displacement is subtracted.</p>
+              </fieldset>
+              <button id="rom-build" class="button primary" type="submit" disabled>Build reduced basis</button>
+            </form>
+            <div id="rom-basis-result" class="rom-basis-result" hidden>
+              <div class="metrics">
+                <div><span>RETAINED MODES</span><strong id="rom-rank">—</strong><small id="rom-rank-description"></small></div>
+                <div><span>CAPTURED POD ENERGY</span><strong id="rom-energy">—</strong><small id="rom-target-status"></small></div>
+                <div><span>MAX RECONSTRUCTION ERROR</span><strong id="rom-reconstruction">—</strong><small>Training displacements only</small></div>
+              </div>
+              <svg id="rom-spectrum" viewBox="0 0 600 190" role="img" aria-label="Cumulative POD snapshot energy by number of modes"></svg>
+            </div>
+            <div id="rom-downloads" class="viewer-footer" hidden>
+              <span>Saved locally · <span id="rom-dataset-id"></span></span>
+              <div class="rom-download-links"><a id="rom-download-snapshots">Download snapshots</a><a id="rom-download-basis" hidden>Download basis</a><a id="rom-download-metadata">Metadata</a></div>
+            </div>
+          </section>
+          <p class="rom-note rom-validation-note">POD energy and reconstruction error describe the training snapshots. Validation on unseen cases and using the ROM in Cantilever 2D are not included yet.</p>
+        </div>
       </div>
     </section>
     <footer class="page-footer"><span id="workspace-label">TOptVis · Cantilever 2D</span><span>PyTorch + PETSc</span></footer>
