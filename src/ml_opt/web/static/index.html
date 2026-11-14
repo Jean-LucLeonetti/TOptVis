@@ -7,6 +7,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23196964'/%3E%3Cpath d='M7 8h18v5h-6v12h-6V13H7z' fill='white'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="stylesheet" href="/static/rom-training.css">
+  <link rel="stylesheet" href="/static/model-lab.css">
   <script type="module" src="/static/app.js"></script>
 </head>
 <body>
@@ -18,6 +19,7 @@
     <nav class="workspace-tabs" role="tablist" aria-label="Workspaces">
       <button id="tab-cantilever" class="workspace-tab" type="button" role="tab" aria-selected="true" aria-controls="workspace-cantilever" data-workspace="cantilever-2d" tabindex="0">Cantilever 2D</button>
       <button id="tab-rom-training" class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="workspace-rom-training" data-workspace="rom-training" tabindex="-1">ROM Training</button>
+      <button id="tab-model-lab" class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="workspace-model-lab" data-workspace="model-lab" tabindex="-1">ML Models</button>
     </nav>
     <div class="connection" id="connection"><i></i><span>Connecting</span></div>
   </header>
@@ -349,6 +351,100 @@
             <div id="rom-validation-downloads" class="viewer-footer" hidden><span id="rom-validation-provenance"></span><div class="rom-download-links"><a id="rom-download-validation">Download validation report</a><a id="rom-download-comparisons">Download comparison arrays</a></div></div>
           </section>
           <p class="rom-note rom-validation-note">Held-out results apply to the tested cases and designs, not arbitrary material layouts. Choose a saved ROM under Cantilever 2D → Optimise → Elasticity solver to use it for optimisation.</p>
+        </div>
+      </div>
+    </section>
+    <section id="workspace-model-lab" class="workspace-page" role="tabpanel" aria-labelledby="tab-model-lab" tabindex="0" hidden>
+      <div class="page-heading">
+        <div><div class="eyebrow">MODEL LAB</div><h1>Train. Compare. Verify.</h1><p>Explore reduced bases, neural networks, neural operators and transformers on the same elasticity data.</p></div>
+        <div class="run-actions"><span id="ml-status" class="status-badge" role="status">Ready</span><button id="ml-stop" class="button secondary" type="button" disabled>Stop job</button><button id="ml-refresh" class="button secondary" type="button">Refresh library</button></div>
+      </div>
+      <p id="ml-availability" class="ml-note" role="status">Connecting to the local model worker…</p>
+      <div id="ml-error" class="error-banner" role="alert" hidden></div>
+      <div id="ml-families" class="ml-families" role="group" aria-label="Model families"></div>
+      <p id="ml-family-description" class="ml-family-description"></p>
+      <div class="ml-workspace">
+        <aside class="panel ml-configuration">
+          <div class="panel-heading"><div><h2>01 · Data &amp; training</h2><p>Whole cases are held out during fitting.</p></div></div>
+          <form id="ml-train-form" class="ml-form">
+            <fieldset id="ml-train-settings">
+              <label>Snapshot dataset<select id="ml-dataset" required><option value="">No saved datasets</option></select></label>
+              <p id="ml-dataset-note" class="ml-note">Generate snapshots here or reuse a ROM Training dataset.</p>
+              <div class="input-grid">
+                <label>Validation cases · %<input name="validation_fraction" type="number" min="1" max="50" step="any" value="25" required></label>
+                <label>Random seed<input name="seed" type="number" min="0" max="2147483647" value="7" required></label>
+              </div>
+              <div data-ml-neural>
+                <div class="input-grid"><label>Epochs<input name="epochs" type="number" min="1" max="2000" value="80" required></label><label>Batch size<input name="batch_size" type="number" min="1" max="32" value="8" required></label></div>
+                <div class="input-grid"><label>Learning rate<input name="learning_rate" type="number" min="0.00000001" max="0.1" step="any" value="0.001" required></label><label>Width<input name="width" type="number" min="8" max="64" step="4" value="24" required></label></div>
+                <label>Training device<select id="ml-device" name="device"><option value="cpu">CPU</option><option value="auto">Auto</option><option id="ml-cuda-option" value="cuda" disabled>CUDA GPU · unavailable</option></select></label>
+                <p id="ml-device-note" class="ml-note">Device availability comes from this PyTorch environment.</p>
+              </div>
+              <div data-ml-pod>
+                <div class="input-grid"><label>POD energy · %<input name="energy_target" type="number" min="0.000001" max="100" step="any" value="99.999" required></label><label>Maximum modes<input name="max_modes" type="number" min="1" max="128" value="24" required></label></div>
+              </div>
+              <div data-ml-local hidden><label>Local basis clusters<input name="clusters" type="number" min="1" max="8" value="3" required></label></div>
+              <div data-ml-adaptive hidden><div class="input-grid"><label>Residual threshold<input name="residual_threshold" type="number" min="0.00000001" max="1" step="any" value="0.05" required></label><label>Adaptive mode limit<input name="adaptive_max_modes" type="number" min="1" max="128" value="64" required></label></div><p class="ml-note">The residual is an indicator, not an error bound. FOM fallback is counted; enrichment happens only at accepted outer iterates.</p></div>
+              <details data-ml-neural><summary>Architecture &amp; physics losses</summary>
+                <div class="input-grid"><label>Network layers<input name="layers" type="number" min="1" max="6" value="3" required></label><label>Early-stop patience<input name="patience" type="number" min="1" max="2000" value="15" required></label></div>
+                <label data-ml-fno hidden>Fourier modes per axis<input name="fourier_modes" type="number" min="1" max="16" value="6" required></label>
+                <label data-ml-latent hidden>DeepONet latent size<input name="latent" type="number" min="4" max="128" value="24" required></label>
+                <div class="input-grid"><label>Strain-energy loss weight<input name="energy_loss_weight" type="number" min="0" max="100" step="any" value="0.1" required></label><label>Equilibrium loss weight<input name="residual_loss_weight" type="number" min="0" max="100" step="any" value="0" required></label></div>
+                <p class="ml-note">Displacement loss is always included. Validation displacement loss selects the saved checkpoint. U-Net uses a fixed two-level encoder/decoder; POD + MLP uses a fixed coefficient network.</p>
+              </details>
+            </fieldset>
+            <button id="ml-train" class="button primary" type="submit" disabled>Train selected model</button>
+          </form>
+          <details class="ml-generate"><summary>Generate a shared FOM dataset</summary>
+            <form id="ml-data-form" class="ml-form"><fieldset id="ml-data-settings">
+              <div class="input-grid"><label>Elements · x<input name="nx" type="number" min="2" max="160" value="30" required></label><label>Elements · y<input name="ny" type="number" min="2" max="100" value="10" required></label></div>
+              <div class="input-grid"><label>Length<input name="length" type="number" min="0.01" step="any" value="3" required></label><label>Height<input name="height" type="number" min="0.01" step="any" value="1" required></label></div>
+              <label>Load heights · fractions<input name="load_heights" type="text" value="0.25, 0.75" required></label><label>Load angles · degrees<input name="load_angles" type="text" value="-90, -45" required></label><label>Volume fractions<input name="volume_fractions" type="text" value="0.3, 0.5" required></label>
+              <div class="input-grid"><label>Iterations per case<input name="iterations_per_case" type="number" min="1" max="300" value="20" required></label><label>Snapshot spacing<input name="snapshot_stride" type="number" min="1" max="300" value="2" required></label><label>Helmholtz length<input name="filter_radius" type="number" min="0" step="any" value="0.1" required></label><label>Projection β<input name="projection_beta" type="number" min="0" max="64" step="any" value="2" required></label></div>
+              <p class="ml-note">Every combination is solved with FOM. Single field, SIMP, clamped left edge. At least two independent cases are needed. Limits: 24 cases, 512 snapshots, 128 MiB; neural models support at most 6,000 nodes.</p>
+              </fieldset><button id="ml-generate" class="button secondary" type="submit" disabled>Generate FOM snapshots</button>
+            </form>
+          </details>
+        </aside>
+        <div class="ml-results">
+          <section class="panel" aria-labelledby="ml-training-title">
+            <div class="panel-heading"><div><h2 id="ml-training-title">02 · Learning curve</h2><p id="ml-training-note">Select a model family and train it on a saved dataset.</p></div><span id="ml-epoch" class="tag">No training yet</span></div>
+            <progress id="ml-progress" max="100" value="0" aria-label="Model job progress"></progress>
+            <svg id="ml-loss-chart" viewBox="0 0 820 190" role="img" aria-label="Training objective and case-validation displacement loss"></svg>
+            <div class="ml-chart-legend"><span><i></i>Training objective</span><span><i></i>Case-validation displacement MSE</span><span>Logarithmic loss axis</span></div>
+            <p id="ml-split-note" class="ml-note ml-inset">Train/validation splits keep entire physical cases separate. Best-checkpoint validation is separate from unseen-case testing below.</p>
+            <div id="ml-model-downloads" class="viewer-footer" hidden><span id="ml-model-identity"></span><div class="rom-download-links"><a id="ml-download-model">Download checkpoint</a><a id="ml-download-metadata">Metadata</a></div></div>
+          </section>
+          <section class="panel" aria-labelledby="ml-library-title">
+            <div class="panel-heading"><div><h2 id="ml-library-title">03 · Saved models</h2><p>Check models to compare on identical unseen cases. Select a row to inspect or try a model.</p></div><span id="ml-model-count" class="tag">0 models</span></div>
+            <div class="ml-table-wrap" tabindex="0" role="region" aria-label="Saved model comparison"><table class="ml-table"><caption>Training and validation evidence · model checkpoints stay local</caption><thead><tr><th scope="col">Compare</th><th scope="col">Model · dataset</th><th scope="col">Fit</th><th scope="col">Raw model · max C / gradient error</th><th scope="col">FEM corrected · max C / gradient error</th><th scope="col">Inspect</th></tr></thead><tbody id="ml-model-rows"></tbody></table></div>
+            <p id="ml-library-empty" class="ml-note ml-inset">No trained models yet. Choose a dataset and train your first model.</p>
+          </section>
+          <section class="panel" aria-labelledby="ml-validation-title">
+            <div class="panel-heading"><div><h2 id="ml-validation-title">04 · Validate &amp; compare</h2><p>Unseen full-order trajectories. Validation never fits weights or enriches bases.</p></div></div>
+            <form id="ml-validation-form" class="ml-form"><fieldset id="ml-validation-settings">
+              <div class="ml-fields"><label>Unseen load heights<input name="load_heights" type="text" value="0.4, 0.6" required></label><label>Unseen angles · degrees<input name="load_angles" type="text" value="-75" required></label><label>Unseen volume fractions<input name="volume_fractions" type="text" value="0.35, 0.45" required></label></div>
+              <div class="ml-fields"><label>Iterations per case<input name="iterations_per_case" type="number" min="1" max="300" value="5" required></label><label>Comparison spacing<input name="comparison_stride" type="number" min="1" max="300" value="5" required></label><label>Evaluate<select name="evaluation"><option value="both">Raw + FEM corrected</option><option value="surrogate">Raw only</option><option value="corrected">FEM corrected only</option></select></label></div>
+              <div class="ml-fields"><label>Displacement tolerance · %<input name="displacement_tolerance" type="number" min="0.000001" max="100" step="any" value="5" required></label><label>Compliance tolerance · %<input name="compliance_tolerance" type="number" min="0.000001" max="100" step="any" value="1" required></label><label>Gradient tolerance · %<input name="gradient_tolerance" type="number" min="0.000001" max="100" step="any" value="10" required></label></div>
+              <p class="ml-note">Comma-separated lists form every combination. Cases overlapping a model's source dataset are rejected. Compared models must share mesh, physics and filter settings. Limits: 16 models, 128 sampled designs per mode, 128 MiB of arrays per model.</p>
+              </fieldset><div class="ml-actions"><button id="ml-validate" class="button primary" type="submit" disabled>Compare checked models</button><button id="ml-validate-selected" class="button secondary" type="button" disabled>Validate inspected model</button></div>
+            </form>
+            <p id="ml-validation-result" class="ml-note ml-inset" role="status">No unseen-case comparisons yet.</p>
+            <div id="ml-validation-downloads" class="viewer-footer" hidden><span id="ml-validation-identity"></span><div class="rom-download-links"><a id="ml-download-validation">Validation report</a><a id="ml-download-validation-arrays">Comparison arrays</a></div></div>
+          </section>
+          <section class="panel" aria-labelledby="ml-experiment-title">
+            <div class="panel-heading"><div><h2 id="ml-experiment-title">05 · Try an optimisation</h2><p>Use the inspected model. Every final design is independently checked with FOM.</p></div><span id="ml-experiment-model" class="tag">No model selected</span></div>
+            <form id="ml-experiment-form" class="ml-form"><fieldset id="ml-experiment-settings">
+              <div class="ml-fields"><label>Evaluation mode<select name="mode" id="ml-evaluation-mode"><option value="corrected">Model + FEM correction</option><option value="surrogate">Raw model · experimental</option></select></label><label>Optimiser<select name="optimizer"><option value="mma">MMA</option><option value="gcmma">GCMMA</option></select></label><label>Maximum iterations<input name="max_iterations" type="number" min="1" max="300" value="20" required></label></div>
+              <div class="ml-fields"><label>Load height · fraction<input name="load_height" type="number" min="0" max="1" step="any" value="0.4" required></label><label>Load angle · degrees<input name="load_angle" type="number" min="-180" max="180" step="any" value="-75" required></label><label>Volume fraction<input name="volume_fraction" type="number" min="0.01" max="0.99" step="any" value="0.35" required></label></div>
+              <p class="ml-note">Single field, fixed training mesh and projection β; maximum-size constraint off. FEM correction starts an iterative full-order solve from the prediction and reports any LU fallback. Its full cost is included. Raw neural gradients differentiate the learned objective; stopping does not certify FEM accuracy.</p>
+              </fieldset><button id="ml-experiment" class="button primary" type="submit" disabled>Run model optimisation</button>
+            </form>
+            <p id="ml-experiment-result" class="ml-note ml-inset" role="status">Inspect a saved model above to begin.</p>
+            <div class="canvas-wrap ml-preview"><canvas id="ml-preview" role="img" aria-label="Material layout for the current Model Lab experiment"></canvas><p id="ml-preview-empty">A material layout will appear during snapshot generation, validation or optimisation.</p></div>
+            <div id="ml-experiment-downloads" class="viewer-footer" hidden><span id="ml-experiment-identity"></span><div class="rom-download-links"><a id="ml-download-experiment">Experiment report</a><a id="ml-download-experiment-arrays">Design &amp; comparison arrays</a></div></div>
+          </section>
+          <p class="ml-note">These are compact trainable reference architectures, not pretrained models or reproductions of published benchmark results. A successful fit or corrected solve does not establish raw-model accuracy or a speedup. All trained models and reports are saved locally.</p>
         </div>
       </div>
     </section>

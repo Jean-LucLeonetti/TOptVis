@@ -1,5 +1,6 @@
 import "/static/cantilever.js";
 import "/static/rom-training.js";
+import "/static/model-lab.js";
 
 // Workspace navigation stays independent of each workspace's controls and state.
 const tabs = Array.from(document.querySelectorAll('.workspace-tabs [role="tab"]'));

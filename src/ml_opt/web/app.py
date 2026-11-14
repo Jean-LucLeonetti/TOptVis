@@ -17,6 +17,7 @@ from .rom import create_rom_router, selected_basis_path
 from ..rom.solver import load_basis
 from .streams import stream_job
 from .runtime import source_revision
+from .model_lab import create_model_router
 
 
 class RunRequest(BaseModel):
@@ -66,7 +67,7 @@ class RunRequest(BaseModel):
         return CantileverConfig(**self.model_dump(exclude={"rom_training_id"}), rom_basis_path=rom_basis_path)
 
 
-def create_app(*, training_root: Path | None = None) -> FastAPI:
+def create_app(*, training_root: Path | None = None, model_root: Path | None = None) -> FastAPI:
     training_root = (training_root or Path(__file__).resolve().parents[3] / "outputs" / "rom-training").resolve()
     manager = RunManager()
     # Capture at startup; recomputing in /health would misidentify old imported code.
@@ -82,6 +83,7 @@ def create_app(*, training_root: Path | None = None) -> FastAPI:
     app = FastAPI(title="TOptVis", lifespan=lifespan)
     app.state.manager = manager
     app.include_router(create_rom_router(manager, training_root))
+    app.include_router(create_model_router(manager,model_root or training_root.parent/'model-lab',training_root))
     static = Path(__file__).with_name("static")
     app.mount("/static", StaticFiles(directory=static), name="static")
 
@@ -99,6 +101,7 @@ def create_app(*, training_root: Path | None = None) -> FastAPI:
                 "rom_training_supported": True,
                 "rom_validation_supported": True,
                 "rom_optimisation_supported": True,
+                "model_lab_supported": True,
                 "active_kind": manager.active.kind if manager.active else None}
 
     @app.post("/api/run")

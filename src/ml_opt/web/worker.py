@@ -30,7 +30,8 @@ def worker_loop(commands, messages, cancel, ready) -> None:
                 return
             run_id, configuration = command
             # Each command constructs and closes a fresh problem and optimiser.
-            target = run_training if configuration.get("task") in ("rom_snapshots", "rom_basis", "rom_validation") else run_optimization
+            task=configuration.get('task','')
+            target = run_model_lab if task.startswith('ml_') else run_training if task in ("rom_snapshots", "rom_basis", "rom_validation") else run_optimization
             target(configuration, _RunMessages(messages, run_id), cancel)
     finally:
         if _parent_gone():
@@ -41,6 +42,43 @@ def worker_loop(commands, messages, cancel, ready) -> None:
 def _parent_gone() -> bool:
     parent = mp.parent_process()
     return parent is not None and not parent.is_alive()
+
+
+def run_model_lab(configuration,messages,cancel):
+    from ..model_lab.config import TrainOptions
+    from ..model_lab.training import train_model
+    from ..model_lab.experiments import validate_model,run_experiment
+    from ..rom.validation import ValidationConfig
+    try:
+        stopped=lambda:cancel.is_set() or _parent_gone()
+        root=Path(configuration['root']); training_root=Path(configuration['training_root'])
+        task=configuration['task']
+        if task=='ml_train':
+            metadata=train_model(training_root/configuration['training_id'],root/messages.run_id,
+                TrainOptions(**configuration['options']),emit=messages.put,stop_requested=stopped)
+            result=dict(model=metadata,model_id=messages.run_id)
+            cancelled=metadata['status']=='cancelled'
+        elif task=='ml_validate':
+            reports=[]
+            for selection in configuration['models']:
+                if stopped(): break
+                report=validate_model(root/selection['model_id'],training_root/selection['training_id'],
+                    ValidationConfig(**configuration['options']),modes=configuration['modes'],
+                    validation_id=messages.run_id,expected_sha256=selection['model_sha256'],
+                    emit=messages.put,stop_requested=stopped)
+                if report is not None:
+                    reports.append({key:value for key,value in report.items() if key not in ('results','cases')})
+                    messages.put(dict(event='ml_model_validated',report=reports[-1]))
+            result=dict(reports=reports); cancelled=stopped()
+        else:
+            report=run_experiment(root/configuration['model_id'],configuration['options'],
+                experiment_id=messages.run_id,expected_sha256=configuration['model_sha256'],
+                emit=messages.put,stop_requested=stopped)
+            result=dict(experiment=report,model_id=configuration['model_id']); cancelled=report['status']=='cancelled'
+        messages.put(dict(event='complete',stop_reason='cancelled' if cancelled else 'complete',**result))
+    except Exception as error:
+        traceback.print_exc()
+        messages.put(dict(event='error',message=str(error) or type(error).__name__))
 
 
 def run_training(configuration, messages, cancel):
