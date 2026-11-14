@@ -232,13 +232,21 @@ def web_benchmark(repeats):
                         raise RuntimeError("Benchmark server exited:\n" + (Path(temporary) / "server.log").read_text())
                     try:
                         with urllib.request.urlopen(base + "/api/health", timeout=.2) as response:
-                            json.load(response)
+                            health = json.load(response)
                         break
                     except (OSError, urllib.error.URLError):
                         time.sleep(.05)
                 else:
                     raise RuntimeError("Benchmark server startup timed out")
                 readiness = time.perf_counter() - started
+                # Record the one-time import cost separately from warm Run clicks.
+                while "worker_ready" in health and not health["worker_ready"]:
+                    if time.perf_counter() >= deadline:
+                        raise RuntimeError("Worker warmup timed out")
+                    time.sleep(.05)
+                    with urllib.request.urlopen(base + "/api/health", timeout=1) as response:
+                        health = json.load(response)
+                worker_readiness = time.perf_counter() - started
                 runs = []
                 for method in ("mma", "gcmma"):
                     for repetition in range(repeats):
@@ -275,7 +283,8 @@ def web_benchmark(repeats):
                                      "interframe_seconds": summary(interframes), "frames": frames,
                                      "bytes": byte_count, "memory_before": memory_before, "memory_after": memory()})
                         print(f"HTTP {method} trial {repetition + 1}: {elapsed:.3f}s; first frame {first - started:.3f}s", flush=True)
-                return {"server_readiness_seconds": readiness, "runs": runs}
+                return {"server_readiness_seconds": readiness,
+                        "worker_readiness_seconds": worker_readiness, "runs": runs}
             finally:
                 server.terminate()
                 server.wait(timeout=20)

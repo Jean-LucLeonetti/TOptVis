@@ -41,7 +41,12 @@ def optimise(config: CantileverConfig,
              callback: Callable[[HistoryEntry], None] | None = None, *,
              snapshot_callback: Callable[[HistoryEntry, np.ndarray], None] | None = None,
              stop_requested: Callable[[], bool] | None = None) -> OptimizationResult:
-    problem = CantileverProblem(config)
+    with CantileverProblem(config) as problem:
+        return _optimise_problem(problem, callback, snapshot_callback, stop_requested)
+
+
+def _optimise_problem(problem, callback, snapshot_callback, stop_requested) -> OptimizationResult:
+    config = problem.config
     design = problem.initial_design()
     current = problem.evaluate(design)
     optimizer = MovingAsymptotes(design, config.optimizer, config.move_limit,

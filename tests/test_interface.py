@@ -58,7 +58,9 @@ def test_local_page_and_validation():
     with TestClient(create_app()) as client:
         assert client.get("/").status_code == 200
         assert client.get("/static/app.js").status_code == 200
-        assert client.get("/api/health").json() == {"status": "ready", "running": False}
+        health = client.get("/api/health").json()
+        assert health["status"] == "ready" and not health["running"]
+        assert isinstance(health["worker_ready"], bool)
         invalid = {"nx": 6, "ny": 2, "load_node_x": 0, "load_node_y": 1}
         assert client.post("/api/run", json=invalid).status_code == 422
         invalid["load_node_x"] = 7
@@ -106,4 +108,87 @@ def test_manager_serializes_and_cancels_its_worker():
             pytest.fail("The cancelled solver did not finish")
     finally:
         manager.finish(job)
+        manager.shutdown()
     assert manager.active is None
+
+
+def collect(job):
+    events = []
+    deadline = time.monotonic() + 40
+    while time.monotonic() < deadline:
+        try:
+            event = job.messages.get(timeout=1)
+        except queue.Empty:
+            continue
+        events.append(event)
+        if event["event"] in ("complete", "error"):
+            return events
+    pytest.fail("Solver did not produce a terminal event")
+
+
+def test_worker_reuses_process_and_resets_geometry_load_and_optimizer():
+    manager = RunManager()
+    base = CantileverConfig(nx=6, ny=2, max_iterations=3)
+    try:
+        manager.warmup()
+        pid = manager._process.pid
+        for config in (base, replace(base, nx=8, ny=3, optimizer="gcmma", load=2,
+                                     load_node_x=4, load_node_y=1), base):
+            job = manager.start(config)
+            assert job.process.pid == pid
+            events = collect(job)
+            manager.finish(job)
+            assert events[-1]["event"] == "complete", events[-1]
+            frames = [event for event in events if event["event"] == "iteration"]
+            expected = optimise(config)
+            assert [frame["history"]["iteration"] for frame in frames] == [0, 1, 2, 3]
+            np.testing.assert_allclose(frames[-1]["density"], expected.design, rtol=1e-9, atol=1e-10)
+            assert manager.worker_ready and manager.active is None
+    finally:
+        manager.shutdown()
+
+
+def test_disconnected_and_failed_runs_do_not_poison_next_run():
+    manager = RunManager()
+    config = CantileverConfig(nx=6, ny=2, max_iterations=1000)
+    try:
+        job = manager.start(config)
+        assert job.messages.get(timeout=40)["event"] == "iteration"
+        pid = job.process.pid
+        manager.finish(job)  # Simulate a disconnected stream, with unread frames.
+        assert manager.active is None
+        assert manager._process.pid == pid
+        # An invalid worker command must emit an error without killing the worker.
+        job = manager.start(config)
+        manager._commands.put(("invalid-command", {"nx": 0}))
+        manager.stop(job.id)
+        assert collect(job)[-1]["event"] == "complete"
+        manager.finish(job)
+        # A new mailbox discards the preceding, separately tagged error.
+        job = manager.start(replace(config, max_iterations=2))
+        events = collect(job)
+        manager.finish(job)
+        assert job.process.pid == pid
+        assert events[-1]["event"] == "complete"
+        assert len([event for event in events if event["event"] == "iteration"]) == 3
+    finally:
+        manager.shutdown()
+
+
+def test_worker_recovers_after_process_crash():
+    manager = RunManager()
+    config = CantileverConfig(nx=6, ny=2, max_iterations=2)
+    try:
+        job = manager.start(config)
+        assert job.messages.get(timeout=40)["event"] == "iteration"
+        pid = job.process.pid
+        job.process.terminate()
+        job.process.join(timeout=10)
+        manager.finish(job)
+        job = manager.start(config)
+        assert job.process.pid != pid
+        events = collect(job)
+        manager.finish(job)
+        assert events[-1]["event"] == "complete"
+    finally:
+        manager.shutdown()

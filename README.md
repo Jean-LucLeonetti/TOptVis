@@ -7,7 +7,11 @@ A Python project for topology optimisation with PyTorch and PETSc through
 
 Measured timings, bottleneck locations, methodology, and raw data are in
 [`benchmarks/RESULTS.md`](benchmarks/RESULTS.md). Source comments `PERF B1`–`B4`
-mark the measured hotspots. Reproduce the serial Python/PETSc/HTTP benchmarks
+mark the measured hotspots. The app now prewarms and reuses one solver worker;
+each problem retains its PETSc matrix graph, vectors, KSP, and symbolic LU
+factorisation. Numerical LU factors are updated for every density evaluation.
+MMA/GCMMA diagonal scaling uses NumPy broadcasting through an isolated adapter
+to the pinned mmapy 0.3.1 routines. Reproduce the serial Python/PETSc/HTTP benchmarks
 with:
 
 ```powershell
@@ -51,9 +55,11 @@ Model controls are locked during a run. Editing the model afterward clears
 the previous result so it cannot be mistaken for the updated load case.
 The interface uses the same unfiltered solver as the command-line example.
 Mesh and load edits update the preview before the run starts. A local worker
-process runs the optimisation and streams each
-evaluated outer iteration to the browser. Closing the live connection cancels
-that worker; the server allows one active optimisation at a time.
+process starts in the background with the server and streams each evaluated
+outer iteration to the browser. It stays warm between runs; geometry, loads,
+and optimiser state are recreated for each run. Closing the live connection
+cancels that run; the server allows one active optimisation at a time.
+`/api/health` reports `worker_ready` separately from HTTP server readiness.
 
 ## 2D cantilever example
 
@@ -69,8 +75,8 @@ unit thickness and load, Young's modulus 1, Poisson ratio 0.3, volume fraction
 `E(rho) = E_min + (E_solid - E_min) * rho**p`, with `E_min = 1e-6`.
 **No density filter is applied.** These are nondimensional benchmark parameters.
 
-Element contributions are assembled into sparse CSR format and passed to
-PETSc's sequential LU solver. PyTorch differentiates the SIMP material law and
+Element contributions update a preallocated PETSc sparse matrix through COO
+assembly and use PETSc's sequential LU solver. PyTorch differentiates the SIMP material law and
 volume constraint. The custom compliance operator supplies the implicit,
 self-adjoint derivative `dC/dE_e = -u_e^T K_e(E=1) u_e` without differentiating
 through LU. It supports first derivatives on CPU float64 tensors.
@@ -154,8 +160,8 @@ pyproject.toml               Package metadata and dependencies
 ## Development
 
 The declared dependencies are NumPy, PyTorch (`torch`), PETSc's Python
-bindings (`petsc4py`), SciPy, Matplotlib, and `mmapy`. SciPy provides sparse
-assembly utilities and the optimiser backend's linear algebra; state solves
+bindings (`petsc4py`), SciPy, Matplotlib, and `mmapy`. SciPy provides the
+optimiser backend's dense linear algebra; state solves and sparse assembly
 are performed by PETSc.
 
 Run the numerical tests with:

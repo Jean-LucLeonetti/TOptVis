@@ -68,6 +68,46 @@ def test_torch_sensitivities_against_central_differences_without_filtering():
         np.testing.assert_allclose(evaluation.constraint_gradient[index], dg, rtol=1e-8)
 
 
+def test_petsc_reuses_symbolic_factors_but_updates_numeric_factors():
+    from petsc4py import PETSc
+    PETSc.Log.begin()
+    events = {name: PETSc.Log.Event(name) for name in ("MatLUFactorSym", "MatLUFactorNum")}
+    before = {name: event.getPerfInfo()["count"] for name, event in events.items()}
+    with CantileverProblem(CantileverConfig(nx=6, ny=3)) as problem:
+        mesh, solver = problem.mesh, problem.solver
+        for moduli in (np.linspace(.05, 1, mesh.element_count),
+                       np.linspace(1, .01, mesh.element_count), np.full(mesh.element_count, .3)):
+            state = solver.solve(moduli)
+            stiffness = np.zeros((mesh.dof_count, mesh.dof_count))
+            for modulus, dofs in zip(moduli, mesh.element_dofs):
+                stiffness[np.ix_(dofs, dofs)] += modulus * solver.element_stiffness
+            expected = np.linalg.solve(stiffness[np.ix_(mesh.free_dofs, mesh.free_dofs)],
+                                       solver.force[mesh.free_dofs])
+            np.testing.assert_allclose(state.displacement[mesh.free_dofs], expected, rtol=1e-10)
+        assert solver.solve_count == 3
+    assert events["MatLUFactorSym"].getPerfInfo()["count"] - before["MatLUFactorSym"] == 1
+    assert events["MatLUFactorNum"].getPerfInfo()["count"] - before["MatLUFactorNum"] == 3
+    problem.close()
+    with pytest.raises(RuntimeError, match="closed"):
+        solver.solve(moduli)
+
+
+def test_runner_releases_native_objects_when_callback_fails(monkeypatch):
+    from ml_opt.fem.elasticity import ElasticitySolver
+    closed = []
+    original = ElasticitySolver.close
+    def close(solver):
+        if not solver._closed:
+            closed.append(solver)
+        original(solver)
+    monkeypatch.setattr(ElasticitySolver, "close", close)
+    def broken_callback(entry):
+        raise RuntimeError("callback failed")
+    with pytest.raises(RuntimeError, match="callback failed"):
+        optimise(CantileverConfig(nx=4, ny=2), callback=broken_callback)
+    assert len(closed) == 1 and closed[0]._matrix is None
+
+
 @pytest.mark.parametrize("method", ["mma", "gcmma"])
 def test_optimisers_reduce_compliance_and_respect_volume(method):
     config = CantileverConfig(nx=18, ny=6, optimizer=method, max_iterations=35)

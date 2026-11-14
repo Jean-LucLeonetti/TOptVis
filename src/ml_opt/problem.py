@@ -33,6 +33,15 @@ class CantileverProblem:
                                        load_node=None if config.load_node_x is None else
                                        (config.load_node_x, config.load_node_y))
 
+    def close(self) -> None:
+        self.solver.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self.close()
+
     def initial_design(self) -> np.ndarray:
         return np.full(self.mesh.element_count, self.config.volume_fraction)
 

@@ -8,7 +8,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 import numpy as np
-from mmapy import asymp, concheck, gcmmasub, mmasub, raaupdate
+from mmapy import asymp, concheck, raaupdate
+
+from ._mmapy import gcmmasub, mmasub
 
 from ..problem import Evaluation
 
@@ -60,8 +62,8 @@ class MovingAsymptotes:
         constraint = np.array([[current.constraint]])
         constraint_gradient = current.constraint_gradient.reshape(1, -1)
         inner_iterations = 0
-        # PERF B2: mmapy's primal-dual subproblem kernel dominates small meshes.
-        # Timings and allocation hotspots are recorded in benchmarks/RESULTS.md.
+        # PERF B2: retain mmapy's subproblem algorithm, with diagonal row
+        # scaling performed by broadcasting instead of allocating sparse matrices.
         if self.method == "mma":
             result = mmasub(1, self.n, self.iteration, x, self.xmin, self.xmax,
                             self.xold1, self.xold2, objective, objective_gradient,

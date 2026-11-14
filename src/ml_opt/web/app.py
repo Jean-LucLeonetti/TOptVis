@@ -45,8 +45,11 @@ def create_app() -> FastAPI:
     manager = RunManager()
     @asynccontextmanager
     async def lifespan(app):
-        yield
-        await asyncio.to_thread(manager.shutdown)
+        manager.warmup()
+        try:
+            yield
+        finally:
+            await asyncio.to_thread(manager.shutdown)
 
     app = FastAPI(title="TOptVis", lifespan=lifespan)
     app.state.manager = manager
@@ -59,7 +62,8 @@ def create_app() -> FastAPI:
 
     @app.get("/api/health")
     async def health():
-        return {"status": "ready", "running": manager.active is not None}
+        return {"status": "ready", "running": manager.active is not None,
+                "worker_ready": manager.worker_ready}
 
     @app.post("/api/run")
     async def run(request: RunRequest):

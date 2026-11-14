@@ -4,7 +4,6 @@ from dataclasses import dataclass
 
 import numpy as np
 from petsc4py import PETSc
-from scipy.sparse import coo_matrix
 import torch
 
 from .element import q4_stiffness
@@ -41,52 +40,78 @@ class ElasticitySolver:
         self.rows, self.columns = rows[self.mask], columns[self.mask]
         self.solve_count = 0
         self.last_state: ElasticityState | None = None
+        self._closed = False
+        self._matrix = self._solution = self._rhs = self._residual = self._solver = None
+        try:
+            count = len(mesh.free_dofs)
+            self._matrix = PETSc.Mat().create(comm=PETSc.COMM_SELF)
+            self._matrix.setSizes((count, count))
+            self._matrix.setType("aij")
+            # PETSc remembers the element-entry reduction, including shared-node sums.
+            self._matrix.setPreallocationCOO(self.rows.astype(PETSc.IntType),
+                                              self.columns.astype(PETSc.IntType))
+            self._matrix.setOption(PETSc.Mat.Option.SYMMETRIC, True)
+            self._solution, self._rhs = self._matrix.createVecs()
+            self._residual = self._rhs.duplicate()
+            self._rhs.array[:] = self.force[mesh.free_dofs]
+            self._rhs_norm = max(self._rhs.norm(), np.finfo(float).tiny)
+            self._solver = PETSc.KSP().create(comm=PETSc.COMM_SELF)
+            self._solver.setOperators(self._matrix)
+            self._solver.setType("preonly")
+            self._solver.getPC().setType("lu")
+            self._solver.setTolerances(rtol=tolerance, atol=1e-14, max_it=10000)
+            self._solver.setErrorIfNotConverged(True)
+        except BaseException:
+            self.close()
+            raise
+
+    def close(self) -> None:
+        """Release the per-problem native objects; safe to call more than once."""
+        if self._closed:
+            return
+        self._closed = True
+        for name in ("_solver", "_solution", "_rhs", "_residual", "_matrix"):
+            obj = getattr(self, name)
+            if obj is not None:
+                obj.destroy()
+                setattr(self, name, None)
+
+    def __del__(self):
+        # Explicit close is preferred; guard partially constructed objects/interpreter exit.
+        if hasattr(self, "_closed"):
+            try:
+                self.close()
+            except Exception:
+                pass
 
     def solve(self, moduli: np.ndarray) -> ElasticityState:
+        if self._closed:
+            raise RuntimeError("The elasticity solver is closed")
         moduli = np.asarray(moduli, dtype=np.float64)
         if moduli.shape != (self.mesh.element_count,) or not np.all(np.isfinite(moduli)) or np.any(moduli <= 0):
             raise ValueError("Expected one finite positive modulus per element")
-        count = len(self.mesh.free_dofs)
         entries = (moduli[:, None, None] * self.element_stiffness).ravel()[self.mask]
-        stiffness = coo_matrix((entries, (self.rows, self.columns)), shape=(count, count)).tocsr()
-        # PERF B3: recreate matrix/KSP and redo symbolic + numeric LU per evaluation.
-        # The sparsity graph is fixed; numeric factors change with the design.
-        matrix = PETSc.Mat().createAIJ(
-            size=(count, count), comm=PETSc.COMM_SELF,
-            csr=(stiffness.indptr.astype(PETSc.IntType),
-                 stiffness.indices.astype(PETSc.IntType), stiffness.data))
-        matrix.setOption(PETSc.Mat.Option.SYMMETRIC, True)
-        solution, rhs = matrix.createVecs()
-        solver = PETSc.KSP().create(comm=PETSc.COMM_SELF)
-        try:
-            rhs.array[:] = self.force[self.mesh.free_dofs]
-            solver.setOperators(matrix)
-            solver.setType("preonly")
-            solver.getPC().setType("lu")
-            solver.setTolerances(rtol=self.tolerance, atol=1e-14, max_it=10000)
-            solver.setErrorIfNotConverged(True)
-            solver.solve(rhs, solution)
-            if solver.getConvergedReason() <= 0:
-                raise RuntimeError(f"PETSc failed to converge: {solver.getConvergedReason()}")
-            free_u = solution.array.copy()
-            residual = float(np.linalg.norm(stiffness @ free_u - rhs.array) /
-                             max(np.linalg.norm(rhs.array), np.finfo(float).tiny))
-            if not np.isfinite(residual) or residual > max(1e-7, 50 * self.tolerance):
-                raise RuntimeError(f"PETSc equilibrium residual is too large: {residual:.3e}")
-            displacement = np.zeros(self.mesh.dof_count)
-            displacement[self.mesh.free_dofs] = free_u
-            element_u = displacement[self.mesh.element_dofs]
-            energy = np.einsum("ei,ij,ej->e", element_u, self.element_stiffness, element_u)
-            state = ElasticityState(displacement, float(self.force @ displacement), energy,
-                                    residual, solver.getIterationNumber())
-            self.solve_count += 1
-            self.last_state = state
-            return state
-        finally:
-            solver.destroy()
-            solution.destroy()
-            rhs.destroy()
-            matrix.destroy()
+        # PERF B3: retain the graph/KSP/LU symbolic factorisation. Updating values
+        # invalidates numeric factors, so every solve still uses the current design.
+        # Do not enable KSP/PC reuse-preconditioner: that would retain stale factors.
+        self._matrix.setValuesCOO(entries, PETSc.InsertMode.INSERT_VALUES)
+        self._solver.solve(self._rhs, self._solution)
+        if self._solver.getConvergedReason() <= 0:
+            raise RuntimeError(f"PETSc failed to converge: {self._solver.getConvergedReason()}")
+        self._matrix.mult(self._solution, self._residual)
+        self._residual.axpy(-1.0, self._rhs)
+        residual = self._residual.norm() / self._rhs_norm
+        if not np.isfinite(residual) or residual > max(1e-7, 50 * self.tolerance):
+            raise RuntimeError(f"PETSc equilibrium residual is too large: {residual:.3e}")
+        displacement = np.zeros(self.mesh.dof_count)
+        displacement[self.mesh.free_dofs] = self._solution.array
+        element_u = displacement[self.mesh.element_dofs]
+        energy = np.einsum("ei,ij,ej->e", element_u, self.element_stiffness, element_u)
+        state = ElasticityState(displacement, float(self.force @ displacement), energy,
+                                residual, self._solver.getIterationNumber())
+        self.solve_count += 1
+        self.last_state = state
+        return state
 
 
 class _Compliance(torch.autograd.Function):
