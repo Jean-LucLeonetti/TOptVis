@@ -5,6 +5,23 @@ A Python project for topology optimisation with PyTorch and PETSc through
 
 ## Performance
 
+Exact state caching and persistent three-field workers are described in
+[`benchmarks/SOLVER_RESULTS.md`](benchmarks/SOLVER_RESULTS.md), including
+comparisons of LU, Cholesky, CG/ICC, and CG/GAMG. In **Optimise → Full-order
+method**, choose the PETSc solver; LU remains the default. Cholesky was fastest
+for the larger measured optimisation case. The iterative choices were accurate
+but slower on these meshes. The CLI accepts `--linear-solver cholesky` (or
+`lu`, `cg-icc`, `cg-gamg`). These methods apply to full-order elasticity.
+
+An exact match of the latest element moduli reuses displacement and element
+energies while rebuilding the PyTorch graph. This avoids the repeated accepted
+trial solve in GCMMA and keeps material/projection gradients current. State
+solve counters count actual numerical solves. Parallel robust app runs reuse
+three compatible workers between Run clicks, with fresh per-run caches and
+counters. Changed state-solver inputs recreate the group; workers retire after
+60 idle seconds, when a nonparallel/training job starts, or at shutdown.
+Numerical factors and iterative preconditioners are rebuilt for changed moduli.
+
 Measured timings, bottleneck locations, methodology, and raw data are in
 [`benchmarks/IMPROVEMENTS.md`](benchmarks/IMPROVEMENTS.md), with the original
 baseline retained in [`benchmarks/RESULTS.md`](benchmarks/RESULTS.md). Source comments `PERF B1`–`B4`
