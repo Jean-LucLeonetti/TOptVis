@@ -58,10 +58,12 @@ all values. Use arrow keys, Home, and End to navigate the tab rail.
    The left edge remains clamped. Set the magnitude and direction; the arrow
    and force components update immediately. Angles are counterclockwise from
    the positive x direction, so -90 degrees points downward.
-3. In **Filters**, set the Helmholtz length and the Heaviside projection's
+3. In **Material**, choose SIMP or RAMP and its penalty value.
+4. In **Filters**, set the Helmholtz length and the Heaviside projection's
    sharpness β and threshold η. Larger β sharpens the solid/void transition;
-   β = 0 disables projection. These values remain fixed during a run.
-4. In **Optimisation**, choose MMA or GCMMA, the material volume, and the iteration limit. Click
+   fixed β = 0 disables projection. Use **β schedule** for optional capped
+   increases during the run; length and threshold remain fixed.
+5. In **Optimisation**, choose MMA or GCMMA, the material volume, and the iteration limit. Click
    **Run optimisation** to see the topology, compliance, volume, and iteration
    values update as the actual solver runs. **Stop** retains the last evaluated
    design.
@@ -233,6 +235,15 @@ Defaults: 60 x 20 bilinear quadrilateral elements, a 3 x 1 domain, plane stress,
 unit thickness and load, Young's modulus 1, Poisson ratio 0.3, volume fraction
 0.4, and SIMP penalisation 3. The material law is
 `E(rho) = E_min + (E_solid - E_min) * rho**p`, with `E_min = 1e-6`.
+The **Material** tab selects SIMP (`p >= 1`) or RAMP (`q >= 0`) and the
+penalty value. RAMP uses
+`E(rho) = E_min + (E_solid - E_min) * rho / (1 + q * (1 - rho))`;
+`q = 0` and SIMP `p = 1` give linear interpolation. Both use the physical
+density after filtering/projection, including all three robust fields.
+See the [SIMP/RAMP material interpolation reference](https://doc.comsol.com/6.3/doc/com.comsol.help.opt/opt_ug_opt_interface.6.21.html).
+Python uses `material_model="simp"` or `"ramp"` with `penalisation` for p or q;
+CLI flags are `--material-model ramp --penalisation 3`. The material defaults
+remain SIMP with p = 3; volume is never stiffness-penalised.
 These are nondimensional benchmark parameters. The Python/CLI default
 `filter_radius=0` and `projection_beta=0` retain the original unfiltered
 benchmark; the visual interface initially uses `filter_radius=0.1`,
@@ -246,7 +257,7 @@ is the bounded element design variable. A cell-centred finite-volume
 discretisation uses the actual x/y mesh spacings, including rectangular cells.
 The formulation preserves constant densities and material volume and keeps
 filtered densities within the input range, up to floating-point roundoff.
-SIMP, the volume constraint, saved density plots, and live topology frames all
+The material interpolation, volume constraint, saved density plots, and live topology frames all
 use the final physical density after any projection. Saved `design` arrays remain the raw
 optimiser variables, while saved `density` arrays hold the physical result.
 
@@ -269,8 +280,30 @@ rho_physical = [tanh(beta * eta) + tanh(beta * (rho_smooth - eta))]
 
 `projection_beta >= 0` controls sharpness; 0 bypasses the projection exactly.
 `0 < projection_eta < 1` sets its threshold. The UI starts at β = 2, η = 0.5;
-the Python/CLI default β = 0 preserves the previous benchmark. Beta and eta
-are fixed throughout a run, with no automatic continuation.
+the Python/CLI default β = 0 preserves the previous benchmark. Fixed β is
+the default; eta stays fixed throughout the run.
+
+In **Filters → β schedule**, select **Scheduled increase** to multiply β after
+each full interval of accepted optimisation iterations, capped at the chosen
+maximum. Defaults are an interval of 25, multiplier 2, and maximum β = 16;
+the sharpness input gives the starting β and must be positive for scheduling.
+For a start of 2, iterations 0–25 use β = 2, 26–50 use 4, 51–75 use 8, and
+iteration 76 onward uses 16. A short iteration limit can stop before the
+maximum is reached; the UI shows this when configuring the schedule.
+
+At each increase the current design is re-evaluated at the new β before
+stepping, and MMA/GCMMA asymptotes, scaling, and convergence patience restart.
+Convergence stopping is enabled only at the maximum β. Robust optimisation
+updates all three projections together and reinitialises its epigraph bound.
+The active β appears in the live view, Visualisation summary, each history
+row, and `summary.json` as `final_projection_beta`; the saved config retains
+the starting β. Scheduling does not modify the Helmholtz length or penalty.
+
+```powershell
+python -m ml_opt --material-model ramp --penalisation 3 --filter-radius 0.1 `
+  --projection-beta 2 --projection-schedule geometric --projection-beta-interval 25 `
+  --projection-beta-multiplier 2 --projection-beta-max 16 --max-iterations 100
+```
 
 Projection is generally not volume preserving, so the volume constraint uses
 `mean(rho_physical)`, not the raw or smoothed density mean. PyTorch carries
@@ -290,7 +323,7 @@ Neumann boundary conditions follows the approach of
 [Lazarov and Sigmund (2011)](https://orbit.dtu.dk/en/publications/filters-in-topology-optimization-based-on-helmholtztype-different/).
 
 Element contributions update a preallocated PETSc sparse matrix through COO
-assembly and use PETSc's sequential LU solver. PyTorch differentiates the SIMP material law and
+assembly and use PETSc's sequential LU solver. PyTorch differentiates the SIMP/RAMP material law and
 volume constraint. The custom compliance operator supplies the implicit,
 self-adjoint derivative `dC/dE_e = -u_e^T K_e(E=1) u_e` without differentiating
 through LU. It supports first derivatives on CPU float64 tensors.
@@ -351,11 +384,11 @@ subject to C_i(x) <= t, i = eroded, nominal, dilated
            0 <= x <= 1, t >= 0
 ```
 
-For the same fixed load and monotone SIMP material law, the eroded field is
+For the same fixed load and monotone SIMP/RAMP material law, the eroded field is
 the worst compliance case. All three states are nevertheless evaluated and
 reported. MMA and GCMMA solve the epigraph using mmapy's native nonnegative
 auxiliary variable `z`, with `t = C_ref * z`. `C_ref` is the initial worst
-compliance and stays fixed. The density-dependent objective is zero,
+compliance at the start of each β stage and stays fixed within that stage. The density-dependent objective is zero,
 `a0 = 1`, and the four rows are `[C_eroded/C_ref, C_nominal/C_ref,
 C_dilated/C_ref, volume_constraint]` with `a = [1, 1, 1, 0]`.
 Thus `z` couples to every compliance constraint and cannot relax the volume
@@ -366,8 +399,8 @@ Helmholtz adjoint, with no extra elasticity solve in backward. GCMMA checks
 conservativeness for every compliance row and the volume row at each trial.
 The maximum compliance remains a reporting metric, and its active gradient
 is available for diagnostics; it is not the gradient used to optimise the
-epigraph. Beta, thresholds, and the dilated volume limit remain fixed
-during the run; there is no volume rescaling or automatic continuation.
+epigraph. Thresholds and the dilated volume limit remain fixed during the run;
+optional β continuation follows the schedule described above, without volume rescaling.
 
 ```powershell
 # Run from this checkout, using its source when sharing another worktree's environment.

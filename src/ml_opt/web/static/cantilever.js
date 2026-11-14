@@ -15,7 +15,7 @@ function readModel() {
   const model = {};
   for (const [key, value] of new FormData(form)) {
     model[key] = key === "robust" ? value === "true" :
-      ["optimizer", "field_execution"].includes(key) ? value : Number(value);
+      ["optimizer", "field_execution", "material_model", "projection_schedule"].includes(key) ? value : Number(value);
   }
   return model;
 }
@@ -74,6 +74,7 @@ function updateConvergence() {
   byId("history-compliance").textContent = latest ? format(latest.compliance) : "—";
   byId("history-volume").textContent = latest ? `${(100*latest.volume_fraction).toFixed(2)}%` : "—";
   byId("history-elapsed").textContent = Number.isFinite(latest?.elapsed_seconds) ? `${filterFormat(latest.elapsed_seconds)} s` : "—";
+  byId("history-beta").textContent = Number.isFinite(latest?.projection_beta) ? filterFormat(latest.projection_beta) : "—";
   byId("convergence-description").textContent = latest ?
     `${state.model.optimizer.toUpperCase()} · ${state.history.length} evaluated history ${state.history.length === 1 ? "point" : "points"} · iterations 0–${latest.iteration}` :
     "Run an optimisation to build the convergence history.";
@@ -98,6 +99,30 @@ function redraw() {
   updateConvergence();
 }
 
+function syncControls() {
+  const ramp = byId("material_model").value === "ramp";
+  byId("penalisation").min = ramp ? "0" : "1";
+  byId("penalty-label").textContent = ramp ? "Penalty parameter · q" : "Penalty exponent · p";
+  byId("material-formula").textContent = ramp ? "E(ρ) = E_min + (E₀ − E_min) ρ / [1 + q(1 − ρ)]" : "E(ρ) = E_min + (E₀ − E_min) ρᵖ";
+  byId("material-description").textContent = ramp ?
+    "RAMP: q ≥ 0. Larger q penalises intermediate densities; q = 0 is linear." :
+    "SIMP: p ≥ 1. Larger p penalises intermediate densities; p = 1 is linear.";
+  const scheduled = byId("projection_schedule").value === "geometric";
+  byId("beta-schedule-options").hidden = !scheduled;
+  const beta = Number(byId("projection_beta").value), maximum = Number(byId("projection_beta_max").value);
+  byId("projection_beta").setCustomValidity(scheduled && beta <= 0 ? "Scheduled projection needs a positive starting β." : "");
+  byId("projection_beta_max").setCustomValidity(maximum <= 0 || (scheduled && maximum < beta) ? "Maximum β must be positive and at least the starting β." : "");
+  byId("projection_beta_multiplier").setCustomValidity(Number(byId("projection_beta_multiplier").value) <= 1 ? "The β multiplier must be greater than 1." : "");
+}
+
+function updateProjectionStatus() {
+  const m = state.model, active = state.history.at(-1)?.projection_beta ?? m.projection_beta;
+  byId("projection-description").textContent = active > 0 ?
+    `β = ${filterFormat(active)} · η = ${filterFormat(m.projection_eta)} · ${m.projection_schedule === "geometric" ? `scheduled to ${filterFormat(m.projection_beta_max)}` : "fixed during run"}` :
+    "Projection off · smoothed densities used directly";
+  byId("model-filter-summary").textContent = `${m.filter_radius > 0 ? `ℓ = ${filterFormat(m.filter_radius)}` : "Smoothing off"} · ${active > 0 ? `β = ${filterFormat(active)}` : "Projection off"}`;
+}
+
 function updateLabels(resizeFilterRange = true) {
   const m = state.model;
   byId("mesh-description").textContent = `${format(m.nx * m.ny)} elements · ${format((m.nx + 1) * (m.ny + 1))} nodes`;
@@ -120,8 +145,13 @@ function updateLabels(resizeFilterRange = true) {
   projectionSlider.max = projectionMax;
   projectionSlider.value = beta;
   byId("projection-range-max").textContent = filterFormat(projectionMax);
-  byId("projection-description").textContent = beta > 0 ?
-    `β = ${filterFormat(beta)} · η = ${filterFormat(eta)} · fixed during run` : "Projection off · smoothed densities used directly";
+  const scheduled = m.projection_schedule === "geometric";
+  const increases = scheduled && beta > 0 ? Math.max(0, Math.ceil(Math.log(m.projection_beta_max / beta) / Math.log(m.projection_beta_multiplier))) : 0;
+  const finalStage = increases ? increases * m.projection_beta_interval + 1 : 0;
+  byId("beta-schedule-description").textContent =
+    `Start β = ${filterFormat(beta)}; multiply by ${filterFormat(m.projection_beta_multiplier)} after every ${m.projection_beta_interval} completed iterations, capped at ${filterFormat(m.projection_beta_max)}. ` +
+    (finalStage > m.max_iterations ? `The iteration limit will be reached before the maximum β (first used at iteration ${format(finalStage)}).` :
+      `Maximum β is first used at iteration ${format(finalStage)}. Convergence stopping waits for this stage.`);
   byId("robust-options").hidden = !m.robust;
   byId("robust-description").hidden = !m.robust;
   byId("field-view").hidden = !m.robust;
@@ -133,7 +163,7 @@ function updateLabels(resizeFilterRange = true) {
   if (m.robust) byId("robust-description").textContent =
     `Thresholds: eroded ${filterFormat(eta + m.robust_eta_offset)}, nominal ${filterFormat(eta)}, dilated ${filterFormat(eta - m.robust_eta_offset)}. Worst compliance and dilated-volume constraint. Requires β > 0 and all thresholds inside (0, 1).`;
   byId("filter-status").textContent = [radius > 0 ? "Helmholtz" : null, beta > 0 ? "Projection" : null].filter(Boolean).join(" + ") || "Filters off";
-  byId("model-filter-summary").textContent = `${radius > 0 ? `ℓ = ${filterFormat(radius)}` : "Smoothing off"} · ${beta > 0 ? `β = ${filterFormat(beta)}` : "Projection off"}`;
+  updateProjectionStatus();
   byId("filter-legend").hidden = radius === 0;
   const rad = m.load_angle * Math.PI / 180;
   byId("force-components").textContent = `F = (${signed(m.load * Math.cos(rad))}, ${signed(m.load * Math.sin(rad))})`;
@@ -143,6 +173,7 @@ function clearResult() {
   state.density = null; state.fields = null; state.fieldRow = null; state.initial = null;
   byId("field-metrics").textContent = "";
   state.history = []; state.runConfig = null;
+  updateProjectionStatus();
   byId("empty-state").hidden = false;
   byId("compliance").textContent = "—";
   byId("improvement").textContent = "Waiting for first solve";
@@ -173,6 +204,7 @@ function selectField(redrawView = true) {
 
 function updateModel(event) {
   if (state.running) return;
+  syncControls();
   if (event?.target.id === "nx" || event?.target.id === "ny") {
     const nx = Number(byId("nx").value), ny = Number(byId("ny").value);
     if (nx >= 2 && nx <= 160 && ny >= 2 && ny <= 100) {
@@ -208,6 +240,7 @@ function receive(event) {
   if (event.event === "iteration") {
     const row = event.history;
     state.history.push(row);
+    updateProjectionStatus();
     if (state.initial === null) state.initial = row.compliance;
     state.fields = event.field_densities || null;
     state.fieldRow = row;
@@ -225,7 +258,7 @@ function receive(event) {
     byId("topology-description").textContent = state.model.robust ?
       `${state.model.optimizer.toUpperCase()} · Three fields · worst: ${row.worst_field} · ${state.model.field_execution}` :
       `${state.model.optimizer.toUpperCase()} · ${state.model.projection_beta > 0 ? "Projected" : state.model.filter_radius > 0 ? "Filtered" : "Unfiltered"} physical densities`;
-    byId("live-note").textContent = `Iteration ${row.iteration} · ${row.state_solves} state solves`;
+    byId("live-note").textContent = `Iteration ${row.iteration} · β = ${filterFormat(row.projection_beta)} · ${state.model.material_model.toUpperCase()} · ${row.state_solves} state solves`;
     status("Running", "running");
     if (topologyCanvas.getClientRects().length) drawTopology(topologyCanvas, state.model, state.density);
     updateConvergence();
@@ -259,8 +292,8 @@ async function start(event) {
       const error = await response.json();
       const details = error.detail;
       if (Array.isArray(details) && details.some(item => item.type === "extra_forbidden" &&
-          ["projection_beta", "projection_eta", "robust", "robust_eta_offset", "field_execution"].includes(item.loc?.at(-1)))) {
-        throw new Error("The running server needs an update. Restart TOptVis, then refresh this page to use robust fields.");
+          ["projection_beta", "projection_eta", "robust", "robust_eta_offset", "field_execution", "material_model", "penalisation", "projection_schedule", "projection_beta_interval", "projection_beta_multiplier", "projection_beta_max"].includes(item.loc?.at(-1)))) {
+        throw new Error("The running server needs an update. Restart TOptVis, then refresh this page to load the material and β schedule controls.");
       }
       throw new Error(typeof details === "string" ? details : details?.map(item => `${item.loc?.at(-1) || "Input"}: ${item.msg}`).join("; ") || "Could not start the solver.");
     }
@@ -344,15 +377,15 @@ document.addEventListener("solveractivity", event => {
 document.addEventListener("workspacechange", event => {
   if (event.detail === "cantilever-2d") requestAnimationFrame(redraw);
 });
-state.model = readModel(); updateLabels(); clearResult(); redraw();
+syncControls(); state.model = readModel(); updateLabels(); clearResult(); redraw();
 async function connectSolver() {
   try {
     const response = await fetch("/api/health");
     if (!response.ok) throw new Error("Local solver unavailable");
     const health = await response.json();
-    if (!health.projection_supported || !health.robust_supported) {
+    if (!health.projection_supported || !health.robust_supported || !health.material_schedule_supported) {
       byId("connection").lastElementChild.textContent = "Server restart needed";
-      showError("Restart TOptVis and refresh this page to load the robust formulation in the server.");
+      showError("Restart TOptVis and refresh this page to load the material and β schedule controls in the server.");
       setRunning(false);
     } else {
       state.ready = true;

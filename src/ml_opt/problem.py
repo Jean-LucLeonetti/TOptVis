@@ -1,4 +1,4 @@
-"""Element-density SIMP compliance objective with a volume inequality."""
+"""Element-density compliance objective with a physical-volume inequality."""
 
 from dataclasses import dataclass
 
@@ -11,6 +11,7 @@ from .fem.elasticity import compliance
 from .fem.filter import HelmholtzFilter
 from .fem.fields import FieldSolves, field_compliance
 from .projection import heaviside_projection
+from .material import elastic_modulus
 
 
 @dataclass
@@ -32,6 +33,7 @@ class Evaluation:
     field_gradients: dict[str, np.ndarray] | None = None
     epigraph_compliance: float | None = None
     epigraph_constraint: float | None = None
+    projection_beta: float = 0.0
 
 
 class CantileverProblem:
@@ -39,6 +41,7 @@ class CantileverProblem:
         if state_solver is not None and config.robust:
             raise ValueError("A supplied state solver is supported only for single-field problems")
         self.config = config
+        self.projection_beta = config.projection_beta
         self.mesh = StructuredMesh(config.nx, config.ny, config.length, config.height)
         # Validation can supply a frozen Galerkin solver, retaining the identical
         # material/filter/projection/autograd path. Normal optimisation uses PETSc.
@@ -96,14 +99,13 @@ class CantileverProblem:
             filtered = self.density_filter.apply(x)
             if self.config.robust:
                 eta, offset = self.config.projection_eta, self.config.robust_eta_offset
-                densities = torch.stack([heaviside_projection(filtered, self.config.projection_beta, threshold)
+                densities = torch.stack([heaviside_projection(filtered, self.projection_beta, threshold)
                                          for threshold in (eta + offset, eta, eta - offset)])
                 density = densities[1]
             else:
-                densities = density = heaviside_projection(filtered, self.config.projection_beta,
+                densities = density = heaviside_projection(filtered, self.projection_beta,
                                                            self.config.projection_eta)
-            moduli = self.config.minimum_modulus + (self.config.young_modulus -
-                      self.config.minimum_modulus) * densities.pow(self.config.penalisation)
+            moduli = elastic_modulus(densities, self.config)
             if self.config.robust:
                 compliances = field_compliance(moduli, self.fields)
                 # The maximum is a reporting metric. MMA uses all three smooth
@@ -139,4 +141,4 @@ class CantileverProblem:
                           density.detach().numpy().copy(), state.displacement.copy(),
                           residual, iterations, objective_gradient, constraint_gradient,
                           field_densities, field_compliances, field_volumes, field_displacements, worst_field,
-                          field_gradients)
+                          field_gradients, projection_beta=self.projection_beta)

@@ -52,6 +52,7 @@ def save_results(result: OptimizationResult, directory: str | Path) -> Path:
         "relative_equilibrium_residual": evaluation.residual,
         "state_solves": result.history[-1].state_solves,
         "elapsed_seconds": result.history[-1].elapsed_seconds,
+        "final_projection_beta": evaluation.projection_beta,
     }
     if config.robust:
         epigraph_feasible = evaluation.epigraph_constraint <= config.feasibility_tolerance

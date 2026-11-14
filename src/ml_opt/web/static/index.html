@@ -35,6 +35,7 @@
       <nav class="config-tabs" role="tablist" aria-label="Workspace sections" aria-orientation="vertical">
         <button id="tab-geometry" class="config-tab" type="button" role="tab" aria-selected="true" aria-controls="panel-geometry" data-panel="panel-geometry" data-title="Geometry & mesh" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM4 10h16M10 4v16"/></svg><span>Geometry</span></button>
         <button id="tab-load" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-load" data-panel="panel-load" data-title="Applied load" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 19 5M9 5h10v10"/></svg><span>Load</span></button>
+        <button id="tab-material" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-material" data-panel="panel-material" data-title="Material" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5"/></svg><span>Material</span></button>
         <button id="tab-filters" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-filters" data-panel="panel-filters" data-title="Density filters" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/><circle cx="12" cy="6" r="2"/><circle cx="10" cy="12" r="2"/></svg><span>Filters</span></button>
         <button id="tab-optimisation" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-optimisation" data-panel="panel-optimisation" data-title="Optimisation" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 17 5-6 5 3 6-9M16 5h4v4"/></svg><span>Optimise</span></button>
         <button id="tab-visualisation" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-visualisation" data-panel="panel-visualisation" data-title="Visualisation" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16h16M7 15l4-6 4 3 5-7"/><circle cx="11" cy="9" r="1"/><circle cx="15" cy="12" r="1"/></svg><span>Visualisation</span></button>
@@ -69,6 +70,15 @@
               <div class="section-note">Left-edge nodes are fixed. Positive angles rotate counterclockwise.</div>
             </section>
 
+            <section id="panel-material" class="control-section" role="tabpanel" aria-labelledby="tab-material" hidden>
+              <p class="control-hint">Choose how physical density determines the element stiffness.</p>
+              <label>Interpolation<select id="material_model" name="material_model"><option value="simp">SIMP</option><option value="ramp">RAMP</option></select></label>
+              <label><span id="penalty-label">Penalty exponent · p</span><input id="penalisation" name="penalisation" type="number" min="1" step="any" value="3" required aria-describedby="material-description"></label>
+              <div class="config-info" id="material-formula">E(ρ) = E_min + (E₀ − E_min) ρᵖ</div>
+              <p class="filter-hint" id="material-description">SIMP: p ≥ 1. Larger p penalises intermediate densities; p = 1 is linear.</p>
+              <div class="section-note">E₀ = 1 · E_min = 10⁻⁶ · Poisson ratio = 0.3<br>Volume uses physical density before stiffness penalisation.</div>
+            </section>
+
             <section id="panel-filters" class="control-section" role="tabpanel" aria-labelledby="tab-filters" hidden>
               <h3>Helmholtz smoothing</h3>
               <label for="filter_radius">Length · ℓ<input id="filter_radius" name="filter_radius" type="number" min="0" max="1000" step="any" value="0.1" aria-describedby="filter-description filter-hint" required></label>
@@ -85,7 +95,16 @@
               <input id="projection-slider" type="range" min="0" max="16" step="0.25" value="2" aria-label="Projection sharpness">
               <div class="range-labels"><span>Off</span><span id="projection-range-max">16</span></div>
               <div class="filter-description" id="projection-description" aria-live="polite">β = 2 · η = 0.5</div>
-              <p class="filter-hint">Higher β sharpens the solid/void transition. Set β to 0 to disable. Values stay fixed during the run.</p>
+              <p class="filter-hint">Higher β sharpens the solid/void transition. A fixed β of 0 disables projection.</p>
+              <label>β schedule<select id="projection_schedule" name="projection_schedule"><option value="fixed">Fixed β</option><option value="geometric">Scheduled increase</option></select></label>
+              <div id="beta-schedule-options" hidden>
+                <div class="input-grid">
+                  <label>Every · iterations<input id="projection_beta_interval" name="projection_beta_interval" type="number" min="1" step="1" value="25" required></label>
+                  <label>Multiplier<input id="projection_beta_multiplier" name="projection_beta_multiplier" type="number" min="1" step="any" value="2" required></label>
+                  <label>Maximum · β<input id="projection_beta_max" name="projection_beta_max" type="number" min="0" max="64" step="any" value="16" required></label>
+                </div>
+                <p class="filter-hint" id="beta-schedule-description">Start at the sharpness above, then increase after every 25 completed iterations.</p>
+              </div>
               <div class="config-info">Design → Helmholtz → projection → physical material</div>
               <div class="filter-divider"></div>
               <h3>Robust formulation</h3>
@@ -112,6 +131,7 @@
                 <div><span>Compliance</span><strong id="history-compliance">—</strong></div>
                 <div><span>Physical material volume</span><strong id="history-volume">—</strong></div>
                 <div><span>Elapsed solver time</span><strong id="history-elapsed">—</strong></div>
+                <div><span>Active projection β</span><strong id="history-beta">—</strong></div>
               </div>
               <div class="config-info">Hover over a graph to inspect an iteration across all plots. You can also focus a graph and use the arrow keys, Home, and End.</div>
               <div class="section-note">History stays available after stopping or finishing. A new run or a model change clears it.</div>

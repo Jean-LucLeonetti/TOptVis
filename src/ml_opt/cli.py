@@ -9,7 +9,7 @@ from .runner import HistoryEntry, optimise
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="SIMP cantilever with PyTorch, PETSc, and MMA/GCMMA")
+    parser = argparse.ArgumentParser(description="SIMP/RAMP cantilever with PyTorch, PETSc, and MMA/GCMMA")
     defaults = CantileverConfig()
     for name in ("nx", "ny", "max_iterations", "max_inner_iterations", "load_node_x", "load_node_y"):
         parser.add_argument("--" + name.replace("_", "-"), type=int, default=getattr(defaults, name))
@@ -17,10 +17,16 @@ def main(argv: list[str] | None = None) -> int:
                  "minimum_modulus", "move_limit", "design_tolerance"):
         parser.add_argument("--" + name.replace("_", "-"), type=float, default=getattr(defaults, name))
     parser.add_argument("--optimizer", choices=("mma", "gcmma"), default=defaults.optimizer)
+    parser.add_argument("--material-model", choices=("simp", "ramp"), default=defaults.material_model)
     parser.add_argument("--filter-radius", type=float, default=defaults.filter_radius,
                         help="Helmholtz length in model units; 0 disables filtering (default: 0)")
     parser.add_argument("--projection-beta", type=float, default=defaults.projection_beta,
-                        help="Heaviside sharpness, fixed during the run; 0 disables projection")
+                        help="Initial Heaviside sharpness; 0 disables fixed projection")
+    parser.add_argument("--projection-schedule", choices=("fixed", "geometric"), default=defaults.projection_schedule)
+    parser.add_argument("--projection-beta-interval", type=int, default=defaults.projection_beta_interval,
+                        help="Completed iterations between beta increases")
+    parser.add_argument("--projection-beta-multiplier", type=float, default=defaults.projection_beta_multiplier)
+    parser.add_argument("--projection-beta-max", type=float, default=defaults.projection_beta_max)
     parser.add_argument("--projection-eta", type=float, default=defaults.projection_eta,
                         help="Heaviside threshold in (0, 1), default: 0.5")
     parser.add_argument("--robust", action="store_true",
@@ -39,7 +45,7 @@ def main(argv: list[str] | None = None) -> int:
             if entry.iteration % 5 == 0:
                 print(f"{entry.iteration:4d}  compliance={entry.compliance:.6f}  "
                       f"volume={entry.volume_fraction:.5f}  change={entry.design_change:.4f}  "
-                      f"inner={entry.inner_iterations}", flush=True)
+                      f"inner={entry.inner_iterations}  beta={entry.projection_beta:g}", flush=True)
         result = optimise(config, None if quiet else progress)
         destination = save_results(result, output or Path("outputs") / f"cantilever-{config.optimizer}")
     except (ValueError, RuntimeError) as error:
