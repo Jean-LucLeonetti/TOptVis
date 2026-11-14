@@ -3,6 +3,20 @@
 A Python project for topology optimisation with PyTorch and PETSc through
 `petsc4py`.
 
+## Performance
+
+Measured timings, bottleneck locations, methodology, and raw data are in
+[`benchmarks/RESULTS.md`](benchmarks/RESULTS.md). Source comments `PERF B1`–`B4`
+mark the measured hotspots. Reproduce the serial Python/PETSc/HTTP benchmarks
+with:
+
+```powershell
+.\.venv\Scripts\python.exe benchmarks\benchmark.py
+```
+
+For the browser's actual canvas drawing functions, run
+`python benchmarks/render_benchmark.py` and open its printed loopback URL.
+
 ## Visual interface
 
 Double-click **Start TOptVis.bat** in the project folder. It uses the existing

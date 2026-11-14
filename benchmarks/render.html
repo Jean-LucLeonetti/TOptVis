@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>TOptVis canvas benchmark</title>
+<style>body{font:14px sans-serif;margin:24px}canvas{display:block;width:900px;height:288px;border:1px solid #ddd}pre{white-space:pre-wrap}h1{font-size:20px}</style>
+<h1>TOptVis canvas benchmark</h1>
+<p>Runs the actual viewer functions. Measures synchronous draw-call time, excluding browser compositing.</p>
+<canvas id="canvas"></canvas>
+<pre id="results">Running…</pre>
+<script type="module">
+import {drawModel,drawTopology} from "/viewer.js";
+const canvas=document.querySelector("canvas"), results=[];
+const pause=()=>new Promise(requestAnimationFrame);
+for(const [nx,ny] of [[30,10],[60,20],[120,40],[160,100]]){
+  const model={nx,ny,length:3,height:1,load_node_x:nx,load_node_y:Math.floor(ny/2),load:1,load_angle:-90};
+  const density=Array.from({length:nx*ny},(_,i)=>((i*7919)%997)/997);
+  for(const kind of ["model","topology"]){
+    const draw=()=>kind==="model"?drawModel(canvas,model):drawTopology(canvas,model,density);
+    for(let i=0;i<5;i++)draw();
+    const samples=[];
+    for(let trial=0;trial<3;trial++){
+      await pause(); const start=performance.now();
+      for(let i=0;i<30;i++)draw();
+      samples.push((performance.now()-start)/30);
+    }
+    results.push({nx,ny,kind,milliseconds_per_draw:samples});
+  }
+}
+document.querySelector("#results").textContent=JSON.stringify({complete:true,user_agent:navigator.userAgent,
+  device_pixel_ratio:devicePixelRatio,canvas_css_width:900,canvas_css_height:288,
+  draws_per_sample:30,repetitions:3,results},null,2);
+</script>
+</html>

@@ -60,6 +60,8 @@ def optimise(config: CantileverConfig,
             stop_reason = "cancelled"
             break
         step = optimizer.step(design, current, problem.evaluate)
+        # PERF B4: GCMMA just solved this accepted trial without sensitivities;
+        # this evaluation repeats its state solve. See benchmarks/RESULTS.md.
         updated = problem.evaluate(step.design)
         change = float(np.max(np.abs(step.design - design)))
         relative_change = abs(updated.compliance - current.compliance) / max(abs(current.compliance), 1e-30)

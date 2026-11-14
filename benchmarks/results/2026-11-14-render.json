@@ -1,0 +1,91 @@
+{
+  "complete": true,
+  "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+  "device_pixel_ratio": 1.5,
+  "canvas_css_width": 900,
+  "canvas_css_height": 288,
+  "draws_per_sample": 30,
+  "repetitions": 3,
+  "results": [
+    {
+      "nx": 30,
+      "ny": 10,
+      "kind": "model",
+      "milliseconds_per_draw": [
+        0.2,
+        0.18666666746139526,
+        0.1600000003973643
+      ]
+    },
+    {
+      "nx": 30,
+      "ny": 10,
+      "kind": "topology",
+      "milliseconds_per_draw": [
+        0.20333333313465118,
+        0.17666666607062023,
+        0.20333333313465118
+      ]
+    },
+    {
+      "nx": 60,
+      "ny": 20,
+      "kind": "model",
+      "milliseconds_per_draw": [
+        0.5566666662693024,
+        0.6199999998013178,
+        0.6199999998013178
+      ]
+    },
+    {
+      "nx": 60,
+      "ny": 20,
+      "kind": "topology",
+      "milliseconds_per_draw": [
+        0.6366666664679845,
+        0.65,
+        0.6533333331346511
+      ]
+    },
+    {
+      "nx": 120,
+      "ny": 40,
+      "kind": "model",
+      "milliseconds_per_draw": [
+        2.580000000198682,
+        2.2900000005960464,
+        2.1333333333333333
+      ]
+    },
+    {
+      "nx": 120,
+      "ny": 40,
+      "kind": "topology",
+      "milliseconds_per_draw": [
+        2.216666666666667,
+        2.3,
+        2.3633333335320157
+      ]
+    },
+    {
+      "nx": 160,
+      "ny": 100,
+      "kind": "model",
+      "milliseconds_per_draw": [
+        8.063333333532016,
+        8.230000000198682,
+        7.6099999994039536
+      ]
+    },
+    {
+      "nx": 160,
+      "ny": 100,
+      "kind": "topology",
+      "milliseconds_per_draw": [
+        7.566666666666666,
+        7.476666667064031,
+        8.519999999801318
+      ]
+    }
+  ]
+}

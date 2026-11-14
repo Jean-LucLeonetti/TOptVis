@@ -30,6 +30,8 @@ class RunManager:
                 raise RuntimeError("An optimisation is already running. Stop it before starting another.")
             context = mp.get_context("spawn")
             messages, cancel = context.Queue(), context.Event()
+            # PERF B1: each run reloads the numerical stack in a fresh interpreter.
+            # See benchmarks/RESULTS.md for measured first-frame/import latency.
             process = context.Process(target=run_optimization,
                                        args=(asdict(config), messages, cancel), daemon=True)
             job = Job(uuid.uuid4().hex, process, messages, cancel)

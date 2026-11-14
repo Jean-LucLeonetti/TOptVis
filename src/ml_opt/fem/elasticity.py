@@ -49,6 +49,8 @@ class ElasticitySolver:
         count = len(self.mesh.free_dofs)
         entries = (moduli[:, None, None] * self.element_stiffness).ravel()[self.mask]
         stiffness = coo_matrix((entries, (self.rows, self.columns)), shape=(count, count)).tocsr()
+        # PERF B3: recreate matrix/KSP and redo symbolic + numeric LU per evaluation.
+        # The sparsity graph is fixed; numeric factors change with the design.
         matrix = PETSc.Mat().createAIJ(
             size=(count, count), comm=PETSc.COMM_SELF,
             csr=(stiffness.indptr.astype(PETSc.IntType),
