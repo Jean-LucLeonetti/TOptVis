@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ml-opt-project"
+version = "0.1.0"
+description = "Topology optimisation with PyTorch and PETSc"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "torch",
+    "petsc4py",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

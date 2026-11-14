@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# Environments and local configuration
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+.ipynb_checkpoints/
+
+# Generated optimisation outputs
+outputs/
+checkpoints/
+*.vtu
+*.pvtu
+*.pvd
+*.xdmf
+*.h5
+
+# Operating system files
+.DS_Store
+Thumbs.db
