@@ -150,8 +150,9 @@ snapshot magnitudes. Rank selection respects numerical rank and the mode
 limit, and explicitly reports an unmet energy target when the cap is too low.
 The spectrum and maximum per-snapshot relative reconstruction error describe
 training displacements, not elastic strain energy or unseen-case accuracy.
-Validation on held-out cases and using the ROM in Cantilever 2D are future
-steps; this change does not replace the full-order elasticity solve.
+Use **Validate on unseen cases** for held-out accuracy checks. Using the ROM
+to drive Cantilever 2D optimisation is not enabled; its state solves remain
+full order.
 
 Datasets persist in `outputs/rom-training/<id>/`, relative to the source
 checkout. Refreshing or restarting reloads the dataset library. Downloads:
@@ -172,6 +173,53 @@ available through `ml_opt.rom` (`SnapshotConfig`, `generate_snapshots`, and
 `POST /api/rom/<id>/basis`, `GET /api/rom/trainings`, and
 `GET /api/rom/<id>/artifacts/{snapshots,basis,metadata}`. Generation and building
 stream NDJSON events; `POST /api/run/<job-id>/stop` cancels either stage.
+
+### Held-out ROM validation
+
+Select a dataset with a built basis, then configure independent load heights,
+directions, and volume fractions under **Validate on unseen cases**. The mesh,
+material, support conditions, filter, and projection are inherited from that
+single-field training dataset. Every combination is checked against all
+declared training cases after snapping to mesh nodes and normalising load
+directions, including the equivalence of -180 and 180 degrees. Training
+overlap and duplicate physical cases are rejected before a worker job starts.
+
+Full-order MMA generates each new design trajectory. At the initial design,
+every comparison interval, and the final design, validation solves the frozen
+Galerkin system `(V.T K V) a = V.T f` and lifts `u_ROM = V a`. Validation never
+adds snapshots to training, updates the basis, or uses ROM gradients to drive
+these trajectories. The compared quantities are:
+
+- Displacement: `||u_ROM - u_FOM||_2 / ||u_FOM||_2` on nodal DOFs (the fixed
+  components are zero). This is a Euclidean norm, not an energy norm.
+- Compliance: `abs(C_ROM - C_FOM) / abs(C_FOM)`, with `C = f.T u`.
+- Design gradient: `||g_ROM - g_FOM||_2 / ||g_FOM||_2` for the raw design
+  variables, through the same SIMP, Helmholtz-filter and projection autograd
+  pipeline. The fixed-basis self-adjoint ROM derivative is checked against
+  finite differences in the tests. A zero reference with nonzero difference
+  is reported as undefined and cannot pass its tolerance.
+
+The tab reports per-design comparisons, mean and maximum errors, selected
+tolerances, ROM equilibrium residuals, and the number of designs passing all
+three thresholds. A completed report is within tolerances only when every
+sampled design passes; a stopped report is always partial. These are empirical
+checks on the sampled held-out trajectories, not guarantees for arbitrary
+material distributions or unsampled intermediate designs. Validation is
+limited to 16 cases, 128 comparison states and 128 MiB of comparison arrays.
+
+Reports persist under `outputs/rom-training/<id>/validations/<validation-id>/`.
+`report.json` records the complete validation cases, settings, thresholds,
+errors, and SHA-256 of the exact frozen basis artifact. `comparisons.npz`
+contains raw designs, physical densities, full and reduced displacements and
+design gradients, DOF mapping, case/iteration indices, and JSON provenance.
+Cancellation preserves collected comparisons as partial evidence; cancelling
+before a comparison leaves any previous report intact. Rebuilding the basis
+invalidates the current validation link; prior files remain on disk.
+
+The API adds `POST /api/rom/<id>/validate` (streamed),
+`GET /api/rom/<id>/validation` and downloads at
+`GET /api/rom/<id>/artifacts/{validation,comparisons}`. Python callers can use
+`ValidationConfig` and `validate_basis` from `ml_opt.rom`.
 
 ## 2D cantilever example
 

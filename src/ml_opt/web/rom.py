@@ -1,6 +1,7 @@
 """Local offline training API; only server-assigned dataset IDs address files."""
 
 from dataclasses import asdict
+import json
 from pathlib import Path
 import re
 from typing import Literal
@@ -10,6 +11,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..rom.training import SnapshotConfig, read_metadata
+from ..rom.validation import ValidationConfig, validation_cases
 from .streams import stream_job
 
 
@@ -42,6 +44,26 @@ class BasisRequest(BaseModel):
     energy_target: float = Field(default=.999, gt=0, le=1)
     max_modes: int = Field(default=32, ge=1, le=256)
     normalize: bool = True
+
+
+class ValidationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    load_heights: list[float] = Field(default_factory=lambda: [.4, .6], min_length=1, max_length=16)
+    load_angles: list[float] = Field(default_factory=lambda: [-75], min_length=1, max_length=16)
+    volume_fractions: list[float] = Field(default_factory=lambda: [.35, .45], min_length=1, max_length=16)
+    iterations_per_case: int = Field(default=10, ge=1, le=300)
+    comparison_stride: int = Field(default=5, ge=1, le=300)
+    displacement_tolerance: float = Field(default=.05, gt=0, le=1)
+    compliance_tolerance: float = Field(default=.01, gt=0, le=1)
+    gradient_tolerance: float = Field(default=.1, gt=0, le=1)
+
+    @model_validator(mode="after")
+    def valid_options(self):
+        self.configuration()
+        return self
+
+    def configuration(self):
+        return ValidationConfig(**self.model_dump())
 
 
 def create_rom_router(manager, root: Path):
@@ -99,8 +121,42 @@ def create_rom_router(manager, root: Path):
         return start_task("rom_basis", {"training_id": training_id, "options": request.model_dump()},
                           lambda job: {"training_id": training_id, "kind": "basis"})
 
+    @router.post("/{training_id}/validate")
+    async def validate(training_id: str, request: ValidationRequest):
+        metadata = metadata_for(training_id)
+        if metadata.get("status") != "basis_ready":
+            raise HTTPException(409, "Build a reduced basis before running validation")
+        try:
+            validation_cases(metadata, request.configuration())
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
+        return start_task("rom_validation", {"training_id": training_id, "options": request.model_dump()},
+                          lambda job: {"training_id": training_id, "kind": "validation"})
+
+    def validation_path(training_id, filename):
+        metadata = metadata_for(training_id)
+        report_id = metadata.get("validation", {}).get("id", "")
+        if not re.fullmatch(r"[0-9a-f]{32}", report_id):
+            raise HTTPException(404, "No validation report for the current basis")
+        parent = directory_for(training_id) / "validations"
+        directory = parent / report_id
+        if directory.resolve().parent != parent.resolve():
+            raise HTTPException(404, "Validation report not found")
+        path = directory / filename
+        if not path.is_file():
+            raise HTTPException(404, "Validation artifact not found")
+        return path
+
+    @router.get("/{training_id}/validation")
+    async def validation_report(training_id: str):
+        return json.loads(validation_path(training_id, "report.json").read_text(encoding="utf-8"))
+
     @router.get("/{training_id}/artifacts/{artifact}")
-    async def download(training_id: str, artifact: Literal["snapshots", "basis", "metadata"]):
+    async def download(training_id: str, artifact: Literal["snapshots", "basis", "metadata", "validation", "comparisons"]):
+        if artifact in ("validation", "comparisons"):
+            filename = "report.json" if artifact == "validation" else "comparisons.npz"
+            return FileResponse(validation_path(training_id, filename), filename=f"rom-{training_id[:8]}-{filename}",
+                                media_type="application/json" if artifact == "validation" else "application/octet-stream")
         metadata = metadata_for(training_id)
         filename = {"snapshots": "snapshots.npz", "basis": "basis.npz", "metadata": "metadata.json"}[artifact]
         path = directory_for(training_id) / filename

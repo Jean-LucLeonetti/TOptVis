@@ -1,10 +1,13 @@
 import {drawTopology} from "/static/viewer.js";
+import {ValidationView} from "/static/rom-validation.js";
 
 const byId = id => document.getElementById(id);
 const snapshotForm = byId("rom-snapshot-form"), basisForm = byId("rom-basis-form");
 const dataset = byId("rom-dataset"), canvas = byId("rom-preview");
 const state = {ready: false, busy: false, externalBusy: false, jobId: null,
-  records: [], selected: null, previewModel: null, density: null, completedId: null, liveId: null};
+  records: [], selected: null, previewModel: null, density: null, completedId: null, liveId: null,
+  validationSupported: false, kind: null, terminal: null};
+const validationView = new ValidationView({run, getDataset: () => state.selected, onError: error});
 const number = value => new Intl.NumberFormat("en", {maximumFractionDigits: 2}).format(value);
 const percent = value => `${(100 * value).toLocaleString("en", {maximumSignificantDigits: 5})}%`;
 
@@ -27,6 +30,7 @@ function updateButtons() {
   byId("rom-basis-settings").disabled = state.busy;
   byId("rom-refresh").disabled = state.busy;
   byId("rom-stop").disabled = !state.busy || !state.jobId;
+  validationView.setDisabled(disabled, state.validationSupported);
   byId("rom-availability").textContent = !state.ready ? "Restart TOptVis, then refresh this page to enable offline ROM training." :
     state.externalBusy ? "The solver worker is busy. Finish or stop the current job before starting training." :
     "Generate snapshots, then build a basis. Datasets and bases are saved locally and remain available after restart.";
@@ -120,6 +124,7 @@ function renderDataset() {
     spectrum(basis);
   }
   updateButtons();
+  validationView.render(record);
 }
 
 async function refreshLibrary(preferred = dataset.value) {
@@ -145,6 +150,7 @@ async function checkAvailability() {
     if (!response.ok) throw new Error("The local solver is unavailable.");
     const health = await response.json();
     state.ready = !!health.rom_training_supported;
+    state.validationSupported = !!health.rom_validation_supported;
     if (!state.busy) state.externalBusy = health.running;
     if (state.ready && !state.busy) await refreshLibrary();
   } catch (e) { state.ready = false; error(e.message); }
@@ -156,8 +162,22 @@ function receive(event) {
   if (event.event === "started") {
     state.jobId = event.run_id;
     state.completedId = event.training_id;
-    if (event.kind === "snapshots") state.liveId = event.training_id;
+    if (event.kind === "snapshots" || event.kind === "validation") state.liveId = event.training_id;
     updateButtons();
+  } else if (event.event === "validation_case_started") {
+    state.previewModel = event.config;
+    validationView.caseStarted(event);
+    byId("rom-case-label").textContent = `Validation case ${event.case_index+1}/${event.case_count} · node ${event.config.load_node_y} · ${event.config.load_angle}° · volume ${percent(event.config.volume_fraction)}`;
+  } else if (event.event === "validation_state") {
+    validationView.addResult(event);
+    state.density = event.density;
+    byId("rom-preview-empty").hidden = true;
+    byId("rom-compliance").textContent = number(event.result.full_compliance);
+    byId("rom-residual").textContent = event.result.full_residual.toExponential(1);
+    byId("rom-iteration").textContent = `Validation at iteration ${event.result.iteration}`;
+    byId("rom-progress").value = 100 * event.state_count / event.maximum_states;
+    byId("rom-progress-note").textContent = `${event.state_count} held-out designs compared…`;
+    redraw();
   } else if (event.event === "case_started") {
     state.previewModel = event.config;
     byId("rom-case-label").textContent = `Case ${event.case_index+1}/${event.case_count} · node (${event.config.load_node_x}, ${event.config.load_node_y}) · ${event.config.load_angle}° · volume ${percent(event.config.volume_fraction)}`;
@@ -178,18 +198,32 @@ function receive(event) {
     status("Building basis", "running");
     byId("rom-progress-note").textContent = `Computing POD from ${event.snapshot_count} displacement snapshots…`;
   } else if (event.event === "complete") {
-    const stopped = event.stop_reason === "cancelled";
-    status(stopped ? "Stopped" : event.training?.basis ? "Basis ready" : "Snapshots ready", stopped ? "ready" : "complete");
-    byId("rom-progress-note").textContent = stopped ? "Stopped. Previously saved data and collected snapshots are retained." :
-      event.training?.basis ? "Basis saved. Download it below, or rebuild with different POD settings." : "Snapshots saved. Build the reduced basis below.";
-    if (!stopped) byId("rom-progress").value = 100;
+    state.terminal = event;
+    complete(event);
   }
+}
+
+function complete(event) {
+  const stopped = event.stop_reason === "cancelled";
+  if (state.kind === "validation") {
+    const report = event.training?.validation;
+    status(stopped ? "Validation stopped" : report?.meets_tolerances ? "Within tolerances" : "Outside tolerances", stopped ? "ready" : "complete");
+    byId("rom-progress-note").textContent = stopped ? "Validation stopped. Any collected comparisons are saved as a partial report; existing results are retained if none were collected." :
+      `Validation saved · ${report?.passed_states}/${report?.state_count} designs within all tolerances.`;
+    if (!stopped) byId("rom-progress").value = 100;
+    return;
+  }
+  status(stopped ? "Stopped" : event.training?.basis ? "Basis ready" : "Snapshots ready", stopped ? "ready" : "complete");
+  byId("rom-progress-note").textContent = stopped ? "Stopped. Previously saved data and collected snapshots are retained." :
+    event.training?.basis ? "Basis saved. Download it below, or rebuild with different POD settings." : "Snapshots saved. Build the reduced basis below.";
+  if (!stopped) byId("rom-progress").value = 100;
 }
 
 async function run(endpoint, payload, kind) {
   if (state.busy || !state.ready || state.externalBusy) return;
-  error(); state.jobId = null; state.completedId = null; setBusy(true);
-  status(kind === "snapshots" ? "Generating snapshots" : "Building basis", "running");
+  error(); state.jobId = null; state.completedId = null; state.terminal = null; state.kind = kind; setBusy(true);
+  status(kind === "snapshots" ? "Generating snapshots" : kind === "validation" ? "Validating basis" : "Building basis", "running");
+  if (kind === "validation") validationView.begin();
   if (kind === "snapshots") {
     state.density = null; state.previewModel = null;
     byId("rom-preview-empty").hidden = false;
@@ -229,6 +263,7 @@ async function run(endpoint, payload, kind) {
   } finally {
     state.jobId = null; setBusy(false);
     try { await refreshLibrary(state.completedId || dataset.value); } catch (e) { error(e.message); }
+    if (state.terminal) complete(state.terminal);
   }
 }
 

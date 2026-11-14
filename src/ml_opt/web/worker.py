@@ -30,7 +30,7 @@ def worker_loop(commands, messages, cancel, ready) -> None:
                 return
             run_id, configuration = command
             # Each command constructs and closes a fresh problem and optimiser.
-            target = run_training if configuration.get("task") in ("rom_snapshots", "rom_basis") else run_optimization
+            target = run_training if configuration.get("task") in ("rom_snapshots", "rom_basis", "rom_validation") else run_optimization
             target(configuration, _RunMessages(messages, run_id), cancel)
     finally:
         if _parent_gone():
@@ -45,6 +45,7 @@ def _parent_gone() -> bool:
 
 def run_training(configuration, messages, cancel):
     from ..rom.training import SnapshotConfig, build_basis, generate_snapshots
+    from ..rom.validation import ValidationConfig, validate_basis
     try:
         stopped = lambda: cancel.is_set() or _parent_gone()
         root = Path(configuration["root"])
@@ -52,11 +53,17 @@ def run_training(configuration, messages, cancel):
             directory = root / messages.run_id
             metadata = generate_snapshots(SnapshotConfig(**configuration["settings"]), directory,
                                           emit=messages.put, stop_requested=stopped)
+        elif configuration["task"] == "rom_validation":
+            directory = root / configuration["training_id"]
+            metadata = validate_basis(directory, ValidationConfig(**configuration["options"]),
+                                       validation_id=messages.run_id, emit=messages.put, stop_requested=stopped)
         else:
             directory = root / configuration["training_id"]
             metadata = build_basis(directory, **configuration["options"],
                                    emit=messages.put, stop_requested=stopped)
-        messages.put({"event": "complete", "stop_reason": "cancelled" if metadata is None or metadata["status"] == "cancelled" else "complete",
+        cancelled = metadata is None or metadata["status"] == "cancelled" or (
+            configuration["task"] == "rom_validation" and metadata["validation"]["status"] == "cancelled")
+        messages.put({"event": "complete", "stop_reason": "cancelled" if cancelled else "complete",
                       "training_id": directory.name, "training": metadata})
     except Exception as error:
         traceback.print_exc()

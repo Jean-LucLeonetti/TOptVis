@@ -1,7 +1,8 @@
 """Outer optimisation loop; every history row describes an evaluated design."""
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from copy import deepcopy
 from time import perf_counter
 
 import numpy as np
@@ -43,14 +44,15 @@ def optimise(config: CantileverConfig,
              callback: Callable[[HistoryEntry], None] | None = None, *,
              snapshot_callback: Callable[[HistoryEntry, np.ndarray], None] | None = None,
              stop_requested: Callable[[], bool] | None = None,
-             state_snapshot_callback: Callable[[HistoryEntry, np.ndarray, np.ndarray], None] | None = None) -> OptimizationResult:
+             state_snapshot_callback: Callable[[HistoryEntry, np.ndarray, np.ndarray], None] | None = None,
+             evaluation_callback: Callable[[HistoryEntry, np.ndarray, Evaluation], None] | None = None) -> OptimizationResult:
     """Optimise; state snapshots receive copies of (row, displacement, density)."""
     started = perf_counter()
     with CantileverProblem(config) as problem:
-        return _optimise_problem(problem, callback, snapshot_callback, stop_requested, started, state_snapshot_callback)
+        return _optimise_problem(problem, callback, snapshot_callback, stop_requested, started, state_snapshot_callback, evaluation_callback)
 
 
-def _optimise_problem(problem, callback, snapshot_callback, stop_requested, started, state_snapshot_callback=None) -> OptimizationResult:
+def _optimise_problem(problem, callback, snapshot_callback, stop_requested, started, state_snapshot_callback=None, evaluation_callback=None) -> OptimizationResult:
     config = problem.config
     design = problem.initial_design()
     current = problem.evaluate(design)
@@ -65,6 +67,8 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
         snapshot_callback(history[-1], current.density.copy())
     if state_snapshot_callback:
         state_snapshot_callback(history[-1], current.displacement.copy(), current.density.copy())
+    if evaluation_callback:
+        evaluation_callback(replace(history[-1]), design.copy(), deepcopy(current))
     stable_iterations = 0
     stop_reason = "maximum_iterations"
     for iteration in range(1, config.max_iterations + 1):
@@ -87,6 +91,8 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
             snapshot_callback(history[-1], updated.density.copy())
         if state_snapshot_callback:
             state_snapshot_callback(history[-1], updated.displacement.copy(), updated.density.copy())
+        if evaluation_callback:
+            evaluation_callback(replace(history[-1]), step.design.copy(), deepcopy(updated))
         design, current = step.design, updated
         stable = (iteration >= config.min_iterations and change <= config.design_tolerance and
                   relative_change <= config.objective_tolerance and

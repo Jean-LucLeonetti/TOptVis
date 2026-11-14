@@ -23,5 +23,19 @@
 .rom-download-links {display:flex;flex-wrap:wrap;gap:14px}
 .rom-download-links a {color:var(--teal);text-decoration:underline;text-underline-offset:3px}
 .rom-validation-note {margin:0;padding:0 4px 12px}
+.rom-validation-cases {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px}
+.rom-validation-cases input[type=text] {height:36px;border:1px solid #dfe6ea;border-radius:6px;background:white;color:var(--ink);padding:0 10px;margin-top:7px;width:100%;min-width:0}
+.rom-validation-summary {font-size:11px;line-height:1.7;color:var(--muted);padding:0 22px;margin:0 0 17px}
+.rom-validation-table-wrap {overflow-x:auto;max-height:420px;overscroll-behavior:contain;margin-top:8px;border-top:1px solid var(--line)}
+.rom-validation-table {width:100%;min-width:860px;border-collapse:collapse;font-size:10px;font-variant-numeric:tabular-nums}
+.rom-validation-table caption {text-align:left;padding:14px 22px;color:var(--muted);font-size:11px}
+.rom-validation-table th {position:sticky;top:0;background:#f7faf9;color:#667983;text-align:left;font-size:9px;font-weight:600}
+.rom-validation-table th,.rom-validation-table td {padding:12px 10px;border-bottom:1px solid var(--line)}
+.rom-validation-table th:first-child,.rom-validation-table td:first-child {padding-left:22px;min-width:120px}
+.rom-validation-table [data-passed=true] {color:var(--teal)}
+.rom-validation-table [data-passed=false] {color:#a85432}
+.rom-validation-table-wrap:focus-visible {outline:2px solid var(--focus);outline-offset:2px}
+@media(max-width:1000px) {.rom-validation-cases{grid-template-columns:1fr 1fr}}
+@media(max-width:700px) {.rom-validation-cases{grid-template-columns:1fr}.rom-validation-summary{padding:0 17px}}
 @media(max-width:1000px) {.rom-workspace{grid-template-columns:260px minmax(0,1fr);gap:14px}.rom-basis-options{grid-template-columns:1fr 1fr}.rom-check{grid-column:1/-1}.rom-results .panel-heading{flex-wrap:wrap}.rom-results .metrics strong{font-size:18px}}
 @media(max-width:700px) {.rom-workspace{grid-template-columns:1fr}.rom-preview{height:220px;min-height:220px}.rom-basis-form{padding:4px 17px 20px}.rom-results .metrics strong{font-size:17px}.rom-results .metrics>div{padding-left:10px}.rom-results .metrics>div:first-child{padding-left:0}.rom-results .metrics>div>span{font-size:6px;letter-spacing:.5px}.rom-results .metrics{margin:0 17px}.rom-results .viewer-footer{row-gap:12px}.rom-results .panel-heading p{line-height:1.6}}

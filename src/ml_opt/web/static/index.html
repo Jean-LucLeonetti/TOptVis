@@ -228,7 +228,7 @@
               <div><span>LATEST COMPLIANCE</span><strong id="rom-compliance">—</strong><small id="rom-iteration">No snapshots yet</small></div>
               <div><span>EQUILIBRIUM RESIDUAL</span><strong id="rom-residual">—</strong><small>Full-order solutions</small></div>
             </div>
-            <div class="canvas-wrap rom-preview"><canvas id="rom-preview" role="img" aria-label="Physical density of the latest full-order training snapshot"></canvas><p id="rom-preview-empty">A material snapshot will appear here during generation.</p></div>
+            <div class="canvas-wrap rom-preview"><canvas id="rom-preview" role="img" aria-label="Physical density of the latest full-order training or validation design"></canvas><p id="rom-preview-empty">A material snapshot will appear here during generation.</p></div>
             <progress id="rom-progress" max="100" value="0" aria-label="Snapshot generation progress"></progress>
             <div class="viewer-footer"><span id="rom-progress-note" role="status">Initial and final states are always included. Stop keeps collected snapshots.</span></div>
           </section>
@@ -260,7 +260,45 @@
               <div class="rom-download-links"><a id="rom-download-snapshots">Download snapshots</a><a id="rom-download-basis" hidden>Download basis</a><a id="rom-download-metadata">Metadata</a></div>
             </div>
           </section>
-          <p class="rom-note rom-validation-note">POD energy and reconstruction error describe the training snapshots. Validation on unseen cases and using the ROM in Cantilever 2D are not included yet.</p>
+          <section class="panel" aria-labelledby="rom-validation-title">
+            <div class="panel-heading"><div><h2 id="rom-validation-title">03 · Validate on unseen cases</h2><p>Compare the frozen ROM with full-order solutions on new design trajectories.</p></div><span id="rom-validation-verdict" class="status-badge">Not validated</span></div>
+            <form id="rom-validation-form" class="rom-basis-form">
+              <p id="rom-validation-scope" class="rom-note">Select a dataset with a built basis above.</p>
+              <fieldset id="rom-validation-settings">
+                <div class="rom-validation-cases">
+                  <label>Validation load heights<input name="load_heights" type="text" value="0.4, 0.6" required></label>
+                  <label>Validation load angles · degrees<input name="load_angles" type="text" value="-75" required></label>
+                  <label>Validation volume fractions<input name="volume_fractions" type="text" value="0.35, 0.45" required></label>
+                </div>
+                <p class="rom-note">Comma-separated values form every combination. Heights are fractions of height. Cases matching training after load-node snapping are rejected.</p>
+                <div class="rom-validation-cases">
+                  <label>Validation iterations per case<input name="iterations_per_case" type="number" min="1" max="300" value="10" required></label>
+                  <label>Comparison spacing<input name="comparison_stride" type="number" min="1" max="300" value="5" required></label>
+                </div>
+                <div class="rom-validation-cases">
+                  <label>Displacement tolerance · %<input name="displacement_tolerance" type="number" min="0.000001" max="100" step="any" value="5" required></label>
+                  <label>Compliance tolerance · %<input name="compliance_tolerance" type="number" min="0.000001" max="100" step="any" value="1" required></label>
+                  <label>Design gradient tolerance · %<input name="gradient_tolerance" type="number" min="0.000001" max="100" step="any" value="10" required></label>
+                </div>
+                <p class="rom-note">Mesh, material, and filters come from the selected dataset. Full-order MMA drives the designs; validation never fits or enriches the basis. Limits: 16 cases, 128 comparison states.</p>
+              </fieldset>
+              <button id="rom-validate" class="button primary" type="submit" disabled>Validate reduced basis</button>
+            </form>
+            <p id="rom-validation-note" class="rom-validation-summary" role="status">No held-out validation for this basis.</p>
+            <div id="rom-validation-results" hidden>
+              <div class="metrics" aria-live="polite">
+                <div><span>MAX DISPLACEMENT ERROR</span><strong id="rom-validation-displacement">—</strong><small id="rom-validation-displacement-mean">Relative L2 error</small></div>
+                <div><span>MAX COMPLIANCE ERROR</span><strong id="rom-validation-compliance">—</strong><small id="rom-validation-compliance-mean">Relative absolute error</small></div>
+                <div><span>MAX DESIGN GRADIENT ERROR</span><strong id="rom-validation-gradient">—</strong><small id="rom-validation-gradient-mean">Relative L2 error</small></div>
+              </div>
+              <p class="rom-validation-summary">Errors use full order as reference. Design gradients include SIMP, Helmholtz filtering, and projection. Displacement uses the nodal Euclidean norm, not an energy norm.</p>
+              <div class="rom-validation-table-wrap" tabindex="0" role="region" aria-label="Held-out state comparisons">
+                <table class="rom-validation-table"><caption>ROM versus full-order results at each sampled design</caption><thead><tr><th scope="col">Case · load · volume</th><th scope="col">Iteration</th><th scope="col">Full compliance</th><th scope="col">ROM compliance</th><th scope="col">Displacement error</th><th scope="col">Compliance error</th><th scope="col">Gradient error</th><th scope="col">ROM residual</th><th scope="col">Tolerances</th></tr></thead><tbody id="rom-validation-rows"></tbody></table>
+              </div>
+            </div>
+            <div id="rom-validation-downloads" class="viewer-footer" hidden><span id="rom-validation-provenance"></span><div class="rom-download-links"><a id="rom-download-validation">Download validation report</a><a id="rom-download-comparisons">Download comparison arrays</a></div></div>
+          </section>
+          <p class="rom-note rom-validation-note">Held-out results apply to the tested cases and designs, not arbitrary material layouts. Using the ROM to drive Cantilever 2D optimisation is not enabled.</p>
         </div>
       </div>
     </section>

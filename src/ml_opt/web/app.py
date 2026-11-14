@@ -69,6 +69,7 @@ def create_app(*, training_root: Path | None = None) -> FastAPI:
         return {"status": "ready", "running": manager.active is not None,
                 "worker_ready": manager.worker_ready, "projection_supported": True,
                 "rom_training_supported": True,
+                "rom_validation_supported": True,
                 "active_kind": manager.active.kind if manager.active else None}
 
     @app.post("/api/run")

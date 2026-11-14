@@ -26,10 +26,12 @@ class Evaluation:
 
 
 class CantileverProblem:
-    def __init__(self, config: CantileverConfig):
+    def __init__(self, config: CantileverConfig, *, state_solver=None):
         self.config = config
         self.mesh = StructuredMesh(config.nx, config.ny, config.length, config.height)
-        self.solver = ElasticitySolver(self.mesh, config.poisson_ratio, config.thickness,
+        # Validation can supply a frozen Galerkin solver, retaining the identical
+        # material/filter/projection/autograd path. Normal optimisation uses PETSc.
+        self.solver = state_solver if state_solver is not None else ElasticitySolver(self.mesh, config.poisson_ratio, config.thickness,
                                        config.load, config.linear_tolerance,
                                        load_angle=config.load_angle,
                                        load_node=None if config.load_node_x is None else

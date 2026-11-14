@@ -208,7 +208,7 @@ def pod_basis(snapshots: np.ndarray, energy_target=0.999, max_modes=32, normaliz
                "mean_training_error": float(np.mean(errors)), "max_training_error": float(np.max(errors)),
                "singular_values": (singular * scale).tolist(), "cumulative_energy": cumulative.tolist(),
                "metric": "Euclidean displacement POD; no mean subtraction",
-               "validation": "Training reconstruction only; no held-out equilibrium or gradient validation"}
+               "validation": "POD training reconstruction only; held-out validation reports are stored separately"}
     return basis, norms, np.array(errors), summary
 
 
@@ -228,6 +228,8 @@ def build_basis(directory: Path, *, energy_target=0.999, max_modes=32, normalize
     if stop_requested():
         return None
     summary["built_at"] = _now()
+    # A validation report belongs to one frozen basis, never to a later rebuild.
+    metadata.pop("validation", None)
     metadata.update(status="basis_ready", basis=summary, updated_at=_now())
     # Include the DOF mapping and complete provenance in the portable basis artifact.
     saved = _save_arrays(directory / "basis.npz", should_commit=lambda: not stop_requested(),
