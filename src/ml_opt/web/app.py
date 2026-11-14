@@ -15,6 +15,7 @@ from ..config import CantileverConfig
 from .jobs import RunManager
 from .rom import create_rom_router
 from .streams import stream_job
+from .runtime import source_revision
 
 
 class RunRequest(BaseModel):
@@ -56,6 +57,8 @@ class RunRequest(BaseModel):
 
 def create_app(*, training_root: Path | None = None) -> FastAPI:
     manager = RunManager()
+    # Capture at startup; recomputing in /health would misidentify old imported code.
+    revision = source_revision()
     @asynccontextmanager
     async def lifespan(app):
         manager.warmup()
@@ -76,7 +79,7 @@ def create_app(*, training_root: Path | None = None) -> FastAPI:
 
     @app.get("/api/health")
     async def health():
-        return {"status": "ready", "running": manager.active is not None,
+        return {"status": "ready", "server_revision": revision, "running": manager.active is not None,
                 "worker_ready": manager.worker_ready, "projection_supported": True,
                 "robust_supported": True,
                 "material_schedule_supported": True,
