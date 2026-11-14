@@ -28,7 +28,10 @@ class CantileverProblem:
         self.config = config
         self.mesh = StructuredMesh(config.nx, config.ny, config.length, config.height)
         self.solver = ElasticitySolver(self.mesh, config.poisson_ratio, config.thickness,
-                                       config.load, config.linear_tolerance)
+                                       config.load, config.linear_tolerance,
+                                       load_angle=config.load_angle,
+                                       load_node=None if config.load_node_x is None else
+                                       (config.load_node_x, config.load_node_y))
 
     def initial_design(self) -> np.ndarray:
         return np.full(self.mesh.element_count, self.config.volume_fraction)

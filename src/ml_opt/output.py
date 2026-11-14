@@ -21,7 +21,9 @@ def save_results(result: OptimizationResult, directory: str | Path) -> Path:
                         density=evaluation.density.reshape(config.ny, config.nx),
                         displacement=evaluation.displacement.reshape(-1, 2),
                         coordinates=mesh.coordinates, elements=mesh.elements,
-                        force=mesh.cantilever_force(config.load).reshape(-1, 2))
+                        force=mesh.cantilever_force(config.load, config.load_angle,
+                              None if config.load_node_x is None else
+                              (config.load_node_x, config.load_node_y)).reshape(-1, 2))
     with (directory / "history.csv").open("w", newline="", encoding="utf-8") as stream:
         writer = csv.DictWriter(stream, fieldnames=list(asdict(result.history[0])))
         writer.writeheader()
@@ -57,10 +59,14 @@ def _save_figures(result: OptimizationResult, directory: Path) -> None:
                 cmap="gray_r", vmin=0, vmax=1, interpolation="nearest")
     pad = 0.035 * config.length
     axes.add_patch(Rectangle((-pad, 0), pad, config.height, facecolor="0.85", hatch="///"))
-    axes.annotate("", xy=(config.length, 0.5 * config.height),
-                  xytext=(config.length, 0.8 * config.height),
+    anchor = np.array([config.length, config.height / 2]) if config.load_node_x is None else np.array([
+        config.load_node_x * config.length / config.nx, config.load_node_y * config.height / config.ny])
+    direction = np.array([np.cos(np.deg2rad(config.load_angle)), np.sin(np.deg2rad(config.load_angle))])
+    tip = anchor + direction * 0.25 * config.height
+    axes.annotate("", xy=tip, xytext=anchor,
                   arrowprops={"arrowstyle": "->", "color": "tab:red", "lw": 2})
-    axes.set(xlim=(-pad, config.length + pad), ylim=(-0.03 * config.height, 1.03 * config.height),
+    axes.set(xlim=(min(-pad, tip[0] - pad), max(config.length + pad, tip[0] + pad)),
+             ylim=(min(-0.03 * config.height, tip[1] - pad), max(1.03 * config.height, tip[1] + pad)),
              xlabel="x", ylabel="y", title=f"Cantilever | {config.optimizer.upper()} | "
              f"volume {result.evaluation.volume_fraction:.3f} | compliance {result.evaluation.compliance:.3f}")
     axes.set_aspect("equal")

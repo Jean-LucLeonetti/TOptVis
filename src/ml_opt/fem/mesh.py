@@ -50,14 +50,24 @@ class StructuredMesh:
     def free_dofs(self) -> np.ndarray:
         return np.setdiff1d(np.arange(self.dof_count), self.fixed_dofs)
 
-    def cantilever_force(self, magnitude: float) -> np.ndarray:
-        """Downward unit-point load at the free-edge midpoint, split on odd meshes."""
+    def cantilever_force(self, magnitude: float, angle: float = -90.0,
+                         node: tuple[int, int] | None = None) -> np.ndarray:
+        """Apply a vector at a mesh node; default to the free-edge midpoint."""
         force = np.zeros(self.dof_count)
-        middle = self.ny / 2
-        lower = int(np.floor(middle))
-        fraction = middle - lower
-        node = lower * (self.nx + 1) + self.nx
-        force[2 * node + 1] = -magnitude * (1 - fraction)
+        direction = np.array([np.cos(np.deg2rad(angle)), np.sin(np.deg2rad(angle))])
+        direction[np.abs(direction) < 1e-14] = 0
+        if node is not None:
+            ix, iy = node
+            if not 1 <= ix <= self.nx or not 0 <= iy <= self.ny:
+                raise ValueError("Choose a mesh node outside the clamped left edge")
+            index = iy * (self.nx + 1) + ix
+            force[2 * index:2 * index + 2] = magnitude * direction
+            return force
+        lower = self.ny // 2
+        fraction = self.ny / 2 - lower
+        index = lower * (self.nx + 1) + self.nx
+        force[2 * index:2 * index + 2] = magnitude * (1 - fraction) * direction
         if fraction:
-            force[2 * (node + self.nx + 1) + 1] = -magnitude * fraction
+            upper = index + self.nx + 1
+            force[2 * upper:2 * upper + 2] = magnitude * fraction * direction
         return force

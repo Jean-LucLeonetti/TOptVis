@@ -3,12 +3,45 @@
 A Python project for topology optimisation with PyTorch and PETSc through
 `petsc4py`.
 
+## Visual interface
+
+Start the local interface from the project folder:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[ui]" --no-build-isolation
+.\.venv\Scripts\python.exe -m ml_opt.web
+```
+
+Open [the cantilever workspace](http://127.0.0.1:8000/) in your browser.
+The Windows setup script includes the interface dependencies. You can also
+launch it with `toptvis-ui` after activating the environment; use `--port 8001`
+if port 8000 is already occupied.
+
+1. Set the domain length, height, and number of elements. The geometry and mesh
+   preview updates immediately.
+2. Click any free mesh node to place the load, or enter its column and row.
+   The left edge remains clamped. Set the magnitude and direction; the arrow
+   and force components update immediately. Angles are counterclockwise from
+   the positive x direction, so -90 degrees points downward.
+3. Choose MMA or GCMMA, the material volume, and the iteration limit. Click
+   **Run optimisation** to see the topology, compliance, volume, and iteration
+   values update as the actual solver runs. **Stop** retains the last evaluated
+   design.
+
+Model controls are locked during a run. Editing the model afterward clears
+the previous result so it cannot be mistaken for the updated load case.
+The interface uses the same unfiltered solver as the command-line example.
+Mesh and load edits update the preview before the run starts. A local worker
+process runs the optimisation and streams each
+evaluated outer iteration to the browser. Closing the live connection cancels
+that worker; the server allows one active optimisation at a time.
+
 ## 2D cantilever example
 
 The example minimises compliance `C = f^T u` subject to `K(rho) u = f`,
 `mean(rho) / volume_fraction - 1 <= 0`, and element density bounds `0 <= rho <= 1`.
 The rectangular cantilever is clamped along its left edge and loaded downward
-at the midpoint of its right edge. An odd number of elements through the height
+at the midpoint of its right edge by default. An odd number of elements through the height
 splits the load equally between the two adjacent nodes.
 
 Defaults: 60 x 20 bilinear quadrilateral elements, a 3 x 1 domain, plane stress,
@@ -37,6 +70,12 @@ the environment activated. For a smaller mesh:
 
 ```powershell
 .\.venv\Scripts\python.exe examples\cantilever.py --nx 30 --ny 10 --optimizer gcmma --max-iterations 100
+```
+
+The load can also be changed from the command line, for example:
+
+```powershell
+.\.venv\Scripts\python.exe -m ml_opt --load 2 --load-angle -60 --load-node-x 45 --load-node-y 12
 ```
 
 Each run writes `result.npz` (design, density, mesh, displacement, force),
@@ -85,6 +124,8 @@ src/ml_opt/optimizers/        MMA/GCMMA state and inner iterations
 src/ml_opt/runner.py          Outer optimisation and stopping criteria
 src/ml_opt/output.py          Result files and figures
 src/ml_opt/cli.py             Command-line entry point
+src/ml_opt/web/               Local HTTP server, solver worker, streaming API
+src/ml_opt/web/static/        Visual interface and canvas mesh/topology views
 examples/cantilever.py        Runnable cantilever example
 tests/                       Numerical and optimisation tests
 scripts/                     Environment setup and validation

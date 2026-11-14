@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TOptVis · Cantilever workspace</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23196964'/%3E%3Cpath d='M7 8h18v5h-6v12h-6V13H7z' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script type="module" src="/static/app.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <a class="brand" href="/" aria-label="TOptVis home">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M6 7h20v6h-7v13h-6V13H6z"/></svg></span>
+      <span>TOptVis<span class="brand-caption">Topology optimisation</span></span>
+    </a>
+    <div class="header-context"><span class="context-divider"></span><span>Cantilever workspace</span><span class="tag">2D</span></div>
+    <div class="connection" id="connection"><i></i><span>Connecting</span></div>
+  </header>
+
+  <main>
+    <div class="page-heading">
+      <div><div class="eyebrow">DESIGN WORKSPACE</div><h1>Shape follows force.</h1><p>Set up the cantilever, place a load, and watch the material evolve.</p></div>
+      <div class="run-actions">
+        <button class="button secondary" id="stop" type="button" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="5" width="10" height="10" rx="1"/></svg>Stop</button>
+        <button class="button primary" id="run" type="submit" form="model-form" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 3.5 16 10 6 16.5z"/></svg><span id="run-label">Run optimisation</span></button>
+      </div>
+    </div>
+    <div class="error-banner" id="error" role="alert" hidden></div>
+
+    <div class="workspace">
+      <aside class="controls panel">
+        <div class="controls-title"><h2>Model setup</h2><span class="tag">Plane stress</span></div>
+        <form id="model-form">
+          <fieldset id="settings">
+            <section class="control-section">
+              <h3><span>01</span> Geometry & mesh</h3>
+              <div class="input-grid">
+                <label>Length<input id="length" name="length" type="number" min="0.01" max="1000" step="any" value="3" required></label>
+                <label>Height<input id="height" name="height" type="number" min="0.01" max="1000" step="any" value="1" required></label>
+                <label>Elements · x<input id="nx" name="nx" type="number" min="2" max="160" step="1" value="60" required></label>
+                <label>Elements · y<input id="ny" name="ny" type="number" min="2" max="100" step="1" value="20" required></label>
+              </div>
+              <div class="section-note" id="mesh-description">1,200 elements · 1,281 nodes</div>
+            </section>
+
+            <section class="control-section">
+              <h3><span>02</span> Applied load <span class="load-dot" aria-hidden="true"></span></h3>
+              <p class="control-hint">Click a node in the mesh to place the load.</p>
+              <div class="input-grid">
+                <label>Node column<input id="load_node_x" name="load_node_x" type="number" min="1" max="60" step="1" value="60" required></label>
+                <label>Node row<input id="load_node_y" name="load_node_y" type="number" min="0" max="20" step="1" value="10" required></label>
+                <label>Magnitude<input id="load" name="load" type="number" min="0.001" max="1000000" step="any" value="1" required></label>
+                <label>Direction · °<input id="load_angle" name="load_angle" type="number" min="-180" max="180" step="any" value="-90" required></label>
+              </div>
+              <input id="angle-slider" type="range" min="-180" max="180" step="1" value="-90" aria-label="Load direction in degrees">
+              <div class="range-labels"><span>−180°</span><span>0° →</span><span>180°</span></div>
+              <div class="section-note">Left-edge nodes are fixed. Positive angles rotate counterclockwise.</div>
+            </section>
+
+            <section class="control-section last-section">
+              <h3><span>03</span> Optimisation</h3>
+              <label class="full-label">Optimiser<select id="optimizer" name="optimizer"><option value="mma">MMA</option><option value="gcmma">GCMMA</option></select></label>
+              <div class="label-row"><label for="volume_fraction">Material volume</label><output id="volume-label">40%</output></div>
+              <input id="volume_fraction" name="volume_fraction" type="range" min="0.05" max="0.95" step="0.01" value="0.4">
+              <div class="range-labels"><span>5%</span><span>95%</span></div>
+              <label class="full-label iteration-limit">Maximum iterations<input id="max_iterations" name="max_iterations" type="number" min="1" max="1000" step="1" value="100" required></label>
+            </section>
+          </fieldset>
+        </form>
+        <div class="controls-footer"><span class="mini-dot"></span> Nondimensional model · No density filter</div>
+      </aside>
+
+      <div class="viewers">
+        <section class="panel viewer-panel" aria-labelledby="model-title">
+          <div class="panel-heading"><div><h2 id="model-title">Geometry & mesh</h2><p id="selection-description">Load at node (60, 10)</p></div><span class="viewer-badge"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3h14v14H3zM3 8h14M3 12h14M8 3v14M12 3v14"/></svg>Editable model</span></div>
+          <div class="canvas-wrap model-wrap"><canvas id="model-canvas" tabindex="0" role="img" aria-label="Cantilever mesh. Click a free node to select the load position. You can also use the node column and row inputs."></canvas></div>
+          <div class="viewer-footer"><div class="legend"><span><i class="legend-support"></i>Fixed edge</span><span><i class="legend-load"></i>Applied load</span></div><span id="force-components">F = (0.00, −1.00)</span></div>
+        </section>
+
+        <section class="panel viewer-panel topology-panel" aria-labelledby="topology-title">
+          <div class="panel-heading"><div><h2 id="topology-title">Live topology</h2><p id="topology-description">Run optimisation to see the material distribution.</p></div><span class="status-badge" id="run-status" data-status="ready"><i></i>Ready</span></div>
+          <div class="metrics" aria-live="polite" aria-atomic="true">
+            <div><span>COMPLIANCE</span><strong id="compliance">—</strong><small id="improvement">Waiting for first solve</small></div>
+            <div><span>MATERIAL VOLUME</span><strong id="current-volume">—</strong><small id="volume-target">Target 40%</small></div>
+            <div><span>ITERATION</span><strong id="iteration">—<em> / 100</em></strong><small id="density-change">No iterations yet</small></div>
+          </div>
+          <div class="canvas-wrap topology-wrap"><canvas id="topology-canvas" role="img" aria-label="Live material density for each mesh element"></canvas><div class="empty-state" id="empty-state"><span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M4 4h8v8H4zm12 0h8v8h-8zM4 16h8v8H4zm12 0h8v8h-8z"/></svg></span><strong>Your design starts here</strong><span>Click Run optimisation to begin.</span></div></div>
+          <div class="iteration-progress"><span id="progress-bar"></span></div>
+          <div class="viewer-footer"><div class="density-legend"><span>Void</span><i></i><span>Solid</span></div><span id="live-note">Updates after every evaluated iteration</span></div>
+        </section>
+      </div>
+    </div>
+    <footer class="page-footer"><span>TOptVis · Cantilever workspace</span><span>PyTorch + PETSc</span></footer>
+  </main>
+</body>
+</html>

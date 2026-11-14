@@ -11,9 +11,9 @@ from .runner import HistoryEntry, optimise
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="SIMP cantilever with PyTorch, PETSc, and MMA/GCMMA")
     defaults = CantileverConfig()
-    for name in ("nx", "ny", "max_iterations", "max_inner_iterations"):
+    for name in ("nx", "ny", "max_iterations", "max_inner_iterations", "load_node_x", "load_node_y"):
         parser.add_argument("--" + name.replace("_", "-"), type=int, default=getattr(defaults, name))
-    for name in ("length", "height", "volume_fraction", "penalisation",
+    for name in ("length", "height", "load", "load_angle", "volume_fraction", "penalisation",
                  "minimum_modulus", "move_limit", "design_tolerance"):
         parser.add_argument("--" + name.replace("_", "-"), type=float, default=getattr(defaults, name))
     parser.add_argument("--optimizer", choices=("mma", "gcmma"), default=defaults.optimizer)

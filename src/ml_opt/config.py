@@ -15,6 +15,9 @@ class CantileverConfig:
     poisson_ratio: float = 0.3
     thickness: float = 1.0
     load: float = 1.0
+    load_angle: float = -90.0
+    load_node_x: int | None = None
+    load_node_y: int | None = None
     volume_fraction: float = 0.4
     penalisation: float = 3.0
     optimizer: str = "mma"
@@ -54,3 +57,11 @@ class CantileverConfig:
             raise ValueError("move_limit must lie in (0, 1]")
         if self.optimizer not in ("mma", "gcmma"):
             raise ValueError("optimizer must be mma or gcmma")
+        if not math.isfinite(self.load_angle):
+            raise ValueError("load_angle must be finite")
+        if (self.load_node_x is None) != (self.load_node_y is None):
+            raise ValueError("Specify both load_node_x and load_node_y")
+        if self.load_node_x is not None:
+            if (type(self.load_node_x) is not int or type(self.load_node_y) is not int or
+                    not 1 <= self.load_node_x <= self.nx or not 0 <= self.load_node_y <= self.ny):
+                raise ValueError("The load must be on a free mesh node (column 1..nx, row 0..ny)")

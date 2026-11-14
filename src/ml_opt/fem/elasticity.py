@@ -23,14 +23,15 @@ class ElasticityState:
 class ElasticitySolver:
     def __init__(self, mesh: StructuredMesh, poisson: float = 0.3,
                  thickness: float = 1.0, load: float = 1.0,
-                 tolerance: float = 1e-10):
+                 tolerance: float = 1e-10, *, load_angle: float = -90.0,
+                 load_node: tuple[int, int] | None = None):
         if np.dtype(PETSc.ScalarType) != np.dtype(np.float64):
             raise RuntimeError("This example requires a real double-precision PETSc build")
         self.mesh = mesh
         self.tolerance = tolerance
         self.element_stiffness = q4_stiffness(mesh.length / mesh.nx, mesh.height / mesh.ny,
                                               poisson, thickness)
-        self.force = mesh.cantilever_force(load)
+        self.force = mesh.cantilever_force(load, load_angle, load_node)
         mapping = np.full(mesh.dof_count, -1, dtype=np.int64)
         mapping[mesh.free_dofs] = np.arange(len(mesh.free_dofs))
         reduced = mapping[mesh.element_dofs]

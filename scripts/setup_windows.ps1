@@ -103,7 +103,7 @@ $env:PETSC_DIR = $taskPrefix
 $env:CL = "$env:CL /Zc:preprocessor"
 & $taskPython -m pip install --disable-pip-version-check --no-cache-dir --no-build-isolation --no-deps "$taskSource\src\binding\petsc4py" --log "$taskVenv\build-petsc4py.log" *> "$taskVenv\build-petsc4py-console.log"
 Assert-TaskExit 'Building petsc4py (see .venv/build-petsc4py.log)'
-& $taskPython -m pip install --no-cache-dir --no-build-isolation -e $taskRoot
+& $taskPython -m pip install --no-cache-dir --no-build-isolation -e "${taskRoot}[ui]"
 Assert-TaskExit 'Installing the project'
 & $taskPython "$PSScriptRoot\check_environment.py"
 Assert-TaskExit 'Checking the environment'

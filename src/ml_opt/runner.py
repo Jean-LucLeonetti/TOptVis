@@ -38,7 +38,9 @@ class OptimizationResult:
 
 
 def optimise(config: CantileverConfig,
-             callback: Callable[[HistoryEntry], None] | None = None) -> OptimizationResult:
+             callback: Callable[[HistoryEntry], None] | None = None, *,
+             snapshot_callback: Callable[[HistoryEntry, np.ndarray], None] | None = None,
+             stop_requested: Callable[[], bool] | None = None) -> OptimizationResult:
     problem = CantileverProblem(config)
     design = problem.initial_design()
     current = problem.evaluate(design)
@@ -49,9 +51,14 @@ def optimise(config: CantileverConfig,
                             problem.solver.solve_count)]
     if callback:
         callback(history[-1])
+    if snapshot_callback:
+        snapshot_callback(history[-1], current.density.copy())
     stable_iterations = 0
     stop_reason = "maximum_iterations"
     for iteration in range(1, config.max_iterations + 1):
+        if stop_requested and stop_requested():
+            stop_reason = "cancelled"
+            break
         step = optimizer.step(design, current, problem.evaluate)
         updated = problem.evaluate(step.design)
         change = float(np.max(np.abs(step.design - design)))
@@ -62,6 +69,8 @@ def optimise(config: CantileverConfig,
                                      problem.solver.solve_count))
         if callback:
             callback(history[-1])
+        if snapshot_callback:
+            snapshot_callback(history[-1], updated.density.copy())
         design, current = step.design, updated
         stable = (iteration >= config.min_iterations and change <= config.design_tolerance and
                   relative_change <= config.objective_tolerance and
