@@ -94,7 +94,7 @@ median of three runs:
 The full-run phase ran LU before Cholesky within each repeat. Small-case timings
 vary and do not show a universal improvement; the machine also had substantial
 background memory use (recorded in the raw data). LU remains the compatibility
-default, and **Optimise → Full-order method** exposes all four methods. The
+default, and **Solver parameters → Full-order method** exposes all four methods. The
 120×40 GCMMA result improves by 22% with Cholesky. Comparing complete Cholesky
 and LU runs, maximum absolute design difference was 1.88e-9, maximum relative
 field-compliance difference 4.09e-12 and field-gradient difference 7.44e-11;

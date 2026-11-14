@@ -35,6 +35,7 @@ function updateSolverDescription() {
     `ROM · ${latest?.rom_basis_rank || romChoice.selected?.basis.rank || "—"} modes · basis ${config.rom_basis_sha256?.slice(0,12) || romChoice.selected?.id.slice(0,8) || "not selected"} · approximate compliance and sensitivities` :
     `FOM · ${(config?.linear_solver || "lu").toUpperCase()} · full-order elasticity`;
   byId("fom-linear-options").hidden = state.model?.state_solver === "rom";
+  byId("fom-method-hint").hidden = state.model?.state_solver === "rom";
 }
 
 const configTabs = Array.from(document.querySelectorAll('.config-tabs [role="tab"]'));
@@ -185,6 +186,7 @@ function updateLabels(resizeFilterRange = true) {
     (finalStage > m.max_iterations ? `The iteration limit will be reached before the maximum β (first used at iteration ${format(finalStage)}).` :
       `Maximum β is first used at iteration ${format(finalStage)}. Convergence stopping waits for this stage.`);
   byId("robust-options").hidden = !m.robust;
+  byId("solver-field-options").hidden = !m.robust;
   byId("robust-description").hidden = !m.robust;
   byId("field-view").hidden = !m.robust;
   byId("compliance-label").textContent = `${m.state_solver === "rom" ? "ROM " : ""}${m.robust ? "WORST COMPLIANCE" : "COMPLIANCE"}`;

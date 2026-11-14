@@ -7,7 +7,7 @@ A Python project for topology optimisation with PyTorch and PETSc through
 
 Exact state caching and persistent three-field workers are described in
 [`benchmarks/SOLVER_RESULTS.md`](benchmarks/SOLVER_RESULTS.md), including
-comparisons of LU, Cholesky, CG/ICC, and CG/GAMG. In **Optimise → Full-order
+comparisons of LU, Cholesky, CG/ICC, and CG/GAMG. In **Solver parameters → Full-order
 method**, choose the PETSc solver; LU remains the default. Cholesky was fastest
 for the larger measured optimisation case. The iterative choices were accurate
 but slower on these meshes. The CLI accepts `--linear-solver cholesky` (or
@@ -67,8 +67,11 @@ full-order displacement snapshots and builds reusable POD reduced bases.
 The workspaces can be opened
 directly with `/#cantilever-2d` and `/#rom-training`.
 
-Within Cantilever 2D, the far-left tabs separate **Geometry**, **Load**, **Filters**,
-**Optimisation**, and **Visualisation**. The configuration panel shows the selected
+Within Cantilever 2D, the far-left tabs separate **Geometry**, **Load**, **Material**,
+**Filters**, **Optimise**, **Solver parameters**, and **Visualisation**.
+**Solver parameters** contains the FOM/ROM selection, full-order method, saved
+ROM model, and sequential/parallel state execution for three-field robustness.
+The configuration panel shows the selected
 tab; the central workspace displays the mesh/topology or convergence graphs. Tab changes retain
 all values. Use arrow keys, Home, and End to navigate the tab rail.
 
@@ -247,7 +250,7 @@ The API adds `POST /api/rom/<id>/validate` (streamed),
 
 ### Optimise with a saved ROM
 
-In **Cantilever 2D → Optimise**, choose **Elasticity solver → ROM** and select
+In **Cantilever 2D → Solver parameters**, choose **Elasticity solver → ROM** and select
 a saved model. **Refresh ROMs** reloads the training library. A model requires
 a completed basis, but an absent or failed validation does not block explicit
 selection; its validation status is displayed alongside the model. **Use ROM
