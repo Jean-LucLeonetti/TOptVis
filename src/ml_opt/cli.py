@@ -17,6 +17,12 @@ def main(argv: list[str] | None = None) -> int:
                  "minimum_modulus", "move_limit", "design_tolerance"):
         parser.add_argument("--" + name.replace("_", "-"), type=float, default=getattr(defaults, name))
     parser.add_argument("--optimizer", choices=("mma", "gcmma"), default=defaults.optimizer)
+    parser.add_argument("--max-solid-size", type=float, default=defaults.max_solid_size,
+                        help="Maximum solid disk diameter in model units; 0 disables the morphological constraint")
+    parser.add_argument("--max-size-beta", type=float, default=defaults.max_size_beta,
+                        help="Sharpness of the separate maximum-size erosion")
+    parser.add_argument("--max-size-tolerance", type=float, default=defaults.max_size_tolerance,
+                        help="Allowed mean eroded material fraction (default: 0.001)")
     parser.add_argument("--state-solver", choices=("fom", "rom"), default="fom",
                         help="Full-order PETSc or a saved frozen Galerkin ROM")
     parser.add_argument("--linear-solver", choices=("lu", "cholesky", "cg-icc", "cg-gamg"),
@@ -48,9 +54,10 @@ def main(argv: list[str] | None = None) -> int:
         config = CantileverConfig(**options)
         def progress(entry: HistoryEntry) -> None:
             if entry.iteration % 5 == 0:
+                size_note = "" if entry.max_size_constraint is None else f"  max_size_g={entry.max_size_constraint:.5g}"
                 print(f"{entry.iteration:4d}  compliance={entry.compliance:.6f}  "
                       f"volume={entry.volume_fraction:.5f}  change={entry.design_change:.4f}  "
-                      f"inner={entry.inner_iterations}  beta={entry.projection_beta:g}  solver={entry.state_solver.upper()}", flush=True)
+                      f"inner={entry.inner_iterations}  beta={entry.projection_beta:g}  solver={entry.state_solver.upper()}{size_note}", flush=True)
         result = optimise(config, None if quiet else progress)
         destination = save_results(result, output or Path("outputs") / f"cantilever-{config.optimizer}")
     except (ValueError, RuntimeError) as error:

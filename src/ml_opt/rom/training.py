@@ -17,6 +17,7 @@ from scipy.linalg import svd
 from ..config import CantileverConfig
 from ..fem.mesh import StructuredMesh
 from ..runner import optimise
+from .operators import OPERATOR_FORMAT, prepare_element_operators
 
 
 @dataclass(frozen=True)
@@ -227,6 +228,15 @@ def build_basis(directory: Path, *, energy_target=0.999, max_modes=32, normalize
     basis, norms, errors, summary = pod_basis(snapshots, energy_target, max_modes, normalize)
     if stop_requested():
         return None
+    emit({"event": "operators_started", "rank": summary["rank"]})
+    config = CantileverConfig(**metadata["cases"][0])
+    mesh = StructuredMesh(config.nx, config.ny, config.length, config.height)
+    if not np.array_equal(free_dofs, mesh.free_dofs):
+        raise ValueError("Snapshot free displacement DOFs do not match the model")
+    operators = prepare_element_operators(config, basis, stop_requested=stop_requested)
+    if operators is None or stop_requested():
+        return None
+    summary.update(operator_format=OPERATOR_FORMAT, operator_bytes=operators.nbytes)
     summary["built_at"] = _now()
     # A validation report belongs to one frozen basis, never to a later rebuild.
     metadata.pop("validation", None)
@@ -237,6 +247,7 @@ def build_basis(directory: Path, *, energy_target=0.999, max_modes=32, normalize
                  singular_values=np.array(summary["singular_values"]),
                  cumulative_energy=np.array(summary["cumulative_energy"]),
                  snapshot_norms=norms, training_relative_errors=errors,
+                 reduced_element_stiffness=operators,
                  metadata_json=np.array(json.dumps(metadata)))
     if not saved:
         return None

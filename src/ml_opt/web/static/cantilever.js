@@ -92,6 +92,8 @@ function updateConvergence() {
   byId("history-volume").textContent = latest ? `${(100*latest.volume_fraction).toFixed(2)}%` : "—";
   byId("history-elapsed").textContent = Number.isFinite(latest?.elapsed_seconds) ? `${filterFormat(latest.elapsed_seconds)} s` : "—";
   byId("history-beta").textContent = Number.isFinite(latest?.projection_beta) ? filterFormat(latest.projection_beta) : "—";
+  byId("history-max-size-summary").hidden = !(config.max_solid_size > 0);
+  byId("history-max-size").textContent = Number.isFinite(latest?.max_size_constraint) ? filterFormat(latest.max_size_constraint) : "—";
   byId("convergence-description").textContent = latest ?
     `${state.model.optimizer.toUpperCase()} · ${(config.state_solver || "fom").toUpperCase()} · ${state.history.length} evaluated history ${state.history.length === 1 ? "point" : "points"} · iterations 0–${latest.iteration}` :
     "Run an optimisation to build the convergence history.";
@@ -117,6 +119,10 @@ function redraw() {
 }
 
 function syncControls() {
+  const size = Number(byId("max_solid_size").value);
+  const spacing = Math.max(Number(byId("length").value)/Number(byId("nx").value), Number(byId("height").value)/Number(byId("ny").value));
+  byId("max_solid_size").setCustomValidity(size > 0 && size <= 2*spacing ? "Maximum diameter must exceed two element spacings in both directions. Increase the diameter or refine the mesh." : "");
+  byId("max-size-options").hidden = !(size > 0);
   const ramp = byId("material_model").value === "ramp";
   byId("penalisation").min = ramp ? "0" : "1";
   byId("penalty-label").textContent = ramp ? "Penalty parameter · q" : "Penalty exponent · p";
@@ -138,6 +144,15 @@ function updateProjectionStatus() {
     `β = ${filterFormat(active)} · η = ${filterFormat(m.projection_eta)} · ${m.projection_schedule === "geometric" ? `scheduled to ${filterFormat(m.projection_beta_max)}` : "fixed during run"}` :
     "Projection off · smoothed densities used directly";
   byId("model-filter-summary").textContent = `${m.filter_radius > 0 ? `ℓ = ${filterFormat(m.filter_radius)}` : "Smoothing off"} · ${active > 0 ? `β = ${filterFormat(active)}` : "Projection off"}`;
+}
+
+function updateMaxSizeStatus() {
+  const row = state.history.at(-1), m = state.model;
+  byId("max-size-description").textContent = m.max_solid_size > 0 ?
+    `Diameter ${filterFormat(m.max_solid_size)} model units · ${m.robust ? "dilated" : "physical"} field · allowed eroded fraction ${filterFormat(100*m.max_size_tolerance)}%. Outside the domain is void.` :
+    "Maximum-size constraint off";
+  byId("max-size-status").textContent = Number.isFinite(row?.max_size_constraint) ?
+    `Eroded fraction ${filterFormat(100*row.max_size_eroded_volume)}% · ${row.max_size_constraint <= (state.runConfig?.feasibility_tolerance ?? 1e-4) ? "satisfied" : "violated"} · g = ${filterFormat(row.max_size_constraint)}` : "";
 }
 
 function updateLabels(resizeFilterRange = true) {
@@ -182,6 +197,7 @@ function updateLabels(resizeFilterRange = true) {
   byId("filter-status").textContent = [radius > 0 ? "Helmholtz" : null, beta > 0 ? "Projection" : null].filter(Boolean).join(" + ") || "Filters off";
   updateProjectionStatus();
   byId("filter-legend").hidden = radius === 0;
+  updateMaxSizeStatus();
   const rad = m.load_angle * Math.PI / 180;
   byId("force-components").textContent = `F = (${signed(m.load * Math.cos(rad))}, ${signed(m.load * Math.sin(rad))})`;
 }
@@ -191,6 +207,7 @@ function clearResult() {
   byId("field-metrics").textContent = "";
   state.history = []; state.runConfig = null;
   updateProjectionStatus();
+  updateMaxSizeStatus();
   byId("empty-state").hidden = false;
   byId("compliance").textContent = "—";
   byId("improvement").textContent = "Waiting for first solve";
@@ -261,6 +278,7 @@ function receive(event) {
   if (event.event === "iteration") {
     const row = event.history;
     state.history.push(row);
+    updateMaxSizeStatus();
     updateSolverDescription();
     updateProjectionStatus();
     if (state.initial === null) state.initial = row.compliance;
@@ -292,7 +310,8 @@ function receive(event) {
     byId("topology-description").textContent = event.stop_reason === "cancelled" ? "Run stopped. Showing the last evaluated design." :
       event.stop_reason === "maximum_iterations" ? "Iteration limit reached. Showing the last evaluated design." : "Design and objective reached the stopping tolerances.";
     if (state.runConfig?.state_solver === "rom") byId("topology-description").textContent += " ROM objective and sensitivities; full-order accuracy is not certified by this stopping test.";
-    if (!event.feasible) showError(event.volume_feasible !== false && event.epigraph_feasible === false ?
+    if (!event.feasible) showError(event.max_size_feasible === false ?
+      "The final design has not met the maximum solid-size constraint. The last evaluated design is shown." : event.volume_feasible !== false && event.epigraph_feasible === false ?
       "The final epigraph bound is below a field's compliance. Increase the iteration limit and run again." :
       "The final design has not met the volume constraint. Increase the iteration limit and run again.");
     return;
@@ -317,8 +336,8 @@ async function start(event) {
       const error = await response.json();
       const details = error.detail;
       if (Array.isArray(details) && details.some(item => item.type === "extra_forbidden" &&
-          ["projection_beta", "projection_eta", "robust", "robust_eta_offset", "field_execution", "linear_solver", "material_model", "penalisation", "projection_schedule", "projection_beta_interval", "projection_beta_multiplier", "projection_beta_max"].includes(item.loc?.at(-1)))) {
-        throw new Error("The running server needs an update. Restart TOptVis, then refresh this page to load the current solver controls.");
+          ["linear_solver", "max_solid_size", "max_size_beta", "max_size_tolerance", "projection_beta", "projection_eta", "robust", "robust_eta_offset", "field_execution", "material_model", "penalisation", "projection_schedule", "projection_beta_interval", "projection_beta_multiplier", "projection_beta_max"].includes(item.loc?.at(-1)))) {
+        throw new Error("Open Start TOptVis.bat again to launch the updated server. Use the browser page it opens.");
       }
       throw new Error(typeof details === "string" ? details : details?.map(item => `${item.loc?.at(-1) || "Input"}: ${item.msg}`).join("; ") || "Could not start the solver.");
     }
@@ -411,9 +430,9 @@ async function connectSolver() {
     const health = await response.json();
     state.romSupported = !!health.rom_optimisation_supported;
     await romChoice.refresh(state.romSupported);
-    if (!health.projection_supported || !health.robust_supported || !health.material_schedule_supported || !health.linear_solver_supported) {
+    if (!health.projection_supported || !health.robust_supported || !health.material_schedule_supported || !health.max_size_supported || !health.linear_solver_supported) {
       byId("connection").lastElementChild.textContent = "Server restart needed";
-      showError("Restart TOptVis and refresh this page to load the current solver controls in the server.");
+      showError("Open Start TOptVis.bat again to launch the updated server with the current solver controls. Use the browser page it opens.");
       setRunning(false);
     } else {
       state.ready = true;

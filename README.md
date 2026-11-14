@@ -168,7 +168,8 @@ checkout. Refreshing or restarting reloads the dataset library. Downloads:
   free-DOF indices, mesh coordinates/connectivity, and JSON provenance.
 - `basis.npz`: orthonormal free-DOF basis columns, free-DOF mapping, singular
   values, cumulative POD energy, original snapshot norms, reconstruction
-  errors, and JSON provenance. Clamped displacement components are zero.
+  errors, packed reduced element stiffness operators, and JSON provenance.
+  Clamped displacement components are zero.
 - `metadata.json`: complete training cases, settings, completion state, and
   basis diagnostics. Load NPZ files with `numpy.load(..., allow_pickle=False)`.
 
@@ -245,8 +246,21 @@ filter and projection differentiation path is used as with FOM. Robust
 three-field optimisation uses the selected basis for all three material fields;
 both sequential and parallel field execution are supported. Single-field
 held-out validation does not certify robust-field or other untested accuracy.
-The ROM still performs assembly/projection and residual evaluation; choosing
-a reduced model does not by itself guarantee a speedup.
+Basis building also precomputes the exact reduced element stiffness matrices
+`V_e.T K_e(E=1) V_e`. Each online solve assembles only their modulus-weighted
+sum, then solves the small dense system. It does not build or project a full
+stiffness matrix. Full displacement, element energies for the consistent
+gradient, and a matrix-free full equilibrium residual are still evaluated.
+Choosing a reduced model does not by itself guarantee a speedup.
+
+The operators are stored as float64 upper triangles in `basis.npz`, together
+with a format version and byte count in the basis metadata. Preparation uses
+bounded blocks and rejects operator arrays above 512 MiB before allocation;
+reduce the mode count if that limit is reached. Cancellation preserves the
+previous saved model. Older basis artifacts remain supported: their operators
+are prepared once at solver construction. Rebuild an older basis in Training
+to move that cost offline. Material interpolation, density, and loads may vary;
+the mesh, geometry, Poisson ratio, thickness, and frozen basis remain fixed.
 
 The selected artifact's SHA-256 is pinned before the job and rechecked when
 each solver loads it. Rebuilding a basis cannot change an active run's basis.
@@ -255,6 +269,16 @@ reported in the live interface and histories. ROM compliance, gradients, and
 stopping decisions are approximate; reaching the stopping criteria does not
 certify full-order accuracy. There is no implicit fallback to a full state solve.
 The default remains **FOM**.
+
+The larger-mesh ROM benchmark is reproducible with
+`python benchmarks/rom_online.py`. It trains separate bases at 120×40 and
+240×80, alternates FOM/ROM timing trials for MMA and GCMMA, checks the new
+assembly against the previous Galerkin implementation, and evaluates each
+final ROM design with FOM for displacement, compliance, and gradient errors.
+It records offline training cost, online setup/loading, and timing-only
+break-even run counts. The command uses benchmark-only datasets outside the
+interactive training library; it does not change the training tab's mesh
+limits. See [the measurements](benchmarks/ROM_ONLINE.md) for scope and results.
 
 Saved `summary.json` and `result.npz` identify the state solver and ROM basis.
 CLI/Python configurations use `state_solver="rom"` and `rom_basis_path`:
@@ -293,6 +317,45 @@ These are nondimensional benchmark parameters. The Python/CLI default
 `filter_radius=0` and `projection_beta=0` retain the original unfiltered
 benchmark; the visual interface initially uses `filter_radius=0.1`,
 `projection_beta=2`, and `projection_eta=0.5`.
+
+### Morphological maximum solid size
+
+In **Optimise → Maximum solid size**, enter the maximum disk **diameter** in
+model units; `0` disables this optional constraint. The blue reference circle
+updates on the mesh and topology. The purple Helmholtz-length reference keeps
+its existing meaning. The diameter must exceed two element spacings in both
+directions; refine the mesh to resolve a smaller target.
+
+The solid-phase constraint follows section 5 of
+[Lazarov and Wang (2017)](https://doi.org/10.1016/j.cma.2017.02.018).
+A compact circular hat kernel of radius `R = max_solid_size / 2` averages the
+physical density, followed by an erosion projection with threshold one:
+
+```text
+s = W_R rho_physical
+e = 1 - tanh(b * (1 - s)) / tanh(b)
+g_size = mean(e) / epsilon - 1 <= 0
+```
+
+Outside the rectangular design domain is void (zero extension). The defaults
+are erosion sharpness `b = max_size_beta = 16` and allowed eroded fraction
+`epsilon = max_size_tolerance = 0.001`. These remain separate from projection
+β and its schedule. In robust mode the constraint acts on the dilated field.
+The physical density used for stiffness and volume is unchanged by this test.
+
+FFT convolution reuses the fixed kernel transform; its symmetric transpose
+propagates the size gradient through projection and the Helmholtz adjoint.
+MMA/GCMMA receive one additional constraint with no epigraph relaxation.
+Live history, CSV and summary exports report the constraint and eroded fraction;
+convergence and final feasibility include the size constraint.
+
+This is a relaxed, mesh-discretised restriction. Gray densities and the finite
+erosion sharpness/tolerance can permit local thickness deviations; the circle
+is the target structuring element, not a measured thickness certificate.
+
+```powershell
+python -m ml_opt --filter-radius 0.04 --projection-beta 8 --max-solid-size 0.35
+```
 
 ### Helmholtz density filter
 

@@ -14,6 +14,7 @@ from .fem.filter import HelmholtzFilter
 from .fem.fields import FieldSolves, field_compliance
 from .projection import heaviside_projection
 from .material import elastic_modulus
+from .morphology import MaximumSolidSize
 
 
 @dataclass
@@ -36,6 +37,9 @@ class Evaluation:
     epigraph_compliance: float | None = None
     epigraph_constraint: float | None = None
     projection_beta: float = 0.0
+    max_size_constraint: float | None = None
+    max_size_eroded_volume: float | None = None
+    max_size_gradient: np.ndarray | None = None
 
 
 class CantileverProblem:
@@ -52,7 +56,11 @@ class CantileverProblem:
             config = self.config = replace(config, rom_basis_sha256=self.rom_info["basis_sha256"])
         self.fields = None
         self.density_filter = None
+        self.max_size = None
         try:
+            if config.max_solid_size > 0:
+                self.max_size = MaximumSolidSize(self.mesh, config.max_solid_size,
+                                                 config.max_size_beta, config.max_size_tolerance)
             self.density_filter = HelmholtzFilter(self.mesh, config.filter_radius)
             if config.robust:
                 self.fields = FieldSolves(config, self.solver, worker_pool=field_pool)
@@ -129,7 +137,13 @@ class CantileverProblem:
                 state = self._compliance_solver.last_state
                 residual, iterations = state.relative_residual, state.iterations
             constraint = volume / self.config.volume_fraction - 1.0
+            size_volume = size_constraint = None
+            if self.max_size is not None:
+                size_density = densities[2] if self.config.robust else density
+                size_volume = self.max_size.eroded(size_density).mean()
+                size_constraint = size_volume / self.config.max_size_tolerance - 1
             objective_gradient = constraint_gradient = None
+            max_size_gradient = None
             if sensitivities:
                 if self.config.robust:
                     field_gradients = {name: torch.autograd.grad(compliances[index], x, retain_graph=True)[0].numpy().copy()
@@ -137,9 +151,14 @@ class CantileverProblem:
                     objective_gradient = field_gradients[worst_field].copy()
                 else:
                     objective_gradient = torch.autograd.grad(objective, x, retain_graph=True)[0].numpy().copy()
-                constraint_gradient = torch.autograd.grad(constraint, x)[0].numpy().copy()
+                constraint_gradient = torch.autograd.grad(constraint, x, retain_graph=size_constraint is not None)[0].numpy().copy()
+                if size_constraint is not None:
+                    max_size_gradient = torch.autograd.grad(size_constraint, x)[0].numpy().copy()
         return Evaluation(float(objective.detach()), float(volume.detach()), float(constraint.detach()),
                           density.detach().numpy().copy(), state.displacement.copy(),
                           residual, iterations, objective_gradient, constraint_gradient,
                           field_densities, field_compliances, field_volumes, field_displacements, worst_field,
-                          field_gradients, projection_beta=self.projection_beta)
+                          field_gradients, projection_beta=self.projection_beta,
+                          max_size_constraint=None if size_constraint is None else float(size_constraint.detach()),
+                          max_size_eroded_volume=None if size_volume is None else float(size_volume.detach()),
+                          max_size_gradient=max_size_gradient)

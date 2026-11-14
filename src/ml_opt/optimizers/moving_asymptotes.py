@@ -24,14 +24,16 @@ class OptimizerStep:
 
 class MovingAsymptotes:
     def __init__(self, initial_design: np.ndarray, method: str = "mma",
-                 move_limit: float = 0.2, max_inner_iterations: int = 30, *, robust: bool = False):
+                 move_limit: float = 0.2, max_inner_iterations: int = 30, *, robust: bool = False,
+                 max_size: bool = False):
         if method not in ("mma", "gcmma"):
             raise ValueError("Unknown moving-asymptote method")
         if not 0 < move_limit <= 1 or max_inner_iterations < 1:
             raise ValueError("Invalid move limit or inner iteration limit")
         self.method = method
         self.robust = robust
-        self.m = 4 if robust else 1
+        self.max_size = max_size
+        self.m = (4 if robust else 1) + int(max_size)
         self.move = move_limit
         self.max_inner_iterations = max_inner_iterations
         self.n = len(initial_design)
@@ -47,7 +49,9 @@ class MovingAsymptotes:
         self.epsilon = 1e-7
         # mmapy's native z is the scaled epigraph: min z, C_i/scale - z <= 0.
         # Volume has a_i=0 so increasing z cannot relax the material limit.
-        self.a = np.array([[1.], [1.], [1.], [0.]]) if robust else np.zeros((1, 1))
+        self.a = np.zeros((self.m, 1))
+        if robust:
+            self.a[:3] = 1
         self.c = np.full((self.m, 1), 1000.0)
         self.d = np.ones((self.m, 1))
 
@@ -55,9 +59,16 @@ class MovingAsymptotes:
         if self.robust:
             if evaluation.field_compliances is None:
                 raise ValueError("Epigraph MMA requires all three field compliances")
-            return 0.0, np.array([[evaluation.field_compliances[name] / self.scale]
-                for name in ("eroded", "nominal", "dilated")] + [[evaluation.constraint]])
-        return evaluation.compliance / self.scale, np.array([[evaluation.constraint]])
+            objective = 0.0
+            values = [evaluation.field_compliances[name] / self.scale
+                      for name in ("eroded", "nominal", "dilated")] + [evaluation.constraint]
+        else:
+            objective, values = evaluation.compliance / self.scale, [evaluation.constraint]
+        if self.max_size:
+            if evaluation.max_size_constraint is None:
+                raise ValueError("Maximum-size MMA requires its evaluated constraint")
+            values.append(evaluation.max_size_constraint)
+        return objective, np.asarray(values).reshape(-1, 1)
 
     def step(self, design: np.ndarray, current: Evaluation,
              evaluate: Callable[[np.ndarray, bool], Evaluation]) -> OptimizerStep:
@@ -79,6 +90,10 @@ class MovingAsymptotes:
         else:
             objective_gradient = current.objective_gradient.reshape(-1, 1) / self.scale
             constraint_gradient = current.constraint_gradient.reshape(1, -1)
+        if self.max_size:
+            if current.max_size_gradient is None:
+                raise ValueError("Maximum-size MMA requires its constraint gradient")
+            constraint_gradient = np.vstack([constraint_gradient, current.max_size_gradient])
         inner_iterations = 0
         # PERF B2: retain mmapy's subproblem algorithm, with diagonal row
         # scaling performed by broadcasting instead of allocating sparse matrices.

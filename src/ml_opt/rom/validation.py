@@ -1,7 +1,6 @@
 """Frozen-basis Galerkin validation on held-out full-order design trajectories."""
 
 from dataclasses import asdict, dataclass, replace
-import hashlib
 import json
 from pathlib import Path
 import uuid
@@ -13,7 +12,8 @@ from ..fem.mesh import StructuredMesh
 from ..problem import CantileverProblem
 from ..runner import optimise
 from .training import SnapshotConfig, _now, _save_arrays, read_metadata, save_metadata
-from .solver import GalerkinSolver
+from .solver import GalerkinSolver, load_basis
+from .operators import prepare_element_operators
 
 
 @dataclass(frozen=True)
@@ -114,13 +114,16 @@ def validate_basis(directory: Path, options: ValidationConfig, *, validation_id=
     if stop_requested():
         return None
     basis_path = directory / "basis.npz"
-    basis_hash = hashlib.sha256(basis_path.read_bytes()).hexdigest()
-    with np.load(basis_path, allow_pickle=False) as archive:
-        basis = archive["basis"]
-        free_dofs = archive["free_dofs"]
+    basis, information, operators = load_basis(basis_path, cases[0], include_operators=True)
+    basis_hash = information["basis_sha256"]
     mesh = StructuredMesh(cases[0].nx, cases[0].ny, cases[0].length, cases[0].height)
-    if not np.array_equal(free_dofs, mesh.free_dofs) or basis.shape[1] != metadata["basis"]["rank"]:
+    free_dofs = mesh.free_dofs
+    if basis.shape[1] != metadata["basis"]["rank"]:
         raise ValueError("The saved basis does not match its mesh or recorded rank")
+    if operators is None:
+        operators = prepare_element_operators(cases[0], basis, stop_requested=stop_requested)
+    if operators is None or stop_requested():
+        return None
     validation_id = validation_id or uuid.uuid4().hex
     if len(validation_id) != 32 or any(char not in "0123456789abcdef" for char in validation_id):
         raise ValueError("Invalid validation identifier")
@@ -138,7 +141,8 @@ def validate_basis(directory: Path, options: ValidationConfig, *, validation_id=
             break
         emit({"event": "validation_case_started", "case_index": index, "case_count": len(cases), "config": asdict(case)})
         last_saved = -1
-        with CantileverProblem(case, state_solver=GalerkinSolver(case, basis)) as rom_problem:
+        with CantileverProblem(case, state_solver=GalerkinSolver(case, basis,
+                reduced_element_stiffness=operators)) as rom_problem:
             def compare(row, design, full, *, force=False):
                 nonlocal last_saved
                 if stop_requested() or row.iteration == last_saved or (not force and row.iteration % options.comparison_stride):
