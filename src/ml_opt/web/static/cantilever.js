@@ -2,7 +2,7 @@ import {drawModel, drawTopology, pickNode} from "/static/viewer.js";
 
 const byId = id => document.getElementById(id);
 const form = byId("model-form"), modelCanvas = byId("model-canvas"), topologyCanvas = byId("topology-canvas");
-const state = {model: null, density: null, running: false, ready: false, runId: null, initial: null, hover: null};
+const state = {model: null, density: null, running: false, ready: false, externalBusy: false, runId: null, initial: null, hover: null};
 const format = value => new Intl.NumberFormat("en", {maximumFractionDigits: 2}).format(value);
 const filterFormat = value => new Intl.NumberFormat("en", {maximumSignificantDigits: 4}).format(value);
 const signed = value => (Math.abs(value) < 1e-12 ? "0.00" : value.toFixed(2)).replace("-", "−");
@@ -125,10 +125,11 @@ function updateModel(event) {
 function setRunning(running) {
   state.running = running;
   byId("settings").disabled = running;
-  byId("run").disabled = running || !state.ready;
+  byId("run").disabled = running || !state.ready || state.externalBusy;
   byId("run-label").textContent = running ? "Optimising…" : "Run optimisation";
   byId("stop").disabled = !running || !state.runId;
   modelCanvas.style.cursor = running ? "default" : "crosshair";
+  document.dispatchEvent(new CustomEvent("solveractivity", {detail: {workspace: "cantilever", running}}));
 }
 
 function receive(event) {
@@ -169,7 +170,7 @@ function receive(event) {
 
 async function start(event) {
   event.preventDefault();
-  if (state.running || !state.ready || !form.reportValidity()) return;
+  if (state.running || state.externalBusy || !state.ready || !form.reportValidity()) return;
   state.model = readModel(); state.runId = null;
   clearResult(); showError(); setRunning(true); status("Starting", "running");
   byId("topology-description").textContent = "Starting the solver…";
@@ -255,6 +256,12 @@ byId("stop").addEventListener("click", async () => {
   } catch (error) { showError(error.message); byId("stop").disabled = false; }
 });
 new ResizeObserver(redraw).observe(document.querySelector(".viewers"));
+document.addEventListener("solveractivity", event => {
+  if (event.detail.workspace !== "cantilever") {
+    state.externalBusy = event.detail.running;
+    byId("run").disabled = state.running || !state.ready || state.externalBusy;
+  }
+});
 document.addEventListener("workspacechange", event => {
   if (event.detail === "cantilever-2d") requestAnimationFrame(redraw);
 });

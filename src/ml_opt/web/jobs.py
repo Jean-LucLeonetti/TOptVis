@@ -36,6 +36,7 @@ class Job:
     process: object
     messages: _Mailbox
     cancel: object
+    kind: str = "optimisation"
     cleanup_lock: object = field(default_factory=threading.Lock)
     closed: bool = False
 
@@ -76,14 +77,22 @@ class RunManager:
                     and self._ready.is_set())
 
     def start(self, config: CantileverConfig) -> Job:
+        return self._start(asdict(config), "optimisation")
+
+    def start_task(self, task: str, payload: dict) -> Job:
+        if task not in ("rom_snapshots", "rom_basis"):
+            raise ValueError("Unknown training task")
+        return self._start({"task": task, **payload}, task)
+
+    def _start(self, configuration: dict, kind: str) -> Job:
         with self._lock:
             if self.active is not None:
-                raise RuntimeError("An optimisation is already running. Stop it before starting another.")
+                raise RuntimeError("A solver job is already running. Stop it before starting another.")
             self._ensure_worker_locked()
             self._cancel.clear()
             run_id = uuid.uuid4().hex
-            job = Job(run_id, self._process, _Mailbox(self._messages, run_id), self._cancel)
-            self._commands.put((run_id, asdict(config)))
+            job = Job(run_id, self._process, _Mailbox(self._messages, run_id), self._cancel, kind)
+            self._commands.put((run_id, configuration))
             self.active = job
             return job
 

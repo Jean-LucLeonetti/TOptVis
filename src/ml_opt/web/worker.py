@@ -4,6 +4,7 @@ from dataclasses import asdict
 import multiprocessing as mp
 import queue
 import traceback
+from pathlib import Path
 
 from ..config import CantileverConfig
 from ..runner import optimise
@@ -29,7 +30,8 @@ def worker_loop(commands, messages, cancel, ready) -> None:
                 return
             run_id, configuration = command
             # Each command constructs and closes a fresh problem and optimiser.
-            run_optimization(configuration, _RunMessages(messages, run_id), cancel)
+            target = run_training if configuration.get("task") in ("rom_snapshots", "rom_basis") else run_optimization
+            target(configuration, _RunMessages(messages, run_id), cancel)
     finally:
         if _parent_gone():
             # No reader remains to drain the feeder thread after a forced parent exit.
@@ -39,6 +41,26 @@ def worker_loop(commands, messages, cancel, ready) -> None:
 def _parent_gone() -> bool:
     parent = mp.parent_process()
     return parent is not None and not parent.is_alive()
+
+
+def run_training(configuration, messages, cancel):
+    from ..rom.training import SnapshotConfig, build_basis, generate_snapshots
+    try:
+        stopped = lambda: cancel.is_set() or _parent_gone()
+        root = Path(configuration["root"])
+        if configuration["task"] == "rom_snapshots":
+            directory = root / messages.run_id
+            metadata = generate_snapshots(SnapshotConfig(**configuration["settings"]), directory,
+                                          emit=messages.put, stop_requested=stopped)
+        else:
+            directory = root / configuration["training_id"]
+            metadata = build_basis(directory, **configuration["options"],
+                                   emit=messages.put, stop_requested=stopped)
+        messages.put({"event": "complete", "stop_reason": "cancelled" if metadata is None or metadata["status"] == "cancelled" else "complete",
+                      "training_id": directory.name, "training": metadata})
+    except Exception as error:
+        traceback.print_exc()
+        messages.put({"event": "error", "message": str(error) or type(error).__name__})
 
 
 def run_optimization(configuration: dict, messages, cancel) -> None:
