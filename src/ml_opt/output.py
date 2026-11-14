@@ -55,6 +55,7 @@ def save_results(result: OptimizationResult, directory: str | Path) -> Path:
         "elapsed_seconds": result.history[-1].elapsed_seconds,
         "state_solver": config.state_solver, "rom_basis": result.rom_basis,
         "objective_model": "approximate frozen Galerkin ROM" if config.state_solver == "rom" else "full-order elasticity",
+        "final_projection_beta": evaluation.projection_beta,
     }
     if config.robust:
         epigraph_feasible = evaluation.epigraph_constraint <= config.feasibility_tolerance

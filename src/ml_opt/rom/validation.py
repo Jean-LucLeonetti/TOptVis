@@ -143,6 +143,7 @@ def validate_basis(directory: Path, options: ValidationConfig, *, validation_id=
                 nonlocal last_saved
                 if stop_requested() or row.iteration == last_saved or (not force and row.iteration % options.comparison_stride):
                     return
+                rom_problem.projection_beta = full.projection_beta
                 reduced = rom_problem.evaluate(design)
                 result = {"case_index": index, "iteration": row.iteration, **compare_evaluations(full, reduced, options)}
                 last_saved = row.iteration

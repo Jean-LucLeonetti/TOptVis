@@ -8,6 +8,7 @@ from time import perf_counter
 import numpy as np
 
 from .config import CantileverConfig
+from .continuation import next_beta
 from .optimizers import MovingAsymptotes
 from .problem import CantileverProblem, Evaluation
 
@@ -32,6 +33,7 @@ class HistoryEntry:
     epigraph_constraint: float | None = None
     state_solver: str = "fom"
     rom_basis_rank: int | None = None
+    projection_beta: float = 0.0
 
 
 @dataclass
@@ -80,7 +82,8 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
                             field_volumes=current.field_volumes, worst_field=current.worst_field,
                             epigraph_compliance=current.epigraph_compliance,
                             epigraph_constraint=current.epigraph_constraint,
-                            state_solver=config.state_solver, rom_basis_rank=rom_rank)]
+                            state_solver=config.state_solver, rom_basis_rank=rom_rank,
+                            projection_beta=current.projection_beta)]
     if callback:
         callback(history[-1])
     if snapshot_callback:
@@ -99,6 +102,18 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
         if stop_requested and stop_requested():
             stop_reason = "cancelled"
             break
+        beta = next_beta(config, problem.projection_beta, iteration - 1)
+        if beta != problem.projection_beta:
+            problem.projection_beta = beta
+            # A new projection changes values and sensitivities at the same raw
+            # design. Re-evaluate before stepping and restart local approximations.
+            current = problem.evaluate(design)
+            if config.robust:
+                current.epigraph_compliance = current.compliance
+                current.epigraph_constraint = 0.0
+            optimizer = MovingAsymptotes(design, config.optimizer, config.move_limit,
+                                         config.max_inner_iterations, robust=config.robust)
+            stable_iterations = 0
         step = optimizer.step(design, current, problem.evaluate)
         # PERF B4: GCMMA just solved this accepted trial without sensitivities;
         # this evaluation repeats its state solve. See benchmarks/RESULTS.md.
@@ -118,7 +133,8 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
                                      field_volumes=updated.field_volumes, worst_field=updated.worst_field,
                                      epigraph_compliance=updated.epigraph_compliance,
                                      epigraph_constraint=updated.epigraph_constraint,
-                                     state_solver=config.state_solver, rom_basis_rank=rom_rank))
+                                     state_solver=config.state_solver, rom_basis_rank=rom_rank,
+                                     projection_beta=updated.projection_beta))
         if callback:
             callback(history[-1])
         if snapshot_callback:
@@ -132,7 +148,8 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
         if evaluation_callback:
             evaluation_callback(deepcopy(history[-1]), step.design.copy(), deepcopy(updated))
         design, current = step.design, updated
-        stable = (iteration >= config.min_iterations and change <= config.design_tolerance and
+        final_beta = config.projection_schedule == "fixed" or problem.projection_beta >= config.projection_beta_max
+        stable = (final_beta and iteration >= config.min_iterations and change <= config.design_tolerance and
                   relative_change <= config.objective_tolerance and
                   current.constraint <= config.feasibility_tolerance and
                   (current.epigraph_constraint is None or current.epigraph_constraint <= config.feasibility_tolerance))

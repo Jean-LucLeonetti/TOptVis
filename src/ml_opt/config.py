@@ -20,10 +20,15 @@ class CantileverConfig:
     load_node_x: int | None = None
     load_node_y: int | None = None
     volume_fraction: float = 0.4
+    material_model: str = "simp"
     penalisation: float = 3.0
     filter_radius: float = 0.0
     projection_beta: float = 0.0
     projection_eta: float = 0.5
+    projection_schedule: str = "fixed"
+    projection_beta_interval: int = 25
+    projection_beta_multiplier: float = 2.0
+    projection_beta_max: float = 16.0
     robust: bool = False
     robust_eta_offset: float = 0.1
     field_execution: str = "sequential"
@@ -52,7 +57,7 @@ class CantileverConfig:
                                                   not re.fullmatch(r"[0-9a-f]{64}", self.rom_basis_sha256)):
             raise ValueError("rom_basis_sha256 must be a lowercase SHA-256 digest")
         for name in ("nx", "ny", "max_iterations", "min_iterations",
-                     "convergence_patience", "max_inner_iterations"):
+                     "convergence_patience", "max_inner_iterations", "projection_beta_interval"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, int) or value < 1:
                 raise ValueError(f"{name} must be a positive integer")
@@ -70,14 +75,28 @@ class CantileverConfig:
             raise ValueError("poisson_ratio must lie between -1 and 0.5")
         if not 0 < self.volume_fraction < 1:
             raise ValueError("volume_fraction must lie between 0 and 1")
-        if self.penalisation < 1:
-            raise ValueError("penalisation must be at least 1")
+        if self.material_model not in ("simp", "ramp"):
+            raise ValueError("material_model must be simp or ramp")
+        minimum_penalty = 1 if self.material_model == "simp" else 0
+        if self.penalisation < minimum_penalty:
+            raise ValueError(f"{self.material_model.upper()} penalisation must be at least {minimum_penalty}")
         if not math.isfinite(self.filter_radius) or self.filter_radius < 0:
             raise ValueError("filter_radius must be finite and nonnegative")
         if not math.isfinite(self.projection_beta) or self.projection_beta < 0:
             raise ValueError("projection_beta must be finite and nonnegative")
         if not math.isfinite(self.projection_eta) or not 0 < self.projection_eta < 1:
             raise ValueError("projection_eta must be finite and lie between 0 and 1")
+        if self.projection_schedule not in ("fixed", "geometric"):
+            raise ValueError("projection_schedule must be fixed or geometric")
+        if self.projection_beta_multiplier <= 1:
+            raise ValueError("projection_beta_multiplier must be greater than 1")
+        if self.projection_beta_max <= 0:
+            raise ValueError("projection_beta_max must be positive")
+        if self.projection_schedule == "geometric":
+            if self.projection_beta <= 0:
+                raise ValueError("Scheduled projection requires projection_beta > 0")
+            if self.projection_beta_max < self.projection_beta:
+                raise ValueError("projection_beta_max must be at least the starting projection_beta")
         if type(self.robust) is not bool:
             raise ValueError("robust must be a boolean")
         if not math.isfinite(self.robust_eta_offset) or not 0 < self.robust_eta_offset < 0.5:

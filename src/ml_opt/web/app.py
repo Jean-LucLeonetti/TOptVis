@@ -29,9 +29,15 @@ class RunRequest(BaseModel):
     load_node_x: int = Field(default=60, ge=1)
     load_node_y: int = Field(default=10, ge=0)
     volume_fraction: float = Field(default=0.4, gt=0, lt=1)
+    material_model: Literal["simp", "ramp"] = "simp"
+    penalisation: float = Field(default=3.0, ge=0)
     filter_radius: float = Field(default=0.1, ge=0, le=1000)
     projection_beta: float = Field(default=2.0, ge=0, le=64)
     projection_eta: float = Field(default=0.5, gt=0, lt=1)
+    projection_schedule: Literal["fixed", "geometric"] = "fixed"
+    projection_beta_interval: int = Field(default=25, ge=1)
+    projection_beta_multiplier: float = Field(default=2.0, gt=1)
+    projection_beta_max: float = Field(default=16.0, gt=0, le=64)
     robust: bool = False
     robust_eta_offset: float = Field(default=0.1, gt=0, lt=0.5)
     field_execution: Literal["sequential", "parallel"] = "sequential"
@@ -82,6 +88,7 @@ def create_app(*, training_root: Path | None = None) -> FastAPI:
         return {"status": "ready", "running": manager.active is not None,
                 "worker_ready": manager.worker_ready, "projection_supported": True,
                 "robust_supported": True,
+                "material_schedule_supported": True,
                 "rom_training_supported": True,
                 "rom_validation_supported": True,
                 "rom_optimisation_supported": True,

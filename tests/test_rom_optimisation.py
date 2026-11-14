@@ -28,8 +28,11 @@ def save_basis(path, config, basis):
 
 
 @pytest.mark.parametrize("method", ["mma", "gcmma"])
-def test_rom_full_basis_matches_fom_optimisation_without_full_elasticity_solves(tmp_path, monkeypatch, method):
-    config = CantileverConfig(nx=6, ny=2, max_iterations=4, optimizer=method, filter_radius=.12, projection_beta=3)
+@pytest.mark.parametrize("material", ["simp", "ramp"])
+def test_rom_full_basis_matches_fom_optimisation_without_full_elasticity_solves(tmp_path, monkeypatch, method, material):
+    config = CantileverConfig(nx=6, ny=2, max_iterations=4, optimizer=method, filter_radius=.12, projection_beta=3,
+                             material_model=material, projection_schedule="geometric",
+                             projection_beta_interval=2, projection_beta_max=6)
     expected = optimise(config)
     free = len(StructuredMesh(config.nx, config.ny, config.length, config.height).free_dofs)
     reduced = save_basis(tmp_path / "basis.npz", config, np.eye(free))
