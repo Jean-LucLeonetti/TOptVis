@@ -20,6 +20,9 @@ class CantileverConfig:
     load_node_x: int | None = None
     load_node_y: int | None = None
     volume_fraction: float = 0.4
+    max_solid_size: float = 0.0
+    max_size_beta: float = 16.0
+    max_size_tolerance: float = 1e-3
     material_model: str = "simp"
     penalisation: float = 3.0
     filter_radius: float = 0.0
@@ -75,6 +78,19 @@ class CantileverConfig:
             raise ValueError("poisson_ratio must lie between -1 and 0.5")
         if not 0 < self.volume_fraction < 1:
             raise ValueError("volume_fraction must lie between 0 and 1")
+        if self.max_solid_size < 0:
+            raise ValueError("max_solid_size must be nonnegative; 0 disables the constraint")
+        if not 0 < self.max_size_beta <= 64:
+            raise ValueError("max_size_beta must lie in (0, 64]")
+        if not 0 < self.max_size_tolerance < 1:
+            raise ValueError("max_size_tolerance must lie in (0, 1)")
+        if self.max_solid_size > 0:
+            dx, dy = self.length / self.nx, self.height / self.ny
+            if self.max_solid_size <= 2 * max(dx, dy):
+                raise ValueError("max_solid_size must exceed two element spacings in both directions; refine the mesh")
+            sx, sy = math.ceil(self.max_solid_size / (2*dx)), math.ceil(self.max_solid_size / (2*dy))
+            if (2*sx+1) * (2*sy+1) > 1_000_000:
+                raise ValueError("Maximum-size neighbourhood exceeds one million cells; reduce max_solid_size")
         if self.material_model not in ("simp", "ramp"):
             raise ValueError("material_model must be simp or ramp")
         minimum_penalty = 1 if self.material_model == "simp" else 0

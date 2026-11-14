@@ -34,6 +34,8 @@ class HistoryEntry:
     state_solver: str = "fom"
     rom_basis_rank: int | None = None
     projection_beta: float = 0.0
+    max_size_constraint: float | None = None
+    max_size_eroded_volume: float | None = None
 
 
 @dataclass
@@ -74,7 +76,8 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
         current.epigraph_compliance = current.compliance
         current.epigraph_constraint = 0.0
     optimizer = MovingAsymptotes(design, config.optimizer, config.move_limit,
-                                 config.max_inner_iterations, robust=config.robust)
+                                 config.max_inner_iterations, robust=config.robust,
+                                 max_size=config.max_solid_size > 0)
     history = [HistoryEntry(0, current.compliance, current.volume_fraction, current.constraint,
                             0.0, 0.0, 0, current.residual, current.linear_iterations,
                             problem.solve_count, elapsed_seconds=perf_counter()-started,
@@ -83,7 +86,9 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
                             epigraph_compliance=current.epigraph_compliance,
                             epigraph_constraint=current.epigraph_constraint,
                             state_solver=config.state_solver, rom_basis_rank=rom_rank,
-                            projection_beta=current.projection_beta)]
+                            projection_beta=current.projection_beta,
+                            max_size_constraint=current.max_size_constraint,
+                            max_size_eroded_volume=current.max_size_eroded_volume)]
     if callback:
         callback(history[-1])
     if snapshot_callback:
@@ -112,7 +117,8 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
                 current.epigraph_compliance = current.compliance
                 current.epigraph_constraint = 0.0
             optimizer = MovingAsymptotes(design, config.optimizer, config.move_limit,
-                                         config.max_inner_iterations, robust=config.robust)
+                                         config.max_inner_iterations, robust=config.robust,
+                                         max_size=config.max_solid_size > 0)
             stable_iterations = 0
         step = optimizer.step(design, current, problem.evaluate)
         # PERF B4: GCMMA just solved this accepted trial without sensitivities;
@@ -134,7 +140,9 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
                                      epigraph_compliance=updated.epigraph_compliance,
                                      epigraph_constraint=updated.epigraph_constraint,
                                      state_solver=config.state_solver, rom_basis_rank=rom_rank,
-                                     projection_beta=updated.projection_beta))
+                                     projection_beta=updated.projection_beta,
+                                     max_size_constraint=updated.max_size_constraint,
+                                     max_size_eroded_volume=updated.max_size_eroded_volume))
         if callback:
             callback(history[-1])
         if snapshot_callback:
@@ -152,6 +160,7 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
         stable = (final_beta and iteration >= config.min_iterations and change <= config.design_tolerance and
                   relative_change <= config.objective_tolerance and
                   current.constraint <= config.feasibility_tolerance and
+                  (current.max_size_constraint is None or current.max_size_constraint <= config.feasibility_tolerance) and
                   (current.epigraph_constraint is None or current.epigraph_constraint <= config.feasibility_tolerance))
         stable_iterations = stable_iterations + 1 if stable else 0
         if stable_iterations >= config.convergence_patience:

@@ -129,6 +129,19 @@
               <input id="volume_fraction" name="volume_fraction" type="range" min="0.05" max="0.95" step="0.01" value="0.4">
               <div class="range-labels"><span>5%</span><span>95%</span></div>
               <label class="iteration-limit">Maximum iterations<input id="max_iterations" name="max_iterations" type="number" min="1" max="1000" step="1" value="100" required></label>
+              <div class="filter-divider"></div>
+              <h3>Maximum solid size</h3>
+              <p class="filter-hint">Morphological constraint on solid-member thickness. The blue circle shows the chosen diameter in model units. Set 0 to disable.</p>
+              <label>Maximum diameter<input id="max_solid_size" name="max_solid_size" type="number" min="0" max="1000" step="any" value="0" required aria-describedby="max-size-description"></label>
+              <div id="max-size-options" hidden>
+                <div class="input-grid">
+                  <label>Sharpness · b<input id="max_size_beta" name="max_size_beta" type="number" min="0.01" max="64" step="any" value="16" required></label>
+                  <label>Allowed fraction<input id="max_size_tolerance" name="max_size_tolerance" type="number" min="0.000001" max="0.999999" step="any" value="0.001" required></label>
+                </div>
+                <p class="filter-hint">These control the relaxed erosion test and are separate from projection β scheduling.</p>
+              </div>
+              <div class="section-note" id="max-size-description">Maximum-size constraint off</div>
+              <div class="filter-description" id="max-size-status" aria-live="polite"></div>
               <div class="config-info" id="volume-description">The volume limit is applied to the physical material after filtering and projection.</div>
             </section>
             <section id="panel-visualisation" class="control-section" role="tabpanel" aria-labelledby="tab-visualisation" hidden>
@@ -139,6 +152,7 @@
                 <div><span>Physical material volume</span><strong id="history-volume">—</strong></div>
                 <div><span>Elapsed solver time</span><strong id="history-elapsed">—</strong></div>
                 <div><span>Active projection β</span><strong id="history-beta">—</strong></div>
+                <div id="history-max-size-summary" hidden><span>Maximum-size constraint · ≤ 0</span><strong id="history-max-size">—</strong></div>
               </div>
               <div class="config-info">Hover over a graph to inspect an iteration across all plots. You can also focus a graph and use the arrow keys, Home, and End.</div>
               <div class="section-note">History stays available after stopping or finishing. A new run or a model change clears it.</div>

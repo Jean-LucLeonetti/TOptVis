@@ -83,11 +83,14 @@ def run_optimization(configuration: dict, messages, cancel) -> None:
         volume_feasible = result.evaluation.constraint <= config.feasibility_tolerance
         epigraph_feasible = (not config.robust or
             result.evaluation.epigraph_constraint <= config.feasibility_tolerance)
+        max_size_feasible = (result.evaluation.max_size_constraint is None or
+                            result.evaluation.max_size_constraint <= config.feasibility_tolerance)
         messages.put({"event": "complete", "stop_reason": result.stop_reason,
                       "converged": result.converged, "volume_feasible": volume_feasible,
                       "epigraph_feasible": epigraph_feasible,
+                      "max_size_feasible": max_size_feasible,
                       "state_solver": result.config.state_solver, "rom_basis": result.rom_basis,
-                      "feasible": volume_feasible and epigraph_feasible})
+                      "feasible": volume_feasible and epigraph_feasible and max_size_feasible})
     except Exception as error:
         traceback.print_exc()
         messages.put({"event": "error", "message": str(error) or type(error).__name__})
