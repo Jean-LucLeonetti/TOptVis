@@ -93,6 +93,9 @@ def test_api_streams_real_topology_frames(method, radius):
         assert events[-1]["event"] == "complete"
         frames = [event for event in events if event["event"] == "iteration"]
         assert [frame["history"]["iteration"] for frame in frames] == [0, 1, 2, 3, 4]
+        elapsed = [frame["history"]["elapsed_seconds"] for frame in frames]
+        assert np.all(np.isfinite(elapsed)) and elapsed[0] > 0
+        assert np.all(np.diff(elapsed) >= 0)
         assert all(len(frame["density"]) == 24 for frame in frames)
         assert frames[-1]["history"]["compliance"] < frames[0]["history"]["compliance"]
         assert frames[-1]["density"] != frames[0]["density"]

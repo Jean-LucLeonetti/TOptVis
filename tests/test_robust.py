@@ -50,6 +50,7 @@ def test_three_fields_match_independent_problems_and_full_finite_differences():
             np.testing.assert_allclose(result.field_densities[name], expected.density, atol=1e-14)
             np.testing.assert_allclose(result.field_compliances[name], expected.compliance, rtol=1e-10)
             np.testing.assert_allclose(result.field_displacements[name], expected.displacement, rtol=1e-10)
+            np.testing.assert_allclose(result.field_gradients[name], expected.objective_gradient, rtol=1e-10)
             if name == "eroded":
                 np.testing.assert_allclose(result.objective_gradient, expected.objective_gradient, rtol=1e-10)
             if name == "dilated":
@@ -68,6 +69,9 @@ def test_three_fields_match_independent_problems_and_full_finite_differences():
                 (plus.compliance - minus.compliance) / 2e-5, rtol=3e-5)
             np.testing.assert_allclose(result.constraint_gradient[index],
                 (plus.constraint - minus.constraint) / 2e-5, rtol=1e-7)
+            for name in ("eroded", "nominal", "dilated"):
+                np.testing.assert_allclose(result.field_gradients[name][index],
+                    (plus.field_compliances[name] - minus.field_compliances[name]) / 2e-5, rtol=3e-5)
 
 
 def test_persistent_parallel_workers_match_sequential_values_and_gradients():
@@ -86,6 +90,8 @@ def test_persistent_parallel_workers_match_sequential_values_and_gradients():
             if sensitivities:
                 np.testing.assert_allclose(actual.objective_gradient, expected.objective_gradient, rtol=1e-10)
                 np.testing.assert_allclose(actual.constraint_gradient, expected.constraint_gradient, rtol=1e-10)
+                for name in ("eroded", "nominal", "dilated"):
+                    np.testing.assert_allclose(actual.field_gradients[name], expected.field_gradients[name], rtol=1e-10)
             else:
                 assert actual.objective_gradient is actual.constraint_gradient is None
     parallel.close()
@@ -106,6 +112,8 @@ def test_robust_optimizers_and_saved_fields(method, tmp_path):
     assert result.evaluation.compliance < .85 * result.history[0].compliance
     assert result.evaluation.constraint <= result.config.feasibility_tolerance
     assert result.evaluation.residual < 1e-7
+    assert result.evaluation.epigraph_compliance > 0
+    assert result.evaluation.epigraph_constraint <= result.config.feasibility_tolerance
     assert all(entry.state_solves % 3 == 0 for entry in result.history)
     destination = save_results(result, tmp_path)
     with np.load(destination / "result.npz") as saved:
@@ -115,6 +123,9 @@ def test_robust_optimizers_and_saved_fields(method, tmp_path):
     summary = json.loads((destination / "summary.json").read_text())
     assert summary["constrained_volume_field"] == "dilated"
     assert summary["density_field"] == "nominal"
+    assert summary["formulation"] == "three_field_epigraph"
+    assert summary["epigraph_feasible"]
+    assert summary["epigraph_compliance"] == result.evaluation.epigraph_compliance
     assert (destination / "robust-fields.png").is_file()
 
 
@@ -136,6 +147,10 @@ def test_api_runs_robust_fields_and_reports_dilated_volume(execution, method):
             np.testing.assert_array_equal(frame["density"], frame["field_densities"]["nominal"])
             np.testing.assert_allclose(frame["history"]["volume_fraction"],
                                        np.mean(frame["field_densities"]["dilated"]))
+            assert frame["history"]["epigraph_compliance"] > 0
+            assert frame["history"]["elapsed_seconds"] > 0
+            if method == "gcmma":
+                assert frame["history"]["epigraph_constraint"] <= 1e-4
         solves = frames[-1]["history"]["state_solves"]
         if method == "mma":
             assert solves == 9
@@ -179,3 +194,19 @@ def test_api_rejects_invalid_coupled_thresholds_before_streaming():
     with TestClient(create_app()) as client:
         for options in ({"projection_beta": 0}, {"projection_eta": .95}):
             assert client.post("/api/run", json={"robust": True, **options}).status_code == 422
+
+
+def test_stopping_requires_the_true_epigraph_bound_to_be_feasible(monkeypatch):
+    from ml_opt.optimizers import MovingAsymptotes
+    from ml_opt.optimizers.moving_asymptotes import OptimizerStep
+    def underestimating_step(self, design, current, evaluate):
+        self.scale = current.compliance
+        return OptimizerStep(design.copy(), epigraph_compliance=current.compliance / 2)
+    monkeypatch.setattr(MovingAsymptotes, "step", underestimating_step)
+    # This low design is volume-feasible and stationary but its t is too small.
+    monkeypatch.setattr(CantileverProblem, "initial_design", lambda self: np.full(self.mesh.element_count, .2))
+    result = optimise(configuration(volume_fraction=.8, projection_beta=2,
+        max_iterations=3, min_iterations=1, convergence_patience=1))
+    assert result.evaluation.constraint <= result.config.feasibility_tolerance
+    assert result.evaluation.epigraph_constraint == .5
+    assert result.stop_reason == "maximum_iterations"

@@ -1,8 +1,12 @@
 import {drawModel, drawTopology, pickNode} from "/static/viewer.js";
+import {ConvergencePlots} from "/static/convergence.js";
 
 const byId = id => document.getElementById(id);
 const form = byId("model-form"), modelCanvas = byId("model-canvas"), topologyCanvas = byId("topology-canvas");
-const state = {model: null, density: null, fields: null, fieldRow: null, running: false, ready: false, runId: null, initial: null, hover: null};
+const state = {model: null, density: null, fields: null, fieldRow: null, running: false, ready: false, runId: null, initial: null,
+  hover: null, history: [], runConfig: null, activePanel: "panel-geometry"};
+const convergencePlots = new ConvergencePlots();
+let convergenceFrame = null;
 const format = value => new Intl.NumberFormat("en", {maximumFractionDigits: 2}).format(value);
 const filterFormat = value => new Intl.NumberFormat("en", {maximumSignificantDigits: 4}).format(value);
 const signed = value => (Math.abs(value) < 1e-12 ? "0.00" : value.toFixed(2)).replace("-", "−");
@@ -18,6 +22,7 @@ function readModel() {
 
 const configTabs = Array.from(document.querySelectorAll('.config-tabs [role="tab"]'));
 function selectPanel(panelId, focus = false) {
+  state.activePanel = panelId;
   for (const tab of configTabs) {
     const selected = tab.dataset.panel === panelId;
     tab.setAttribute("aria-selected", String(selected));
@@ -28,6 +33,10 @@ function selectPanel(panelId, focus = false) {
       if (focus) tab.focus();
     }
   }
+  const charts = panelId === "panel-visualisation";
+  byId("model-view").hidden = charts;
+  byId("convergence-view").hidden = !charts;
+  redraw();
 }
 for (const [index, tab] of configTabs.entries()) {
   tab.addEventListener("click", () => selectPanel(tab.dataset.panel));
@@ -52,15 +61,41 @@ function showError(message = "") {
 }
 
 function status(label, kind) {
-  const badge = byId("run-status");
-  badge.dataset.status = kind;
-  badge.replaceChildren(Object.assign(document.createElement("i"), {}), document.createTextNode(label));
+  for (const id of ["run-status", "convergence-status"]) {
+    const badge = byId(id);
+    badge.dataset.status = kind;
+    badge.replaceChildren(document.createElement("i"), document.createTextNode(label));
+  }
+}
+
+function updateConvergence() {
+  const latest = state.history.at(-1), config = state.runConfig || state.model;
+  byId("history-iteration").textContent = latest ? String(latest.iteration) : "—";
+  byId("history-compliance").textContent = latest ? format(latest.compliance) : "—";
+  byId("history-volume").textContent = latest ? `${(100*latest.volume_fraction).toFixed(2)}%` : "—";
+  byId("history-elapsed").textContent = Number.isFinite(latest?.elapsed_seconds) ? `${filterFormat(latest.elapsed_seconds)} s` : "—";
+  byId("convergence-description").textContent = latest ?
+    `${state.model.optimizer.toUpperCase()} · ${state.history.length} evaluated history ${state.history.length === 1 ? "point" : "points"} · iterations 0–${latest.iteration}` :
+    "Run an optimisation to build the convergence history.";
+  byId("volume-reference").textContent = `Target ${filterFormat(100*config.volume_fraction)}%`;
+  byId("design-reference").textContent = Number.isFinite(config.design_tolerance) ?
+    `Tolerance ${filterFormat(config.design_tolerance)}` : "Stopping tolerance";
+  byId("objective-reference").textContent = Number.isFinite(config.objective_tolerance) ?
+    `Tolerance ${filterFormat(config.objective_tolerance)}` : "Stopping tolerance";
+  if (byId("workspace-cantilever").hidden || byId("convergence-view").hidden || convergenceFrame !== null) return;
+  convergenceFrame = requestAnimationFrame(() => {
+    convergenceFrame = null;
+    if (!byId("workspace-cantilever").hidden && !byId("convergence-view").hidden) convergencePlots.render(state.history, state.runConfig || state.model);
+  });
 }
 
 function redraw() {
-  if (!state.model || !modelCanvas.getClientRects().length) return;
-  drawModel(modelCanvas, state.model, state.hover);
-  drawTopology(topologyCanvas, state.model, state.density);
+  if (!state.model || byId("workspace-cantilever").hidden) return;
+  if (!byId("model-view").hidden) {
+    drawModel(modelCanvas, state.model, state.hover);
+    drawTopology(topologyCanvas, state.model, state.density);
+  }
+  updateConvergence();
 }
 
 function updateLabels(resizeFilterRange = true) {
@@ -107,6 +142,7 @@ function updateLabels(resizeFilterRange = true) {
 function clearResult() {
   state.density = null; state.fields = null; state.fieldRow = null; state.initial = null;
   byId("field-metrics").textContent = "";
+  state.history = []; state.runConfig = null;
   byId("empty-state").hidden = false;
   byId("compliance").textContent = "—";
   byId("improvement").textContent = "Waiting for first solve";
@@ -118,6 +154,7 @@ function clearResult() {
   byId("topology-description").textContent = "Run optimisation to see the material distribution.";
   byId("live-note").textContent = "Updates after every evaluated iteration";
   status("Ready", "ready");
+  updateConvergence();
 }
 
 function selectField(redrawView = true) {
@@ -126,6 +163,7 @@ function selectField(redrawView = true) {
     state.density = state.fields[name];
     const row = state.fieldRow;
     byId("field-metrics").textContent = `Compliance ${format(row.field_compliances[name])} · volume ${(100 * row.field_volumes[name]).toFixed(2)}%`;
+    if (Number.isFinite(row.epigraph_compliance)) byId("field-metrics").textContent += ` · epigraph t ${format(row.epigraph_compliance)}`;
     byId("topology-canvas").setAttribute("aria-label", `${name} material density with Helmholtz length reference`);
   } else {
     byId("topology-canvas").setAttribute("aria-label", "Physical material density with Helmholtz length reference");
@@ -161,11 +199,14 @@ function setRunning(running) {
 function receive(event) {
   if (event.event === "started") {
     state.runId = event.run_id;
+    state.runConfig = event.config;
+    updateConvergence();
     byId("stop").disabled = false;
     return;
   }
   if (event.event === "iteration") {
     const row = event.history;
+    state.history.push(row);
     if (state.initial === null) state.initial = row.compliance;
     state.fields = event.field_densities || null;
     state.fieldRow = row;
@@ -186,6 +227,7 @@ function receive(event) {
     byId("live-note").textContent = `Iteration ${row.iteration} · ${row.state_solves} state solves`;
     status("Running", "running");
     if (topologyCanvas.getClientRects().length) drawTopology(topologyCanvas, state.model, state.density);
+    updateConvergence();
     return;
   }
   if (event.event === "complete") {
@@ -193,7 +235,9 @@ function receive(event) {
     status(labels[event.stop_reason] || "Finished", event.stop_reason === "cancelled" ? "ready" : "complete");
     byId("topology-description").textContent = event.stop_reason === "cancelled" ? "Run stopped. Showing the last evaluated design." :
       event.stop_reason === "maximum_iterations" ? "Iteration limit reached. Showing the last evaluated design." : "Design and objective reached the stopping tolerances.";
-    if (!event.feasible) showError("The final design has not met the volume constraint. Increase the iteration limit and run again.");
+    if (!event.feasible) showError(event.volume_feasible !== false && event.epigraph_feasible === false ?
+      "The final epigraph bound is below a field's compliance. Increase the iteration limit and run again." :
+      "The final design has not met the volume constraint. Increase the iteration limit and run again.");
     return;
   }
   if (event.event === "error") throw new Error(event.message);
@@ -205,7 +249,8 @@ async function start(event) {
   state.model = readModel(); state.runId = null;
   clearResult(); showError(); setRunning(true); status("Starting", "running");
   byId("topology-description").textContent = "Starting the solver…";
-  document.querySelector(".topology-panel").scrollIntoView({behavior: "smooth", block: "start"});
+  document.querySelector(state.activePanel === "panel-visualisation" ? "#convergence-view" : ".topology-panel")
+    .scrollIntoView({behavior: "smooth", block: "start"});
   let terminal = false;
   try {
     const response = await fetch("/api/run", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(state.model)});
@@ -252,6 +297,7 @@ async function start(event) {
 
 form.addEventListener("submit", start);
 byId("display-field").addEventListener("change", () => selectField());
+byId("show-model").addEventListener("click", () => selectPanel("panel-geometry", true));
 form.addEventListener("input", updateModel);
 byId("angle-slider").addEventListener("input", event => {
   byId("load_angle").value = event.target.value;
@@ -287,7 +333,7 @@ byId("stop").addEventListener("click", async () => {
     if (!response.ok && response.status !== 404) throw new Error("Could not stop the run.");
   } catch (error) { showError(error.message); byId("stop").disabled = false; }
 });
-new ResizeObserver(redraw).observe(document.querySelector(".viewers"));
+new ResizeObserver(redraw).observe(document.querySelector(".central-workspace"));
 document.addEventListener("workspacechange", event => {
   if (event.detail === "cantilever-2d") requestAnimationFrame(redraw);
 });

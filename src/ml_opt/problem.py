@@ -29,6 +29,9 @@ class Evaluation:
     field_volumes: dict[str, float] | None = None
     field_displacements: dict[str, np.ndarray] | None = None
     worst_field: str | None = None
+    field_gradients: dict[str, np.ndarray] | None = None
+    epigraph_compliance: float | None = None
+    epigraph_constraint: float | None = None
 
 
 class CantileverProblem:
@@ -84,6 +87,7 @@ class CantileverProblem:
         names = ("eroded", "nominal", "dilated")
         field_densities = field_compliances = field_volumes = field_displacements = None
         worst_field = None
+        field_gradients = None
         with torch.set_grad_enabled(sensitivities):
             filtered = self.density_filter.apply(x)
             if self.config.robust:
@@ -98,7 +102,8 @@ class CantileverProblem:
                       self.config.minimum_modulus) * densities.pow(self.config.penalisation)
             if self.config.robust:
                 compliances = field_compliance(moduli, self.fields)
-                # A deterministic active-field subgradient at ties (eroded first).
+                # The maximum is a reporting metric. MMA uses all three smooth
+                # compliance constraints and its native epigraph variable z.
                 objective, active = torch.max(compliances, dim=0)
                 worst_field = names[int(active)]
                 volumes = densities.mean(dim=1)
@@ -119,9 +124,15 @@ class CantileverProblem:
             constraint = volume / self.config.volume_fraction - 1.0
             objective_gradient = constraint_gradient = None
             if sensitivities:
-                objective_gradient = torch.autograd.grad(objective, x, retain_graph=True)[0].numpy().copy()
+                if self.config.robust:
+                    field_gradients = {name: torch.autograd.grad(compliances[index], x, retain_graph=True)[0].numpy().copy()
+                                       for index, name in enumerate(names)}
+                    objective_gradient = field_gradients[worst_field].copy()
+                else:
+                    objective_gradient = torch.autograd.grad(objective, x, retain_graph=True)[0].numpy().copy()
                 constraint_gradient = torch.autograd.grad(constraint, x)[0].numpy().copy()
         return Evaluation(float(objective.detach()), float(volume.detach()), float(constraint.detach()),
                           density.detach().numpy().copy(), state.displacement.copy(),
                           residual, iterations, objective_gradient, constraint_gradient,
-                          field_densities, field_compliances, field_volumes, field_displacements, worst_field)
+                          field_densities, field_compliances, field_volumes, field_displacements, worst_field,
+                          field_gradients)

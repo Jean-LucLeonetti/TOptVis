@@ -51,13 +51,19 @@ def save_results(result: OptimizationResult, directory: str | Path) -> Path:
         "feasible": evaluation.constraint <= config.feasibility_tolerance,
         "relative_equilibrium_residual": evaluation.residual,
         "state_solves": result.history[-1].state_solves,
+        "elapsed_seconds": result.history[-1].elapsed_seconds,
     }
     if config.robust:
+        epigraph_feasible = evaluation.epigraph_constraint <= config.feasibility_tolerance
         summary.update(field_compliances=evaluation.field_compliances,
                        field_volume_fractions=evaluation.field_volumes,
                        worst_field=evaluation.worst_field,
                        density_field="nominal", displacement_field=evaluation.worst_field,
-                       constrained_volume_field="dilated")
+                       constrained_volume_field="dilated", formulation="three_field_epigraph",
+                       epigraph_compliance=evaluation.epigraph_compliance,
+                       normalised_epigraph_constraint=evaluation.epigraph_constraint,
+                       volume_feasible=summary["feasible"], epigraph_feasible=epigraph_feasible,
+                       feasible=summary["feasible"] and epigraph_feasible)
     (directory / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     _save_figures(result, directory)
     return directory.resolve()

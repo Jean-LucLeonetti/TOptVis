@@ -47,9 +47,9 @@ is a dedicated workspace for the planned offline training workflow; training
 and model generation are not available yet. The workspaces can be opened
 directly with `/#cantilever-2d` and `/#rom-training`.
 
-The far-left tabs separate **Geometry**, **Load**, **Filters**, and
-**Optimisation** settings. The configuration panel shows the selected tab;
-the mesh and live topology stay in the central workspace. Tab changes retain
+Within Cantilever 2D, the far-left tabs separate **Geometry**, **Load**, **Filters**,
+**Optimisation**, and **Visualisation**. The configuration panel shows the selected
+tab; the central workspace displays the mesh/topology or convergence graphs. Tab changes retain
 all values. Use arrow keys, Home, and End to navigate the tab rail.
 
 1. In **Geometry**, set the domain length, height, and number of elements. The geometry and mesh
@@ -65,6 +65,39 @@ all values. Use arrow keys, Home, and End to navigate the tab rail.
    **Run optimisation** to see the topology, compliance, volume, and iteration
    values update as the actual solver runs. **Stop** retains the last evaluated
    design.
+
+### Convergence visualisation
+
+Select **Visualisation** on the far-left rail to see five live graphs:
+compliance, physical material volume, maximum design change, relative
+objective change, and cumulative elapsed solver time versus outer iteration.
+The graphs use the actual evaluated
+history rows received by the interface, including the projected physical volume.
+Dashed reference lines show the selected volume target and the design/objective
+stopping tolerances reported by the server when the run starts.
+
+Compliance and volume include iteration 0; change curves start at iteration 1
+because there is no previous design for the initial evaluation. Hover over a
+graph to inspect the nearest iteration across all plots, or focus a graph
+and use Left/Right, Home, and End. The sidebar always shows the latest iteration.
+
+History continues collecting while the mesh is visible. Switching tabs preserves
+it, and **Mesh & topology** returns to the model view. A completed or stopped run
+keeps its history; a new run or valid model edit clears the old history. A flat
+curve by itself is not a convergence certificate; the displayed run status reports
+the solver's actual stopping reason.
+
+The plots are rendered locally with canvas and no additional dependencies.
+Only scalar history is retained; density images are not saved for every iteration.
+
+**Elapsed solver time** uses a monotonic wall clock started before problem
+creation. Each evaluated history row records cumulative `elapsed_seconds`,
+including setup, the initial solve, previous callbacks, and all optimisation
+work through that iteration. Process/import warm-up, browser/network delays,
+and cleanup after the last sample are excluded. Timing resets for each run,
+and stopping retains the last evaluated sample. The same values are saved in
+`history.csv` and the final sample is included in `summary.json`. An older
+running server without timing data is labelled as unavailable until restarted.
 
 Model inputs are locked during a run; tabs remain available for inspection.
 Editing the model afterward clears
@@ -194,7 +227,7 @@ with `--output PATH`. Run `python -m ml_opt --help` for the remaining parameters
 The history includes iteration zero and records quantities at the same design.
 
 The default move limit is 0.2 per iteration. Stopping requires stable maximum
-density change, relative compliance change, and volume feasibility over five
+density change, relative objective change, and volume feasibility over five
 consecutive iterations after iteration 20. A run can also reach its iteration
 limit; `summary.json` reports the actual stop reason and feasibility separately.
 This stopping test does not certify KKT stationarity or a global optimum.
@@ -212,19 +245,29 @@ regularisation. Threshold offsets are density thresholds, not geometric
 manufacturing tolerances in model units.
 
 ```text
-minimise_x  max(C_eroded(x), C_nominal(x), C_dilated(x))
-subject to mean(rho_dilated(x)) / volume_fraction - 1 <= 0
+minimise_x,t  t
+subject to C_i(x) <= t, i = eroded, nominal, dilated
+           mean(rho_dilated(x)) / volume_fraction - 1 <= 0
            K(rho_i(x)) u_i = f, i = eroded, nominal, dilated
-           0 <= x <= 1
+           0 <= x <= 1, t >= 0
 ```
 
 For the same fixed load and monotone SIMP material law, the eroded field is
 the worst compliance case. All three states are nevertheless evaluated and
-reported. PyTorch differentiates the active maximum; exact ties choose the
-first field in eroded/nominal/dilated order. The PETSc implicit adjoint returns
-element energy sensitivities, with no extra state solve in backward, and both
-gradients pass through the shared Helmholtz filter. MMA and GCMMA use the same
-robust evaluation. Beta, thresholds, and the dilated volume limit remain fixed
+reported. MMA and GCMMA solve the epigraph using mmapy's native nonnegative
+auxiliary variable `z`, with `t = C_ref * z`. `C_ref` is the initial worst
+compliance and stays fixed. The density-dependent objective is zero,
+`a0 = 1`, and the four rows are `[C_eroded/C_ref, C_nominal/C_ref,
+C_dilated/C_ref, volume_constraint]` with `a = [1, 1, 1, 0]`.
+Thus `z` couples to every compliance constraint and cannot relax the volume
+limit. mmapy's usual penalised feasibility slacks remain in the subproblems;
+the evaluated physical volume and epigraph residual are checked separately.
+All three smooth compliance gradients pass through the projection and shared
+Helmholtz adjoint, with no extra elasticity solve in backward. GCMMA checks
+conservativeness for every compliance row and the volume row at each trial.
+The maximum compliance remains a reporting metric, and its active gradient
+is available for diagnostics; it is not the gradient used to optimise the
+epigraph. Beta, thresholds, and the dilated volume limit remain fixed
 during the run; there is no volume rescaling or automatic continuation.
 
 ```powershell
@@ -247,7 +290,13 @@ volume used in the constraint. The evaluation also exposes `field_densities`,
 `field_compliances`, `field_volumes`, `field_displacements`, and `worst_field`.
 Robust outputs include `density_eroded/nominal/dilated` and corresponding
 `displacement_*` arrays in `result.npz`, a `robust-fields.png` comparison,
-per-field history columns, and field metadata in `summary.json`. State-solve
+per-field history columns, and field metadata in `summary.json`. History and
+summary also record `epigraph_compliance` (t) and the normalised residual
+`(max(C_i) - t) / C_ref`. The stopping check requires this residual and the
+volume constraint to meet the feasibility tolerance. Relative objective change
+uses `t` in robust mode and compliance in single-field mode. MMA iterates may violate
+the true epigraph inequality before convergence; GCMMA uses conservative trial
+approximations. These checks do not certify KKT stationarity. State-solve
 counts include every field and all GCMMA trial evaluations; residuals report
 the maximum across fields and linear iterations sum across fields.
 
@@ -265,12 +314,8 @@ process startup, array transfers, and three copies of the solver consume time
 and memory, so parallel mode is not an automatic speedup. Both bridges still
 require CPU float64 and support first derivatives only.
 
-Reproduce cold and warm evaluation timings, including both gradients and
+Reproduce cold and warm evaluation timings, including all field gradients and
 checking mode agreement, with `python benchmarks/robust_fields.py --nx 60 --ny 20`.
-One local five-sample run on 14 November 2026 measured warm medians of 11.6 ms
-sequential and 6.2 ms parallel (1.87×), with setup plus first evaluation of
-0.029 s and 3.99 s respectively. These are evaluation timings, not complete
-optimisation timings; the startup cost dominates short runs on this mesh.
 
 For larger distributed meshes, a natural next implementation is an MPI-enabled
 PETSc build with three communicator groups, one per material field, and a
@@ -318,6 +363,7 @@ src/ml_opt/output.py          Result files and figures
 src/ml_opt/cli.py             Command-line entry point
 src/ml_opt/web/               Local HTTP server, solver worker, streaming API
 src/ml_opt/web/static/        Visual interface and canvas mesh/topology views
+src/ml_opt/web/static/convergence.js  Live convergence plots and iteration inspection
 examples/cantilever.py        Runnable cantilever example
 tests/                       Numerical and optimisation tests
 scripts/                     Environment setup and validation

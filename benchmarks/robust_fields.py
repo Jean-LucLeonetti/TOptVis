@@ -48,6 +48,9 @@ def main():
                     for attribute in ("compliance", "volume_fraction", "objective_gradient", "constraint_gradient"):
                         np.testing.assert_allclose(getattr(evaluation, attribute),
                                                    getattr(reference, attribute), rtol=1e-9, atol=1e-10)
+                    for name in ("eroded", "nominal", "dilated"):
+                        np.testing.assert_allclose(evaluation.field_gradients[name], reference.field_gradients[name],
+                                                   rtol=1e-9, atol=1e-10)
             measurements[mode] = {"cold_setup_and_first_evaluation_seconds": cold,
                 "warm_evaluation_seconds": samples, "warm_median_seconds": statistics.median(samples),
                 "state_solves": problem.solve_count}
