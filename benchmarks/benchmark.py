@@ -6,6 +6,7 @@ Benchmarks run serially. Profiling is separate from uninstrumented wall timings.
 
 import argparse
 from collections import defaultdict
+from contextlib import contextmanager
 import ctypes
 from dataclasses import asdict
 from datetime import datetime, timezone
@@ -210,16 +211,37 @@ def profile(case):
                         **{key: summary(value) for key, value in payload_times.items()}}}
 
 
+@contextmanager
+def web_log_directory():
+    import tempfile
+    OUTPUT.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="web-", dir=OUTPUT) as temporary:
+        assert Path(temporary).resolve().parent == OUTPUT.resolve()
+        try:
+            yield temporary
+        finally:
+            # A forcefully stopped Windows parent cannot join its worker. Wait
+            # for parent-death detection and Python teardown to release the log.
+            deadline = time.perf_counter() + 10
+            while True:
+                try:
+                    (Path(temporary) / "server.log").unlink(missing_ok=True)
+                    break
+                except PermissionError:
+                    if time.perf_counter() >= deadline:
+                        raise RuntimeError("The worker retained its server log after parent exit")
+                    time.sleep(.05)
+
+
 def web_benchmark(repeats):
     import socket
-    import tempfile
     import urllib.error
     import urllib.request
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 0))
         port = listener.getsockname()[1]
     base = f"http://127.0.0.1:{port}"
-    with tempfile.TemporaryDirectory(prefix="toptvis-benchmark-") as temporary:
+    with web_log_directory() as temporary:
         with (Path(temporary) / "server.log").open("w") as log:
             started = time.perf_counter()
             server = subprocess.Popen([sys.executable, "-m", "ml_opt.web", "--port", str(port)],
@@ -283,7 +305,8 @@ def web_benchmark(repeats):
                                      "interframe_seconds": summary(interframes), "frames": frames,
                                      "bytes": byte_count, "memory_before": memory_before, "memory_after": memory()})
                         print(f"HTTP {method} trial {repetition + 1}: {elapsed:.3f}s; first frame {first - started:.3f}s", flush=True)
-                return {"server_readiness_seconds": readiness,
+                return {"source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
+                        "server_readiness_seconds": readiness,
                         "worker_readiness_seconds": worker_readiness, "runs": runs}
             finally:
                 server.terminate()
@@ -310,6 +333,7 @@ def main():
     parser.add_argument("--case")
     parser.add_argument("--profiles-only", action="store_true", help="Refresh diagnostics in an existing result file")
     parser.add_argument("--startup-only", action="store_true", help="Refresh the worker import probe")
+    parser.add_argument("--web-only", action="store_true", help="Refresh HTTP timings and worker import probe")
     parser.add_argument("--destination", type=Path)
     parser.add_argument("--output", type=Path,
                         default=ROOT / "benchmarks/results" / f"{datetime.now(timezone.utc).date().isoformat()}.json")
@@ -326,8 +350,13 @@ def main():
     result = {"timestamp_utc": datetime.now(timezone.utc).isoformat(),
               "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
               "repeats": options.repeats, "initial_memory": memory(), "core": [], "profiles": []}
-    if options.profiles_only or options.startup_only:
+    if options.profiles_only or options.startup_only or options.web_only:
         result = json.loads(options.output.read_text())
+    if options.web_only:
+        result["web"] = web_benchmark(options.repeats)
+        result["worker_import_probe"] = worker_import_probe(options.repeats)
+        options.output.write_text(json.dumps(result, indent=2))
+        return
     if options.startup_only:
         result["worker_import_probe"] = worker_import_probe(options.repeats)
         options.output.write_text(json.dumps(result, indent=2))
