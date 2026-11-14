@@ -132,3 +132,25 @@ input[type=range]:disabled {cursor:default}
 @media(prefers-reduced-motion:reduce) {*{animation:none!important;transition:none!important}}
 @media(max-width:700px) {.controls{max-height:none}.controls form{overflow:visible}}
 @media(max-width:700px) {.app-header{height:auto;min-height:65px;flex-wrap:wrap;gap:0 16px;padding-top:12px}.connection{font-size:9px}.workspace-tabs{order:3;width:100%;height:48px;gap:24px;margin-top:9px}.workspace-tab{font-size:12px}.training-overview{padding:22px;gap:16px}.training-stages{grid-template-columns:1fr;gap:12px}.training-stage{padding:22px}.training-overview h2{font-size:16px}}
+.central-workspace {min-width:0}
+.config-tab span {max-width:100%;overflow-wrap:anywhere}
+.history-summary {display:grid;gap:18px}
+.history-summary span {display:block;color:#82949b;font-size:10px;margin-bottom:7px}
+.history-summary strong {font-size:22px;font-weight:550;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+.convergence-view {min-width:0;scroll-margin-top:115px}
+.convergence-heading {display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 22px;margin-bottom:17px}
+.convergence-heading p {color:#83949c;font-size:11px;line-height:1.6;margin:6px 0 0}
+.convergence-actions {display:flex;align-items:center;gap:10px;flex-shrink:0}
+.convergence-actions .button {height:34px;font-size:10px;padding:0 11px}
+.convergence-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px}
+.convergence-card {overflow:hidden;min-width:0}
+.chart-heading {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:18px 19px 6px}
+.chart-heading h3 {margin:0;font-size:12px}
+.chart-heading span {font-size:10px;color:#8a979f;font-variant-numeric:tabular-nums}
+.chart-wrap {height:220px;margin:0 8px}
+.chart-wrap canvas {width:100%;height:100%;display:block}
+.chart-readout {display:block;min-height:37px;border-top:1px solid #edf1f3;padding:11px 19px;color:#71888e;font-size:10px;font-variant-numeric:tabular-nums}
+.convergence-note {font-size:10px;color:#82949b;line-height:1.8;margin:15px 3px 0}
+@media(max-width:1100px) {.convergence-heading{align-items:flex-start;flex-direction:column}.chart-heading{padding-left:15px;padding-right:15px}.chart-readout{padding-left:15px;padding-right:15px}}
+@media(max-width:900px) {.convergence-grid{grid-template-columns:1fr}.chart-wrap{height:230px}}
+@media(max-width:700px) {.config-tabs{flex-wrap:wrap}.config-tab{min-width:54px}.convergence-heading{padding:18px}.convergence-view{scroll-margin-top:12px}.convergence-grid{gap:14px}.history-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.history-summary strong{font-size:18px}}
