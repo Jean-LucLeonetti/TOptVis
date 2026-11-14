@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from time import perf_counter
 
 import numpy as np
 
@@ -22,6 +23,7 @@ class HistoryEntry:
     linear_residual: float
     linear_iterations: int
     state_solves: int
+    elapsed_seconds: float = 0.0
 
 
 @dataclass
@@ -43,11 +45,12 @@ def optimise(config: CantileverConfig,
              stop_requested: Callable[[], bool] | None = None,
              state_snapshot_callback: Callable[[HistoryEntry, np.ndarray, np.ndarray], None] | None = None) -> OptimizationResult:
     """Optimise; state snapshots receive copies of (row, displacement, density)."""
+    started = perf_counter()
     with CantileverProblem(config) as problem:
-        return _optimise_problem(problem, callback, snapshot_callback, stop_requested, state_snapshot_callback)
+        return _optimise_problem(problem, callback, snapshot_callback, stop_requested, started, state_snapshot_callback)
 
 
-def _optimise_problem(problem, callback, snapshot_callback, stop_requested, state_snapshot_callback=None) -> OptimizationResult:
+def _optimise_problem(problem, callback, snapshot_callback, stop_requested, started, state_snapshot_callback=None) -> OptimizationResult:
     config = problem.config
     design = problem.initial_design()
     current = problem.evaluate(design)
@@ -55,7 +58,7 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, stat
                                  config.max_inner_iterations)
     history = [HistoryEntry(0, current.compliance, current.volume_fraction, current.constraint,
                             0.0, 0.0, 0, current.residual, current.linear_iterations,
-                            problem.solver.solve_count)]
+                            problem.solver.solve_count, elapsed_seconds=perf_counter()-started)]
     if callback:
         callback(history[-1])
     if snapshot_callback:
@@ -77,7 +80,7 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, stat
         history.append(HistoryEntry(iteration, updated.compliance, updated.volume_fraction,
                                      updated.constraint, change, relative_change,
                                      step.inner_iterations, updated.residual, updated.linear_iterations,
-                                     problem.solver.solve_count))
+                                     problem.solver.solve_count, elapsed_seconds=perf_counter()-started))
         if callback:
             callback(history[-1])
         if snapshot_callback:

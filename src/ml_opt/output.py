@@ -39,6 +39,7 @@ def save_results(result: OptimizationResult, directory: str | Path) -> Path:
         "feasible": evaluation.constraint <= config.feasibility_tolerance,
         "relative_equilibrium_residual": evaluation.residual,
         "state_solves": result.history[-1].state_solves,
+        "elapsed_seconds": result.history[-1].elapsed_seconds,
     }
     (directory / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     _save_figures(result, directory)

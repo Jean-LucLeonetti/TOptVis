@@ -32,11 +32,12 @@
     </div>
     <div class="error-banner" id="error" role="alert" hidden></div>
     <div class="workspace">
-      <nav class="config-tabs" role="tablist" aria-label="Model configuration" aria-orientation="vertical">
+      <nav class="config-tabs" role="tablist" aria-label="Workspace sections" aria-orientation="vertical">
         <button id="tab-geometry" class="config-tab" type="button" role="tab" aria-selected="true" aria-controls="panel-geometry" data-panel="panel-geometry" data-title="Geometry & mesh" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM4 10h16M10 4v16"/></svg><span>Geometry</span></button>
         <button id="tab-load" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-load" data-panel="panel-load" data-title="Applied load" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 19 5M9 5h10v10"/></svg><span>Load</span></button>
         <button id="tab-filters" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-filters" data-panel="panel-filters" data-title="Density filters" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/><circle cx="12" cy="6" r="2"/><circle cx="10" cy="12" r="2"/></svg><span>Filters</span></button>
         <button id="tab-optimisation" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-optimisation" data-panel="panel-optimisation" data-title="Optimisation" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 17 5-6 5 3 6-9M16 5h4v4"/></svg><span>Optimise</span></button>
+        <button id="tab-visualisation" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-visualisation" data-panel="panel-visualisation" data-title="Visualisation" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16h16M7 15l4-6 4 3 5-7"/><circle cx="11" cy="9" r="1"/><circle cx="15" cy="12" r="1"/></svg><span>Visualisation</span></button>
       </nav>
 
       <aside class="controls panel">
@@ -96,12 +97,24 @@
               <label class="iteration-limit">Maximum iterations<input id="max_iterations" name="max_iterations" type="number" min="1" max="1000" step="1" value="100" required></label>
               <div class="config-info">The volume limit is applied to the physical material after filtering and projection.</div>
             </section>
+            <section id="panel-visualisation" class="control-section" role="tabpanel" aria-labelledby="tab-visualisation" hidden>
+              <p class="control-hint">Follow convergence after every evaluated iteration. Switch to any configuration tab to return to the mesh and topology.</p>
+              <div class="history-summary">
+                <div><span>Latest iteration</span><strong id="history-iteration">—</strong></div>
+                <div><span>Compliance</span><strong id="history-compliance">—</strong></div>
+                <div><span>Physical material volume</span><strong id="history-volume">—</strong></div>
+                <div><span>Elapsed solver time</span><strong id="history-elapsed">—</strong></div>
+              </div>
+              <div class="config-info">Hover over a graph to inspect an iteration across all plots. You can also focus a graph and use the arrow keys, Home, and End.</div>
+              <div class="section-note">History stays available after stopping or finishing. A new run or a model change clears it.</div>
+            </section>
           </fieldset>
         </form>
         <div class="controls-footer"><span class="mini-dot"></span><span id="filter-status">Helmholtz + projection</span></div>
       </aside>
 
-      <div class="viewers">
+      <div class="central-workspace">
+      <div class="viewers" id="model-view">
         <section class="panel viewer-panel" aria-labelledby="model-title">
           <div class="panel-heading"><div><h2 id="model-title">Geometry & mesh</h2><p id="selection-description">Load at node (60, 10)</p></div><span class="viewer-badge" id="model-filter-summary">ℓ = 0.1 · β = 2</span></div>
           <div class="canvas-wrap model-wrap"><canvas id="model-canvas" tabindex="0" role="img" aria-label="Cantilever mesh with the Helmholtz length reference circle. Click a free node to select the load position."></canvas></div>
@@ -119,6 +132,42 @@
           <div class="iteration-progress"><span id="progress-bar"></span></div>
           <div class="viewer-footer"><div class="density-legend"><span>Void</span><i></i><span>Solid</span></div><span id="live-note">Updates after every evaluated iteration</span></div>
         </section>
+      </div>
+      <section id="convergence-view" class="convergence-view" aria-labelledby="convergence-title" hidden>
+        <div class="panel convergence-heading">
+          <div><h2 id="convergence-title">Convergence</h2><p id="convergence-description">Run an optimisation to build the convergence history.</p></div>
+          <div class="convergence-actions"><button id="show-model" class="button secondary" type="button">Mesh & topology</button><span class="status-badge" id="convergence-status" data-status="ready"><i></i>Ready</span></div>
+        </div>
+        <div class="convergence-grid">
+          <section class="panel convergence-card" aria-labelledby="compliance-chart-title">
+            <div class="chart-heading"><h3 id="compliance-chart-title">Compliance</h3><span>Lower is stiffer</span></div>
+            <div class="chart-wrap"><canvas id="convergence-compliance" tabindex="0" role="img" aria-label="Compliance against outer iteration"></canvas></div>
+            <output class="chart-readout" id="convergence-compliance-readout">No evaluated iterations yet</output>
+          </section>
+          <section class="panel convergence-card" aria-labelledby="volume-chart-title">
+            <div class="chart-heading"><h3 id="volume-chart-title">Physical material volume</h3><span id="volume-reference">Target 40%</span></div>
+            <div class="chart-wrap"><canvas id="convergence-volume" tabindex="0" role="img" aria-label="Physical material volume against outer iteration, with its target"></canvas></div>
+            <output class="chart-readout" id="convergence-volume-readout">No evaluated iterations yet</output>
+          </section>
+          <section class="panel convergence-card" aria-labelledby="design-chart-title">
+            <div class="chart-heading"><h3 id="design-chart-title">Design change</h3><span id="design-reference">Stopping tolerance</span></div>
+            <div class="chart-wrap"><canvas id="convergence-design" tabindex="0" role="img" aria-label="Maximum design change against outer iteration, with its stopping tolerance"></canvas></div>
+            <output class="chart-readout" id="convergence-design-readout">Changes start at iteration 1</output>
+          </section>
+          <section class="panel convergence-card" aria-labelledby="objective-chart-title">
+            <div class="chart-heading"><h3 id="objective-chart-title">Relative compliance change</h3><span id="objective-reference">Stopping tolerance</span></div>
+            <div class="chart-wrap"><canvas id="convergence-objective" tabindex="0" role="img" aria-label="Relative compliance change against outer iteration, with its stopping tolerance"></canvas></div>
+            <output class="chart-readout" id="convergence-objective-readout">Changes start at iteration 1</output>
+          </section>
+          <section class="panel convergence-card elapsed-card" aria-labelledby="elapsed-chart-title">
+            <div class="chart-heading"><h3 id="elapsed-chart-title">Elapsed solver time</h3><span>Cumulative seconds</span></div>
+            <div class="chart-wrap"><canvas id="convergence-elapsed" tabindex="0" role="img" aria-label="Elapsed solver time in seconds against outer iteration"></canvas></div>
+            <output class="chart-readout" id="convergence-elapsed-readout">No evaluated iterations yet</output>
+          </section>
+        </div>
+        <p class="convergence-note">Dashed lines show the volume target and stopping tolerances. Compliance and volume include the initial design at iteration 0; change curves start at iteration 1. A flat curve alone does not certify convergence.</p>
+        <p class="convergence-note">Elapsed time is wall-clock time from solver start through each evaluated iteration, including problem setup. Process warm-up, browser/network delay, and final cleanup are excluded.</p>
+      </section>
       </div>
     </div>
     </section>
