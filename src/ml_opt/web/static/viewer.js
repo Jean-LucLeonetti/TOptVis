@@ -102,6 +102,22 @@ function filterReference(view, model, fill = true) {
   ctx.restore();
 }
 
+function maximumSizeReference(view, model) {
+  if (!(model.max_solid_size > 0)) return;
+  const {ctx, width, height, left, top, w, h} = view;
+  const x = left + w/2, y = top + h/2, radius = model.max_solid_size/2 * w/model.length;
+  ctx.save();
+  ctx.strokeStyle = "#3985b6"; ctx.lineWidth = 1.6; ctx.setLineDash([2, 3]);
+  ctx.beginPath(); ctx.arc(x, y, radius, 0, 2*Math.PI); ctx.stroke(); ctx.setLineDash([]);
+  const label = `Dmax = ${Number(model.max_solid_size.toPrecision(4))}`;
+  ctx.font = "11px 'Segoe UI',sans-serif"; ctx.textAlign = "center";
+  const textWidth = ctx.measureText(label).width, labelY = Math.min(height-8, y+radius+16);
+  const labelX = clamp(x, textWidth/2+8, width-textWidth/2-8);
+  ctx.fillStyle = "#f5fbffed"; ctx.fillRect(labelX-textWidth/2-5, labelY-11, textWidth+10, 16);
+  ctx.fillStyle = "#276b97"; ctx.fillText(label, labelX, labelY);
+  ctx.restore();
+}
+
 export function drawModel(canvas, model, hover = null) {
   const view = surface(canvas, model);
   const {ctx, left, top, w, h} = view;
@@ -122,6 +138,7 @@ export function drawModel(canvas, model, hover = null) {
   }
   support(view); outline(view); dimensions(view, model);
   filterReference(view, model);
+  maximumSizeReference(view, model);
   if (hover && hover.x > 0) {
     ctx.beginPath(); ctx.arc(left + w * hover.x / model.nx, top + h - h * hover.y / model.ny, 5, 0, 2 * Math.PI);
     ctx.strokeStyle = "#45978d"; ctx.lineWidth = 1.5; ctx.stroke();
@@ -147,6 +164,7 @@ export function drawTopology(canvas, model, density) {
   }
   support(view); outline(view); dimensions(view, model);
   if (density) { filterReference(view, model, false); load(view, model); }
+  maximumSizeReference(view, model);
 }
 
 export function pickNode(canvas, model, event) {

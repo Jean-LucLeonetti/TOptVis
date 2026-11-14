@@ -68,6 +68,13 @@ def save_results(result: OptimizationResult, directory: str | Path) -> Path:
                        normalised_epigraph_constraint=evaluation.epigraph_constraint,
                        volume_feasible=summary["feasible"], epigraph_feasible=epigraph_feasible,
                        feasible=summary["feasible"] and epigraph_feasible)
+    if config.max_solid_size > 0:
+        size_feasible = evaluation.max_size_constraint <= config.feasibility_tolerance
+        summary.update(max_size_constraint=evaluation.max_size_constraint,
+                       max_size_eroded_volume=evaluation.max_size_eroded_volume,
+                       max_size_field="dilated" if config.robust else "nominal",
+                       max_size_feasible=size_feasible,
+                       feasible=summary["feasible"] and size_feasible)
     (directory / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     _save_figures(result, directory)
     return directory.resolve()

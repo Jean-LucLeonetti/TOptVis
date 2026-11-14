@@ -318,6 +318,45 @@ These are nondimensional benchmark parameters. The Python/CLI default
 benchmark; the visual interface initially uses `filter_radius=0.1`,
 `projection_beta=2`, and `projection_eta=0.5`.
 
+### Morphological maximum solid size
+
+In **Optimise → Maximum solid size**, enter the maximum disk **diameter** in
+model units; `0` disables this optional constraint. The blue reference circle
+updates on the mesh and topology. The purple Helmholtz-length reference keeps
+its existing meaning. The diameter must exceed two element spacings in both
+directions; refine the mesh to resolve a smaller target.
+
+The solid-phase constraint follows section 5 of
+[Lazarov and Wang (2017)](https://doi.org/10.1016/j.cma.2017.02.018).
+A compact circular hat kernel of radius `R = max_solid_size / 2` averages the
+physical density, followed by an erosion projection with threshold one:
+
+```text
+s = W_R rho_physical
+e = 1 - tanh(b * (1 - s)) / tanh(b)
+g_size = mean(e) / epsilon - 1 <= 0
+```
+
+Outside the rectangular design domain is void (zero extension). The defaults
+are erosion sharpness `b = max_size_beta = 16` and allowed eroded fraction
+`epsilon = max_size_tolerance = 0.001`. These remain separate from projection
+β and its schedule. In robust mode the constraint acts on the dilated field.
+The physical density used for stiffness and volume is unchanged by this test.
+
+FFT convolution reuses the fixed kernel transform; its symmetric transpose
+propagates the size gradient through projection and the Helmholtz adjoint.
+MMA/GCMMA receive one additional constraint with no epigraph relaxation.
+Live history, CSV and summary exports report the constraint and eroded fraction;
+convergence and final feasibility include the size constraint.
+
+This is a relaxed, mesh-discretised restriction. Gray densities and the finite
+erosion sharpness/tolerance can permit local thickness deviations; the circle
+is the target structuring element, not a measured thickness certificate.
+
+```powershell
+python -m ml_opt --filter-radius 0.04 --projection-beta 8 --max-solid-size 0.35
+```
+
 ### Helmholtz density filter
 
 For a positive `filter_radius = ℓ`, the smoothed density solves
