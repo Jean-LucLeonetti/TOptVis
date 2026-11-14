@@ -70,7 +70,7 @@ all values. Use arrow keys, Home, and End to navigate the tab rail.
 
 Select **Visualisation** on the far-left rail to see five live graphs:
 compliance, physical material volume, maximum design change, relative
-compliance change, and cumulative elapsed solver time versus outer iteration.
+objective change, and cumulative elapsed solver time versus outer iteration.
 The graphs use the actual evaluated
 history rows received by the interface, including the projected physical volume.
 Dashed reference lines show the selected volume target and the design/objective
@@ -326,10 +326,106 @@ with `--output PATH`. Run `python -m ml_opt --help` for the remaining parameters
 The history includes iteration zero and records quantities at the same design.
 
 The default move limit is 0.2 per iteration. Stopping requires stable maximum
-density change, relative compliance change, and volume feasibility over five
+density change, relative objective change, and volume feasibility over five
 consecutive iterations after iteration 20. A run can also reach its iteration
 limit; `summary.json` reports the actual stop reason and feasibility separately.
 This stopping test does not certify KKT stationarity or a global optimum.
+
+### Three-field robust formulation
+
+Enable `robust=True` in `CantileverConfig`, or `--robust` on the command line.
+One Helmholtz-filtered design is projected at three thresholds:
+`eta_eroded = projection_eta + robust_eta_offset`,
+`eta_nominal = projection_eta`, and
+`eta_dilated = projection_eta - robust_eta_offset`. The default offset is 0.1.
+All thresholds must lie strictly inside (0, 1), and robust mode requires
+`projection_beta > 0`. A positive filter length is recommended for spatial
+regularisation. Threshold offsets are density thresholds, not geometric
+manufacturing tolerances in model units.
+
+```text
+minimise_x,t  t
+subject to C_i(x) <= t, i = eroded, nominal, dilated
+           mean(rho_dilated(x)) / volume_fraction - 1 <= 0
+           K(rho_i(x)) u_i = f, i = eroded, nominal, dilated
+           0 <= x <= 1, t >= 0
+```
+
+For the same fixed load and monotone SIMP material law, the eroded field is
+the worst compliance case. All three states are nevertheless evaluated and
+reported. MMA and GCMMA solve the epigraph using mmapy's native nonnegative
+auxiliary variable `z`, with `t = C_ref * z`. `C_ref` is the initial worst
+compliance and stays fixed. The density-dependent objective is zero,
+`a0 = 1`, and the four rows are `[C_eroded/C_ref, C_nominal/C_ref,
+C_dilated/C_ref, volume_constraint]` with `a = [1, 1, 1, 0]`.
+Thus `z` couples to every compliance constraint and cannot relax the volume
+limit. mmapy's usual penalised feasibility slacks remain in the subproblems;
+the evaluated physical volume and epigraph residual are checked separately.
+All three smooth compliance gradients pass through the projection and shared
+Helmholtz adjoint, with no extra elasticity solve in backward. GCMMA checks
+conservativeness for every compliance row and the volume row at each trial.
+The maximum compliance remains a reporting metric, and its active gradient
+is available for diagnostics; it is not the gradient used to optimise the
+epigraph. Beta, thresholds, and the dilated volume limit remain fixed
+during the run; there is no volume rescaling or automatic continuation.
+
+```powershell
+# Run from this checkout, using its source when sharing another worktree's environment.
+$env:PYTHONPATH = Join-Path $PWD 'src'
+python -m ml_opt --robust --filter-radius 0.1 --projection-beta 4 --field-execution sequential
+python -m ml_opt --robust --filter-radius 0.1 --projection-beta 4 --field-execution parallel
+```
+
+In the interface, open **Filters**, select **Three fields · robust**, and choose
+**Sequential** or **Parallel · 3 processes**. The live material selector shows
+each field and its compliance and volume. The headline metrics always show
+worst compliance and dilated volume, whichever field is displayed. The volume
+target therefore permits less nominal material than a single-field run.
+
+`Evaluation.density`, the ordinary snapshot callback, `density.png`, and the
+saved `density` array use nominal material. `Evaluation.displacement` and the
+saved `displacement` use the worst field; `volume_fraction` is the dilated
+volume used in the constraint. The evaluation also exposes `field_densities`,
+`field_compliances`, `field_volumes`, `field_displacements`, and `worst_field`.
+The optional state snapshot callback receives a matching displacement/density
+pair for the worst field in robust mode, suitable for equilibrium snapshots.
+Robust outputs include `density_eroded/nominal/dilated` and corresponding
+`displacement_*` arrays in `result.npz`, a `robust-fields.png` comparison,
+per-field history columns, and field metadata in `summary.json`. History and
+summary also record `epigraph_compliance` (t) and the normalised residual
+`(max(C_i) - t) / C_ref`. The stopping check requires this residual and the
+volume constraint to meet the feasibility tolerance. Relative objective change
+uses `t` in robust mode and compliance in single-field mode. MMA iterates may violate
+the true epigraph inequality before convergence; GCMMA uses conservative trial
+approximations. These checks do not certify KKT stationarity. State-solve
+counts include every field and all GCMMA trial evaluations; residuals report
+the maximum across fields and linear iterations sum across fields.
+
+**Parallelisation:** sequential mode reuses one PETSc solver for the three
+states. Parallel mode uses three persistent spawned processes, each owning
+its own `COMM_SELF` matrix, vectors, KSP, and LU factors. This works with the
+bundled Windows MPIUNI build. Only NumPy moduli, states, and element energies
+cross process boundaries; the PyTorch graph stays in the parent. The filter
+is solved once per evaluation in the parent. Workers limit PyTorch threads
+to one to reduce oversubscription, following the
+[PyTorch multiprocessing guidance](https://docs.pytorch.org/docs/stable/notes/multiprocessing.html).
+User scripts selecting parallel mode must call optimisation inside an
+`if __name__ == "__main__":` guard. Prefer sequential mode for small meshes:
+process startup, array transfers, and three copies of the solver consume time
+and memory, so parallel mode is not an automatic speedup. Both bridges still
+require CPU float64 and support first derivatives only.
+
+Reproduce cold and warm evaluation timings, including all field gradients and
+checking mode agreement, with `python benchmarks/robust_fields.py --nx 60 --ny 20`.
+
+For larger distributed meshes, a natural next implementation is an MPI-enabled
+PETSc build with three communicator groups, one per material field, and a
+distributed matrix/KSP within each group. PETSc provides
+[subcommunicators](https://petsc.org/release/manualpages/Sys/PetscSubcommType/)
+and [parallel KSP/AMG solvers](https://petsc.org/release/manual/ksp/).
+That would require distributing the mesh, assembly, filter, and gradients;
+the current process option parallelises independent fields, not the DOFs of
+one state solve. PyTorch DDP does not distribute this custom PETSc operator.
 
 ### Optimiser choice
 

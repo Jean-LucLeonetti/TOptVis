@@ -12,7 +12,7 @@ const specifications = [
    reference: model => 100 * model.volume_fraction},
   {id: "design", label: "Design change", key: "design_change", color: "#d27942", zero: true, changes: true,
    value: row => row.design_change, format: number, reference: model => model.design_tolerance},
-  {id: "objective", label: "Relative compliance change", key: "relative_objective_change", color: "#4b7eaf", zero: true, changes: true,
+  {id: "objective", label: "Relative objective change", key: "relative_objective_change", color: "#4b7eaf", zero: true, changes: true,
    value: row => row.relative_objective_change, format: number, reference: model => model.objective_tolerance},
   {id: "elapsed", label: "Elapsed solver time in seconds", key: "elapsed_seconds", color: "#748c41", zero: true,
    value: row => row.elapsed_seconds, format: value => `${number(value)} s`,

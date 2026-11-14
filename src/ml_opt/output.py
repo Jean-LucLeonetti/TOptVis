@@ -17,17 +17,29 @@ def save_results(result: OptimizationResult, directory: str | Path) -> Path:
     directory.mkdir(parents=True, exist_ok=True)
     config, evaluation = result.config, result.evaluation
     mesh = StructuredMesh(config.nx, config.ny, config.length, config.height)
+    fields = {}
+    if evaluation.field_densities is not None:
+        for name, density in evaluation.field_densities.items():
+            fields[f"density_{name}"] = density.reshape(config.ny, config.nx)
+            fields[f"displacement_{name}"] = evaluation.field_displacements[name].reshape(-1, 2)
     np.savez_compressed(directory / "result.npz", design=result.design.reshape(config.ny, config.nx),
                         density=evaluation.density.reshape(config.ny, config.nx),
                         displacement=evaluation.displacement.reshape(-1, 2),
                         coordinates=mesh.coordinates, elements=mesh.elements,
                         force=mesh.cantilever_force(config.load, config.load_angle,
                               None if config.load_node_x is None else
-                              (config.load_node_x, config.load_node_y)).reshape(-1, 2))
+                              (config.load_node_x, config.load_node_y)).reshape(-1, 2), **fields)
+    def history_row(entry):
+        row = asdict(entry)
+        compliances, volumes = row.pop("field_compliances"), row.pop("field_volumes")
+        if compliances is not None:
+            row.update({f"compliance_{name}": value for name, value in compliances.items()})
+            row.update({f"volume_{name}": value for name, value in volumes.items()})
+        return row
     with (directory / "history.csv").open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=list(asdict(result.history[0])))
+        writer = csv.DictWriter(stream, fieldnames=list(history_row(result.history[0])))
         writer.writeheader()
-        writer.writerows(asdict(entry) for entry in result.history)
+        writer.writerows(history_row(entry) for entry in result.history)
     summary = {
         "config": asdict(config), "stop_reason": result.stop_reason,
         "converged": result.converged, "iterations": result.history[-1].iteration,
@@ -41,6 +53,17 @@ def save_results(result: OptimizationResult, directory: str | Path) -> Path:
         "state_solves": result.history[-1].state_solves,
         "elapsed_seconds": result.history[-1].elapsed_seconds,
     }
+    if config.robust:
+        epigraph_feasible = evaluation.epigraph_constraint <= config.feasibility_tolerance
+        summary.update(field_compliances=evaluation.field_compliances,
+                       field_volume_fractions=evaluation.field_volumes,
+                       worst_field=evaluation.worst_field,
+                       density_field="nominal", displacement_field=evaluation.worst_field,
+                       constrained_volume_field="dilated", formulation="three_field_epigraph",
+                       epigraph_compliance=evaluation.epigraph_compliance,
+                       normalised_epigraph_constraint=evaluation.epigraph_constraint,
+                       volume_feasible=summary["feasible"], epigraph_feasible=epigraph_feasible,
+                       feasible=summary["feasible"] and epigraph_feasible)
     (directory / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     _save_figures(result, directory)
     return directory.resolve()
@@ -69,17 +92,30 @@ def _save_figures(result: OptimizationResult, directory: Path) -> None:
     axes.set(xlim=(min(-pad, tip[0] - pad), max(config.length + pad, tip[0] + pad)),
              ylim=(min(-0.03 * config.height, tip[1] - pad), max(1.03 * config.height, tip[1] + pad)),
              xlabel="x", ylabel="y", title=f"Cantilever | {config.optimizer.upper()} | "
-             f"volume {result.evaluation.volume_fraction:.3f} | compliance {result.evaluation.compliance:.3f}")
+             f"{'nominal density | dilated volume' if config.robust else 'volume'} "
+             f"{result.evaluation.volume_fraction:.3f} | compliance {result.evaluation.compliance:.3f}")
     axes.set_aspect("equal")
     figure.savefig(directory / "density.png", dpi=160)
     plt.close(figure)
+
+    if config.robust:
+        figure, axes = plt.subplots(3, 1, figsize=(10, 9), layout="constrained")
+        for axis, (name, density) in zip(axes, result.evaluation.field_densities.items()):
+            axis.imshow(density.reshape(config.ny, config.nx), origin="lower",
+                        extent=(0, config.length, 0, config.height), cmap="gray_r", vmin=0, vmax=1)
+            axis.set(title=f"{name.title()} | volume {result.evaluation.field_volumes[name]:.3f} | "
+                     f"compliance {result.evaluation.field_compliances[name]:.3f}", xlabel="x", ylabel="y")
+            axis.set_aspect("equal")
+        figure.savefig(directory / "robust-fields.png", dpi=160)
+        plt.close(figure)
 
     figure, axes = plt.subplots(1, 2, figsize=(10, 3.5), layout="constrained")
     iterations = [entry.iteration for entry in result.history]
     initial = result.history[0].compliance
     axes[0].plot(iterations, [entry.compliance / initial for entry in result.history])
     axes[0].set(xlabel="Iteration", ylabel="Compliance / initial compliance")
-    axes[1].plot(iterations, [entry.volume_fraction for entry in result.history], label="Physical volume")
+    axes[1].plot(iterations, [entry.volume_fraction for entry in result.history],
+                 label="Dilated volume" if config.robust else "Physical volume")
     axes[1].axhline(config.volume_fraction, color="tab:red", linestyle="--", label="Volume limit")
     axes[1].set(xlabel="Iteration", ylabel="Volume fraction")
     axes[1].legend()
