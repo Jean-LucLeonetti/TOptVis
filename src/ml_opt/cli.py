@@ -23,6 +23,11 @@ def main(argv: list[str] | None = None) -> int:
                         help="Sharpness of the separate maximum-size erosion")
     parser.add_argument("--max-size-tolerance", type=float, default=defaults.max_size_tolerance,
                         help="Allowed mean eroded material fraction (default: 0.001)")
+    parser.add_argument("--max-void-size", type=float, default=defaults.max_void_size,
+                        help="Maximum void disk diameter in model units; 0 disables the constraint")
+    parser.add_argument("--max-void-beta", type=float, default=defaults.max_void_beta)
+    parser.add_argument("--max-void-tolerance", type=float, default=defaults.max_void_tolerance,
+                        help="Allowed remaining void fraction after dilation (default: 0.001)")
     parser.add_argument("--state-solver", choices=("fom", "rom"), default="fom",
                         help="Full-order PETSc or a saved frozen Galerkin ROM")
     parser.add_argument("--linear-solver", choices=("lu", "cholesky", "cg-icc", "cg-gamg"),
@@ -55,6 +60,8 @@ def main(argv: list[str] | None = None) -> int:
         def progress(entry: HistoryEntry) -> None:
             if entry.iteration % 5 == 0:
                 size_note = "" if entry.max_size_constraint is None else f"  max_size_g={entry.max_size_constraint:.5g}"
+                if entry.max_void_constraint is not None:
+                    size_note += f"  max_void_g={entry.max_void_constraint:.5g}"
                 print(f"{entry.iteration:4d}  compliance={entry.compliance:.6f}  "
                       f"volume={entry.volume_fraction:.5f}  change={entry.design_change:.4f}  "
                       f"inner={entry.inner_iterations}  beta={entry.projection_beta:g}  solver={entry.state_solver.upper()}{size_note}", flush=True)

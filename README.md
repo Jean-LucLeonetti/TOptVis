@@ -377,6 +377,40 @@ is the target structuring element, not a measured thickness certificate.
 python -m ml_opt --filter-radius 0.04 --projection-beta 8 --max-solid-size 0.35
 ```
 
+### Morphological maximum void size
+
+**Optimise → Maximum void size** adds the matching void-phase option from
+[Lazarov and Wang (2017), section 5](https://doi.org/10.1016/j.cma.2017.02.018).
+Choose a disk diameter in model units; `0` disables it. Its green circle is
+independent of the blue solid-size circle, and either or both constraints may
+be enabled. The mesh-resolution requirements are the same as for solid size.
+
+The constraint limits the void left after a material dilation at threshold zero:
+
+```text
+s = W_R rho_physical, R = max_void_size / 2
+v_remaining = 1 - tanh(b_void * s) / tanh(b_void)
+g_void = mean(v_remaining) / epsilon_void - 1 <= 0
+```
+
+Material is zero outside the design domain, preserving the existing exterior
+void convention. Simply eroding `1 - rho` with zero padding would instead
+introduce fictitious exterior solid. In robust mode the void constraint uses
+the **eroded material field**, which has the largest void regions; the solid
+constraint continues to use dilated material.
+
+Void sharpness `max_void_beta=16` and allowed remaining fraction
+`max_void_tolerance=0.001` are independently adjustable. Their gradients,
+MMA/GCMMA trial checks, convergence, final feasibility, live summaries and
+exports include the void constraint. These are relaxed size targets with the
+same finite-sharpness and mesh limitations as the solid option.
+
+```powershell
+python -m ml_opt --filter-radius 0.04 --projection-beta 8 --max-void-size 0.8
+# Both phases, with independently chosen diameters:
+python -m ml_opt --filter-radius 0.04 --projection-beta 8 --max-solid-size 0.45 --max-void-size 0.8
+```
+
 ### Helmholtz density filter
 
 For a positive `filter_radius = ℓ`, the smoothed density solves

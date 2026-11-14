@@ -33,6 +33,9 @@ class RunRequest(BaseModel):
     max_solid_size: float = Field(default=0, ge=0, le=1000)
     max_size_beta: float = Field(default=16, gt=0, le=64)
     max_size_tolerance: float = Field(default=.001, gt=0, lt=1)
+    max_void_size: float = Field(default=0, ge=0, le=1000)
+    max_void_beta: float = Field(default=16, gt=0, le=64)
+    max_void_tolerance: float = Field(default=.001, gt=0, lt=1)
     material_model: Literal["simp", "ramp"] = "simp"
     penalisation: float = Field(default=3.0, ge=0)
     filter_radius: float = Field(default=0.1, ge=0, le=1000)
@@ -97,6 +100,7 @@ def create_app(*, training_root: Path | None = None) -> FastAPI:
                 "robust_supported": True,
                 "material_schedule_supported": True,
                 "max_size_supported": True,
+                "max_void_supported": True,
                 "rom_training_supported": True,
                 "rom_validation_supported": True,
                 "rom_optimisation_supported": True,

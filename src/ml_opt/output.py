@@ -75,6 +75,13 @@ def save_results(result: OptimizationResult, directory: str | Path) -> Path:
                        max_size_field="dilated" if config.robust else "nominal",
                        max_size_feasible=size_feasible,
                        feasible=summary["feasible"] and size_feasible)
+    if config.max_void_size > 0:
+        void_feasible = evaluation.max_void_constraint <= config.feasibility_tolerance
+        summary.update(max_void_constraint=evaluation.max_void_constraint,
+                       max_void_remaining_volume=evaluation.max_void_remaining_volume,
+                       max_void_field="eroded" if config.robust else "nominal",
+                       max_void_feasible=void_feasible,
+                       feasible=summary["feasible"] and void_feasible)
     (directory / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     _save_figures(result, directory)
     return directory.resolve()
