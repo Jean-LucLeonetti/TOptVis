@@ -31,6 +31,9 @@ class RunRequest(BaseModel):
     filter_radius: float = Field(default=0.1, ge=0, le=1000)
     projection_beta: float = Field(default=2.0, ge=0, le=64)
     projection_eta: float = Field(default=0.5, gt=0, lt=1)
+    robust: bool = False
+    robust_eta_offset: float = Field(default=0.1, gt=0, lt=0.5)
+    field_execution: Literal["sequential", "parallel"] = "sequential"
     optimizer: Literal["mma", "gcmma"] = "mma"
     max_iterations: int = Field(default=100, ge=1, le=1000)
 
@@ -38,6 +41,7 @@ class RunRequest(BaseModel):
     def valid_node(self):
         if self.load_node_x > self.nx or self.load_node_y > self.ny:
             raise ValueError("The selected load node must be inside the mesh")
+        self.configuration()  # Validate coupled robust thresholds before starting a stream.
         return self
 
     def configuration(self) -> CantileverConfig:
@@ -66,7 +70,8 @@ def create_app() -> FastAPI:
     @app.get("/api/health")
     async def health():
         return {"status": "ready", "running": manager.active is not None,
-                "worker_ready": manager.worker_ready, "projection_supported": True}
+                "worker_ready": manager.worker_ready, "projection_supported": True,
+                "robust_supported": True}
 
     @app.post("/api/run")
     async def run(request: RunRequest):

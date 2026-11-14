@@ -66,6 +66,10 @@ input[type=range]:disabled {cursor:default}
 .filter-description {color:#7057a4;font-size:10px;line-height:1.65;font-variant-numeric:tabular-nums;margin-top:15px}
 .filter-hint {margin:7px 0 0;color:#8a989f;font-size:10px;line-height:1.65}
 .filter-divider {height:1px;background:var(--line);margin:23px 0 20px}
+  .robust-options {margin-top:16px}
+  .field-view {display:flex;align-items:center;gap:16px;padding:10px 22px;font-size:11px;color:var(--muted)}
+  .field-view label {display:flex;align-items:center;gap:10px;white-space:nowrap}
+  .field-view select {width:110px;margin:0;height:30px}
 .label-row {display:flex;align-items:center;justify-content:space-between;margin-top:22px}
 .label-row output {font-size:12px;color:var(--teal);font-weight:650}
 .iteration-limit {margin-top:24px}

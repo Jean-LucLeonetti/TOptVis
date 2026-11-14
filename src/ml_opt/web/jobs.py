@@ -54,8 +54,9 @@ class RunManager:
         self._commands, self._messages = context.Queue(), context.Queue()
         self._cancel, self._ready = context.Event(), context.Event()
         # PERF B1: import the numerical stack once, before the first Run click.
+        # Robust runs spawn their own field workers; daemonic parents cannot spawn.
         self._process = context.Process(target=worker_loop,
-            args=(self._commands, self._messages, self._cancel, self._ready), daemon=True)
+            args=(self._commands, self._messages, self._cancel, self._ready), daemon=False)
         try:
             self._process.start()
         except BaseException:

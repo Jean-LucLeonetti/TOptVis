@@ -85,6 +85,14 @@
               <div class="filter-description" id="projection-description" aria-live="polite">β = 2 · η = 0.5</div>
               <p class="filter-hint">Higher β sharpens the solid/void transition. Set β to 0 to disable. Values stay fixed during the run.</p>
               <div class="config-info">Design → Helmholtz → projection → physical material</div>
+              <div class="filter-divider"></div>
+              <h3>Robust formulation</h3>
+              <label>Material fields<select id="robust" name="robust"><option value="false">Single field</option><option value="true">Three fields · robust</option></select></label>
+              <div class="input-grid robust-options" id="robust-options" hidden>
+                <label>Threshold offset · Δη<input id="robust_eta_offset" name="robust_eta_offset" type="number" min="0.001" max="0.499" step="any" value="0.1" required></label>
+                <label>State solves<select id="field_execution" name="field_execution"><option value="sequential">Sequential</option><option value="parallel">Parallel · 3 processes</option></select></label>
+              </div>
+              <p class="filter-hint" id="robust-description" hidden>Worst compliance over eroded, nominal and dilated material. The volume limit applies to dilated material. Requires β &gt; 0.</p>
             </section>
 
             <section id="panel-optimisation" class="control-section" role="tabpanel" aria-labelledby="tab-optimisation" hidden>
@@ -93,7 +101,7 @@
               <input id="volume_fraction" name="volume_fraction" type="range" min="0.05" max="0.95" step="0.01" value="0.4">
               <div class="range-labels"><span>5%</span><span>95%</span></div>
               <label class="iteration-limit">Maximum iterations<input id="max_iterations" name="max_iterations" type="number" min="1" max="1000" step="1" value="100" required></label>
-              <div class="config-info">The volume limit is applied to the physical material after filtering and projection.</div>
+              <div class="config-info" id="volume-description">The volume limit is applied to the physical material after filtering and projection.</div>
             </section>
           </fieldset>
         </form>
@@ -110,10 +118,11 @@
         <section class="panel viewer-panel topology-panel" aria-labelledby="topology-title">
           <div class="panel-heading"><div><h2 id="topology-title">Live topology</h2><p id="topology-description">Run optimisation to see the material distribution.</p></div><span class="status-badge" id="run-status" data-status="ready"><i></i>Ready</span></div>
           <div class="metrics" aria-live="polite" aria-atomic="true">
-            <div><span>COMPLIANCE</span><strong id="compliance">—</strong><small id="improvement">Waiting for first solve</small></div>
-            <div><span>MATERIAL VOLUME</span><strong id="current-volume">—</strong><small id="volume-target">Target 40%</small></div>
+            <div><span id="compliance-label">COMPLIANCE</span><strong id="compliance">—</strong><small id="improvement">Waiting for first solve</small></div>
+            <div><span id="material-volume-label">MATERIAL VOLUME</span><strong id="current-volume">—</strong><small id="volume-target">Target 40%</small></div>
             <div><span>ITERATION</span><strong id="iteration">—<em> / 100</em></strong><small id="density-change">No iterations yet</small></div>
           </div>
+          <div class="field-view" id="field-view" hidden><label>View material<select id="display-field"><option value="eroded">Eroded</option><option value="nominal" selected>Nominal</option><option value="dilated">Dilated</option></select></label><span id="field-metrics"></span></div>
           <div class="canvas-wrap topology-wrap"><canvas id="topology-canvas" role="img" aria-label="Live physical material density after Helmholtz filtering and Heaviside projection, with a Helmholtz length reference circle"></canvas><div class="empty-state" id="empty-state"><span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M4 4h8v8H4zm12 0h8v8h-8zM4 16h8v8H4zm12 0h8v8h-8z"/></svg></span><strong>Your design starts here</strong><span>Click Run optimisation to begin.</span></div></div>
           <div class="iteration-progress"><span id="progress-bar"></span></div>
           <div class="viewer-footer"><div class="density-legend"><span>Void</span><i></i><span>Solid</span></div><span id="live-note">Updates after every evaluated iteration</span></div>

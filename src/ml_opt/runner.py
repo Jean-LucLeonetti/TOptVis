@@ -22,6 +22,9 @@ class HistoryEntry:
     linear_residual: float
     linear_iterations: int
     state_solves: int
+    field_compliances: dict[str, float] | None = None
+    field_volumes: dict[str, float] | None = None
+    worst_field: str | None = None
 
 
 @dataclass
@@ -40,12 +43,13 @@ class OptimizationResult:
 def optimise(config: CantileverConfig,
              callback: Callable[[HistoryEntry], None] | None = None, *,
              snapshot_callback: Callable[[HistoryEntry, np.ndarray], None] | None = None,
+             field_snapshot_callback: Callable[[HistoryEntry, dict[str, np.ndarray]], None] | None = None,
              stop_requested: Callable[[], bool] | None = None) -> OptimizationResult:
     with CantileverProblem(config) as problem:
-        return _optimise_problem(problem, callback, snapshot_callback, stop_requested)
+        return _optimise_problem(problem, callback, snapshot_callback, stop_requested, field_snapshot_callback)
 
 
-def _optimise_problem(problem, callback, snapshot_callback, stop_requested) -> OptimizationResult:
+def _optimise_problem(problem, callback, snapshot_callback, stop_requested, field_snapshot_callback=None) -> OptimizationResult:
     config = problem.config
     design = problem.initial_design()
     current = problem.evaluate(design)
@@ -53,11 +57,15 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested) -> O
                                  config.max_inner_iterations)
     history = [HistoryEntry(0, current.compliance, current.volume_fraction, current.constraint,
                             0.0, 0.0, 0, current.residual, current.linear_iterations,
-                            problem.solver.solve_count)]
+                            problem.solve_count, current.field_compliances,
+                            current.field_volumes, current.worst_field)]
     if callback:
         callback(history[-1])
     if snapshot_callback:
         snapshot_callback(history[-1], current.density.copy())
+    if field_snapshot_callback:
+        field_snapshot_callback(history[-1], {name: density.copy() for name, density in
+            (current.field_densities or {"nominal": current.density}).items()})
     stable_iterations = 0
     stop_reason = "maximum_iterations"
     for iteration in range(1, config.max_iterations + 1):
@@ -73,11 +81,15 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested) -> O
         history.append(HistoryEntry(iteration, updated.compliance, updated.volume_fraction,
                                      updated.constraint, change, relative_change,
                                      step.inner_iterations, updated.residual, updated.linear_iterations,
-                                     problem.solver.solve_count))
+                                     problem.solve_count, updated.field_compliances,
+                                     updated.field_volumes, updated.worst_field))
         if callback:
             callback(history[-1])
         if snapshot_callback:
             snapshot_callback(history[-1], updated.density.copy())
+        if field_snapshot_callback:
+            field_snapshot_callback(history[-1], {name: density.copy() for name, density in
+                (updated.field_densities or {"nominal": updated.density}).items()})
         design, current = step.design, updated
         stable = (iteration >= config.min_iterations and change <= config.design_tolerance and
                   relative_change <= config.objective_tolerance and

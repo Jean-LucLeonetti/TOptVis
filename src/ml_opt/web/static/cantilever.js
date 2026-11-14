@@ -2,14 +2,17 @@ import {drawModel, drawTopology, pickNode} from "/static/viewer.js";
 
 const byId = id => document.getElementById(id);
 const form = byId("model-form"), modelCanvas = byId("model-canvas"), topologyCanvas = byId("topology-canvas");
-const state = {model: null, density: null, running: false, ready: false, runId: null, initial: null, hover: null};
+const state = {model: null, density: null, fields: null, fieldRow: null, running: false, ready: false, runId: null, initial: null, hover: null};
 const format = value => new Intl.NumberFormat("en", {maximumFractionDigits: 2}).format(value);
 const filterFormat = value => new Intl.NumberFormat("en", {maximumSignificantDigits: 4}).format(value);
 const signed = value => (Math.abs(value) < 1e-12 ? "0.00" : value.toFixed(2)).replace("-", "−");
 
 function readModel() {
   const model = {};
-  for (const [key, value] of new FormData(form)) model[key] = key === "optimizer" ? value : Number(value);
+  for (const [key, value] of new FormData(form)) {
+    model[key] = key === "robust" ? value === "true" :
+      ["optimizer", "field_execution"].includes(key) ? value : Number(value);
+  }
   return model;
 }
 
@@ -84,6 +87,16 @@ function updateLabels(resizeFilterRange = true) {
   byId("projection-range-max").textContent = filterFormat(projectionMax);
   byId("projection-description").textContent = beta > 0 ?
     `β = ${filterFormat(beta)} · η = ${filterFormat(eta)} · fixed during run` : "Projection off · smoothed densities used directly";
+  byId("robust-options").hidden = !m.robust;
+  byId("robust-description").hidden = !m.robust;
+  byId("field-view").hidden = !m.robust;
+  byId("compliance-label").textContent = m.robust ? "WORST COMPLIANCE" : "COMPLIANCE";
+  byId("material-volume-label").textContent = m.robust ? "DILATED VOLUME" : "MATERIAL VOLUME";
+  byId("volume-description").textContent = m.robust ?
+    "The volume limit applies to the dilated field. Nominal and eroded material use less volume." :
+    "The volume limit is applied to the physical material after filtering and projection.";
+  if (m.robust) byId("robust-description").textContent =
+    `Thresholds: eroded ${filterFormat(eta + m.robust_eta_offset)}, nominal ${filterFormat(eta)}, dilated ${filterFormat(eta - m.robust_eta_offset)}. Worst compliance and dilated-volume constraint. Requires β > 0 and all thresholds inside (0, 1).`;
   byId("filter-status").textContent = [radius > 0 ? "Helmholtz" : null, beta > 0 ? "Projection" : null].filter(Boolean).join(" + ") || "Filters off";
   byId("model-filter-summary").textContent = `${radius > 0 ? `ℓ = ${filterFormat(radius)}` : "Smoothing off"} · ${beta > 0 ? `β = ${filterFormat(beta)}` : "Projection off"}`;
   byId("filter-legend").hidden = radius === 0;
@@ -92,7 +105,8 @@ function updateLabels(resizeFilterRange = true) {
 }
 
 function clearResult() {
-  state.density = null; state.initial = null;
+  state.density = null; state.fields = null; state.fieldRow = null; state.initial = null;
+  byId("field-metrics").textContent = "";
   byId("empty-state").hidden = false;
   byId("compliance").textContent = "—";
   byId("improvement").textContent = "Waiting for first solve";
@@ -104,6 +118,19 @@ function clearResult() {
   byId("topology-description").textContent = "Run optimisation to see the material distribution.";
   byId("live-note").textContent = "Updates after every evaluated iteration";
   status("Ready", "ready");
+}
+
+function selectField(redrawView = true) {
+  const name = byId("display-field").value;
+  if (state.fields) {
+    state.density = state.fields[name];
+    const row = state.fieldRow;
+    byId("field-metrics").textContent = `Compliance ${format(row.field_compliances[name])} · volume ${(100 * row.field_volumes[name]).toFixed(2)}%`;
+    byId("topology-canvas").setAttribute("aria-label", `${name} material density with Helmholtz length reference`);
+  } else {
+    byId("topology-canvas").setAttribute("aria-label", "Physical material density with Helmholtz length reference");
+  }
+  if (redrawView) redraw();
 }
 
 function updateModel(event) {
@@ -140,7 +167,10 @@ function receive(event) {
   if (event.event === "iteration") {
     const row = event.history;
     if (state.initial === null) state.initial = row.compliance;
+    state.fields = event.field_densities || null;
+    state.fieldRow = row;
     state.density = event.density;
+    selectField(false);
     byId("empty-state").hidden = true;
     byId("compliance").textContent = format(row.compliance);
     const reduction = 100 * (1 - row.compliance / state.initial);
@@ -150,7 +180,9 @@ function receive(event) {
     byId("iteration").innerHTML = `${row.iteration}<em> / ${state.model.max_iterations}</em>`;
     byId("density-change").textContent = `Density change ${row.design_change.toFixed(4)}`;
     byId("progress-bar").style.width = `${100 * row.iteration / state.model.max_iterations}%`;
-    byId("topology-description").textContent = `${state.model.optimizer.toUpperCase()} · ${state.model.projection_beta > 0 ? "Projected" : state.model.filter_radius > 0 ? "Filtered" : "Unfiltered"} physical densities`;
+    byId("topology-description").textContent = state.model.robust ?
+      `${state.model.optimizer.toUpperCase()} · Three fields · worst: ${row.worst_field} · ${state.model.field_execution}` :
+      `${state.model.optimizer.toUpperCase()} · ${state.model.projection_beta > 0 ? "Projected" : state.model.filter_radius > 0 ? "Filtered" : "Unfiltered"} physical densities`;
     byId("live-note").textContent = `Iteration ${row.iteration} · ${row.state_solves} state solves`;
     status("Running", "running");
     if (topologyCanvas.getClientRects().length) drawTopology(topologyCanvas, state.model, state.density);
@@ -181,8 +213,8 @@ async function start(event) {
       const error = await response.json();
       const details = error.detail;
       if (Array.isArray(details) && details.some(item => item.type === "extra_forbidden" &&
-          ["projection_beta", "projection_eta"].includes(item.loc?.at(-1)))) {
-        throw new Error("The running server needs an update. Restart TOptVis, then refresh this page to use projection.");
+          ["projection_beta", "projection_eta", "robust", "robust_eta_offset", "field_execution"].includes(item.loc?.at(-1)))) {
+        throw new Error("The running server needs an update. Restart TOptVis, then refresh this page to use robust fields.");
       }
       throw new Error(typeof details === "string" ? details : details?.map(item => `${item.loc?.at(-1) || "Input"}: ${item.msg}`).join("; ") || "Could not start the solver.");
     }
@@ -219,6 +251,7 @@ async function start(event) {
 }
 
 form.addEventListener("submit", start);
+byId("display-field").addEventListener("change", () => selectField());
 form.addEventListener("input", updateModel);
 byId("angle-slider").addEventListener("input", event => {
   byId("load_angle").value = event.target.value;
@@ -264,9 +297,9 @@ async function connectSolver() {
     const response = await fetch("/api/health");
     if (!response.ok) throw new Error("Local solver unavailable");
     const health = await response.json();
-    if (!health.projection_supported) {
+    if (!health.projection_supported || !health.robust_supported) {
       byId("connection").lastElementChild.textContent = "Server restart needed";
-      showError("Restart TOptVis and refresh this page to load the projection controls in the server.");
+      showError("Restart TOptVis and refresh this page to load the robust formulation in the server.");
       setRunning(false);
     } else {
       state.ready = true;

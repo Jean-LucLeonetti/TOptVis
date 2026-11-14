@@ -23,6 +23,9 @@ class CantileverConfig:
     filter_radius: float = 0.0
     projection_beta: float = 0.0
     projection_eta: float = 0.5
+    robust: bool = False
+    robust_eta_offset: float = 0.1
+    field_execution: str = "sequential"
     optimizer: str = "mma"
     move_limit: float = 0.2
     max_iterations: int = 100
@@ -62,6 +65,17 @@ class CantileverConfig:
             raise ValueError("projection_beta must be finite and nonnegative")
         if not math.isfinite(self.projection_eta) or not 0 < self.projection_eta < 1:
             raise ValueError("projection_eta must be finite and lie between 0 and 1")
+        if type(self.robust) is not bool:
+            raise ValueError("robust must be a boolean")
+        if not math.isfinite(self.robust_eta_offset) or not 0 < self.robust_eta_offset < 0.5:
+            raise ValueError("robust_eta_offset must be finite and lie between 0 and 0.5")
+        if self.field_execution not in ("sequential", "parallel"):
+            raise ValueError("field_execution must be sequential or parallel")
+        if self.robust:
+            if self.projection_beta <= 0:
+                raise ValueError("robust formulation requires projection_beta > 0")
+            if not self.robust_eta_offset < self.projection_eta < 1 - self.robust_eta_offset:
+                raise ValueError("robust projection thresholds eta +/- offset must lie inside (0, 1)")
         if not 0 < self.move_limit <= 1:
             raise ValueError("move_limit must lie in (0, 1]")
         if self.optimizer not in ("mma", "gcmma"):

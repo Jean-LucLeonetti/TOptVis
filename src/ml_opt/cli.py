@@ -23,6 +23,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="Heaviside sharpness, fixed during the run; 0 disables projection")
     parser.add_argument("--projection-eta", type=float, default=defaults.projection_eta,
                         help="Heaviside threshold in (0, 1), default: 0.5")
+    parser.add_argument("--robust", action="store_true",
+                        help="Three-field worst-compliance formulation with dilated-volume constraint")
+    parser.add_argument("--robust-eta-offset", type=float, default=defaults.robust_eta_offset,
+                        help="Projection threshold offset either side of eta (default: 0.1)")
+    parser.add_argument("--field-execution", choices=("sequential", "parallel"),
+                        default=defaults.field_execution, help="How robust state solves run")
     parser.add_argument("--output", type=Path, help="Output directory (default: outputs/cantilever-<optimizer>)")
     parser.add_argument("--quiet", action="store_true")
     options = vars(parser.parse_args(argv))
