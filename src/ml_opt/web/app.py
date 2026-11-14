@@ -45,6 +45,7 @@ class RunRequest(BaseModel):
     optimizer: Literal["mma", "gcmma"] = "mma"
     max_iterations: int = Field(default=100, ge=1, le=1000)
     state_solver: Literal["fom", "rom"] = "fom"
+    linear_solver: Literal["lu", "cholesky", "cg-icc", "cg-gamg"] = "lu"
     rom_training_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{32}$")
 
     @model_validator(mode="after")
@@ -95,6 +96,7 @@ def create_app(*, training_root: Path | None = None) -> FastAPI:
                 "rom_training_supported": True,
                 "rom_validation_supported": True,
                 "rom_optimisation_supported": True,
+                "linear_solver_supported": True,
                 "active_kind": manager.active.kind if manager.active else None}
 
     @app.post("/api/run")

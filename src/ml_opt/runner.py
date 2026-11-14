@@ -56,10 +56,12 @@ def optimise(config: CantileverConfig,
              field_snapshot_callback: Callable[[HistoryEntry, dict[str, np.ndarray]], None] | None = None,
              stop_requested: Callable[[], bool] | None = None,
              state_snapshot_callback: Callable[[HistoryEntry, np.ndarray, np.ndarray], None] | None = None,
-             evaluation_callback: Callable[[HistoryEntry, np.ndarray, Evaluation], None] | None = None) -> OptimizationResult:
+             evaluation_callback: Callable[[HistoryEntry, np.ndarray, Evaluation], None] | None = None,
+             field_pool=None) -> OptimizationResult:
     """State snapshots copy equilibrium pairs; evaluation callbacks copy design and state."""
     started = perf_counter()
-    with CantileverProblem(config) as problem:
+    problem = CantileverProblem(config) if field_pool is None else CantileverProblem(config, field_pool=field_pool)
+    with problem:
         return _optimise_problem(problem, callback, snapshot_callback, stop_requested, started,
                                  state_snapshot_callback, field_snapshot_callback, evaluation_callback)
 
@@ -115,8 +117,8 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
                                          config.max_inner_iterations, robust=config.robust)
             stable_iterations = 0
         step = optimizer.step(design, current, problem.evaluate)
-        # PERF B4: GCMMA just solved this accepted trial without sensitivities;
-        # this evaluation repeats its state solve. See benchmarks/RESULTS.md.
+        # Rebuild the PyTorch graph for derivatives. Exact-modulus state caches
+        # reuse GCMMA's accepted trial state and energies without another solve.
         updated = problem.evaluate(step.design)
         if config.robust:
             updated.epigraph_compliance = step.epigraph_compliance

@@ -19,6 +19,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--optimizer", choices=("mma", "gcmma"), default=defaults.optimizer)
     parser.add_argument("--state-solver", choices=("fom", "rom"), default="fom",
                         help="Full-order PETSc or a saved frozen Galerkin ROM")
+    parser.add_argument("--linear-solver", choices=("lu", "cholesky", "cg-icc", "cg-gamg"),
+                        default=defaults.linear_solver, help="PETSc full-order elasticity solver")
     parser.add_argument("--rom-basis-path", help="Path to a saved basis.npz for --state-solver rom")
     parser.add_argument("--material-model", choices=("simp", "ramp"), default=defaults.material_model)
     parser.add_argument("--filter-radius", type=float, default=defaults.filter_radius,

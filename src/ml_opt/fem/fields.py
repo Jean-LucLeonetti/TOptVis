@@ -1,67 +1,34 @@
-"""Independent PETSc field solves with a batched first-order PyTorch adjoint.
-
-Only NumPy data crosses process boundaries. Each spawned worker owns its PETSc
-objects and retains the matrix graph and symbolic factors between evaluations.
-"""
-
-import multiprocessing as mp
-import queue
+"""Independent state solves and a batched first-order PyTorch adjoint."""
 
 import numpy as np
 import torch
 
-from .state_solver import create_state_solver
-
-
-def _field_worker(config, index, commands, results):
-    solver = None
-    parent = mp.parent_process()
-    try:
-        torch.set_num_threads(1)
-        solver = create_state_solver(config)
-        while parent is None or parent.is_alive():
-            try:
-                moduli = commands.get(timeout=0.25)
-            except queue.Empty:
-                continue
-            if moduli is None:
-                return
-            results.put((index, solver.solve(moduli), None))
-    except Exception as error:
-        results.put((index, None, f"{type(error).__name__}: {error}"))
-    finally:
-        if solver is not None:
-            solver.close()
-        # Flush useful error diagnostics unless the parent can no longer read.
-        if parent is not None and not parent.is_alive():
-            results.cancel_join_thread()
-        results.close()
-        results.join_thread()
+from .cache import StateCache
+from .worker_pool import FieldWorkerPool
 
 
 class FieldSolves:
-    def __init__(self, config, sequential_solver):
+    def __init__(self, config, sequential_solver, *, worker_pool=None):
         self.solver = sequential_solver
         self.solve_count = 0
         self.last_states = []
+        self.cache = StateCache()
         self._closed = False
-        self._workers = []
-        self._commands = []
-        self._results = None
+        self._pool = self._group = None
+        self._owns_pool = False
         if config.field_execution == "parallel":
-            context = mp.get_context("spawn")
-            self._results = context.Queue()
+            self._owns_pool = worker_pool is None
+            self._pool = worker_pool if worker_pool is not None else FieldWorkerPool()
             try:
-                for index in range(3):
-                    commands = context.Queue()
-                    self._commands.append(commands)
-                    worker = context.Process(target=_field_worker,
-                        args=(config, index, commands, self._results), daemon=True)
-                    worker.start()
-                    self._workers.append(worker)
+                self._group = self._pool.acquire(config)
             except BaseException:
-                self.close()
+                if self._owns_pool:
+                    self._pool.close()
                 raise
+
+    @property
+    def _workers(self):
+        return self._group.workers if self._group is not None else []
 
     def solve(self, moduli):
         if self._closed:
@@ -69,48 +36,30 @@ class FieldSolves:
         moduli = np.asarray(moduli, dtype=np.float64)
         if moduli.shape != (3, self.solver.mesh.element_count):
             raise ValueError("Expected three fields with one modulus per element")
-        if not self._workers:
-            states = [self.solver.solve(field) for field in moduli]
-        else:
-            for commands, field in zip(self._commands, moduli):
-                commands.put(field)
-            states = [None] * 3
-            pending = set(range(3))
-            try:
-                while pending:
-                    try:
-                        index, state, error = self._results.get(timeout=0.25)
-                    except queue.Empty:
-                        if any(not worker.is_alive() for worker in self._workers):
-                            raise RuntimeError("A robust field solver exited unexpectedly")
-                        continue
-                    if error:
-                        raise RuntimeError(f"Robust field {index} failed: {error}")
-                    states[index] = state
-                    pending.remove(index)
-            except BaseException:
-                self.close()
-                raise
+        states = self.cache.get(moduli)
+        if states is not None:
+            self.last_states = states
+            return states
+        try:
+            states = (self._group.solve(moduli) if self._group is not None else
+                      [self.solver.solve(field) for field in moduli])
+        except BaseException:
+            self.close(healthy=False)
+            raise
         self.solve_count += len(states)
+        self.cache.put(moduli, states)
         self.last_states = states
         return states
 
-    def close(self):
+    def close(self, *, healthy=True):
         if self._closed:
             return
         self._closed = True
-        for commands in self._commands:
-            commands.put(None)
-        for worker in self._workers:
-            worker.join(timeout=2)
-            if worker.is_alive():
-                worker.terminate()
-                worker.join(timeout=2)
-            worker.close()
-        for channel in [*self._commands, self._results]:
-            if channel is not None:
-                channel.close()
-                channel.cancel_join_thread()
+        self.cache.clear()
+        if self._group is not None:
+            self._pool.release(self._group, healthy=healthy)
+        if self._owns_pool:
+            self._pool.close()
 
 
 class _FieldCompliance(torch.autograd.Function):

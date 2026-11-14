@@ -8,6 +8,7 @@ import torch
 from .config import CantileverConfig
 from .fem import StructuredMesh
 from .fem.state_solver import create_state_solver
+from .fem.cache import CachedStateSolver
 from .fem.elasticity import compliance
 from .fem.filter import HelmholtzFilter
 from .fem.fields import FieldSolves, field_compliance
@@ -38,13 +39,14 @@ class Evaluation:
 
 
 class CantileverProblem:
-    def __init__(self, config: CantileverConfig, *, state_solver=None):
+    def __init__(self, config: CantileverConfig, *, state_solver=None, field_pool=None):
         if state_solver is not None and config.robust:
             raise ValueError("A supplied state solver is supported only for single-field problems")
         self.config = config
         self.projection_beta = config.projection_beta
         self.mesh = StructuredMesh(config.nx, config.ny, config.length, config.height)
         self.solver = state_solver if state_solver is not None else create_state_solver(config)
+        self._compliance_solver = CachedStateSolver(self.solver)
         self.rom_info = getattr(self.solver, "rom_info", None)
         if self.rom_info is not None:
             config = self.config = replace(config, rom_basis_sha256=self.rom_info["basis_sha256"])
@@ -53,12 +55,13 @@ class CantileverProblem:
         try:
             self.density_filter = HelmholtzFilter(self.mesh, config.filter_radius)
             if config.robust:
-                self.fields = FieldSolves(config, self.solver)
+                self.fields = FieldSolves(config, self.solver, worker_pool=field_pool)
         except BaseException:
             self.close()
             raise
 
     def close(self) -> None:
+        self._compliance_solver.cache.clear()
         try:
             if self.fields is not None:
                 self.fields.close()
@@ -121,9 +124,9 @@ class CantileverProblem:
                 residual = max(s.relative_residual for s in states)
                 iterations = sum(s.iterations for s in states)
             else:
-                objective = compliance(moduli, self.solver)
+                objective = compliance(moduli, self._compliance_solver)
                 volume = density.mean()
-                state = self.solver.last_state
+                state = self._compliance_solver.last_state
                 residual, iterations = state.relative_residual, state.iterations
             constraint = volume / self.config.volume_fraction - 1.0
             objective_gradient = constraint_gradient = None

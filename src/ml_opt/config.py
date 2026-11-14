@@ -42,11 +42,14 @@ class CantileverConfig:
     convergence_patience: int = 5
     max_inner_iterations: int = 30
     linear_tolerance: float = 1e-10
+    linear_solver: str = "lu"
     state_solver: str = "fom"
     rom_basis_path: str | None = None
     rom_basis_sha256: str | None = None
 
     def __post_init__(self) -> None:
+        if self.linear_solver not in ("lu", "cholesky", "cg-icc", "cg-gamg"):
+            raise ValueError("linear_solver must be lu, cholesky, cg-icc, or cg-gamg")
         if self.state_solver not in ("fom", "rom"):
             raise ValueError("state_solver must be fom or rom")
         if self.state_solver == "rom" and (not isinstance(self.rom_basis_path, str) or not self.rom_basis_path):

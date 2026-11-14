@@ -119,6 +119,7 @@
 
             <section id="panel-optimisation" class="control-section" role="tabpanel" aria-labelledby="tab-optimisation" hidden>
               <label>Elasticity solver<select id="state_solver" name="state_solver"><option value="fom">FOM · full order</option><option id="rom-solver-option" value="rom" disabled>ROM · saved reduced basis</option></select></label>
+              <div id="fom-linear-options"><label>Full-order method<select id="linear_solver" name="linear_solver"><option value="lu">LU · direct</option><option value="cholesky">Cholesky · direct</option><option value="cg-icc">CG + incomplete Cholesky</option><option value="cg-gamg">CG + algebraic multigrid</option></select></label></div>
               <div id="rom-solver-options" class="rom-solver-options" hidden>
                 <label>ROM model<select id="rom_training_id" name="rom_training_id" disabled><option value="">No trained ROMs</option></select></label>
                 <p id="rom-model-description" class="section-note" aria-live="polite">Build a basis in ROM Training first.</p>

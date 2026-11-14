@@ -23,11 +23,14 @@ class ElasticitySolver:
     def __init__(self, mesh: StructuredMesh, poisson: float = 0.3,
                  thickness: float = 1.0, load: float = 1.0,
                  tolerance: float = 1e-10, *, load_angle: float = -90.0,
-                 load_node: tuple[int, int] | None = None):
+                 load_node: tuple[int, int] | None = None, linear_solver: str = "lu"):
+        if linear_solver not in ("lu", "cholesky", "cg-icc", "cg-gamg"):
+            raise ValueError("Unknown elasticity linear solver")
         if np.dtype(PETSc.ScalarType) != np.dtype(np.float64):
             raise RuntimeError("This example requires a real double-precision PETSc build")
         self.mesh = mesh
         self.tolerance = tolerance
+        self.linear_solver = linear_solver
         self.element_stiffness = q4_stiffness(mesh.length / mesh.nx, mesh.height / mesh.ny,
                                               poisson, thickness)
         self.force = mesh.cantilever_force(load, load_angle, load_node)
@@ -42,23 +45,42 @@ class ElasticitySolver:
         self.last_state: ElasticityState | None = None
         self._closed = False
         self._matrix = self._solution = self._rhs = self._residual = self._solver = None
+        self._near_nullspace = None
         try:
             count = len(mesh.free_dofs)
             self._matrix = PETSc.Mat().create(comm=PETSc.COMM_SELF)
             self._matrix.setSizes((count, count))
             self._matrix.setType("aij")
+            self._matrix.setBlockSize(2)
             # PETSc remembers the element-entry reduction, including shared-node sums.
             self._matrix.setPreallocationCOO(self.rows.astype(PETSc.IntType),
                                               self.columns.astype(PETSc.IntType))
             self._matrix.setOption(PETSc.Mat.Option.SYMMETRIC, True)
+            self._matrix.setOption(PETSc.Mat.Option.SPD, True)
             self._solution, self._rhs = self._matrix.createVecs()
             self._residual = self._rhs.duplicate()
             self._rhs.array[:] = self.force[mesh.free_dofs]
             self._rhs_norm = max(self._rhs.norm(), np.finfo(float).tiny)
             self._solver = PETSc.KSP().create(comm=PETSc.COMM_SELF)
             self._solver.setOperators(self._matrix)
-            self._solver.setType("preonly")
-            self._solver.getPC().setType("lu")
+            if linear_solver in ("lu", "cholesky"):
+                self._solver.setType("preonly")
+                self._solver.getPC().setType(linear_solver)
+            else:
+                self._solver.setType("cg")
+                self._solver.setNormType(PETSc.KSP.NormType.UNPRECONDITIONED)
+                self._solver.getPC().setType("icc" if linear_solver == "cg-icc" else "gamg")
+                if linear_solver == "cg-gamg":
+                    # Vertex-major x/y DOFs and all three rigid-body modes for
+                    # elasticity smoothed aggregation (PETSc GAMG guidance).
+                    nodes = mesh.free_dofs[::2] // 2
+                    coordinates = PETSc.Vec().createWithArray(mesh.coordinates[nodes].ravel().copy(),
+                                                              bsize=2, comm=PETSc.COMM_SELF)
+                    try:
+                        self._near_nullspace = PETSc.NullSpace().createRigidBody(coordinates)
+                        self._matrix.setNearNullSpace(self._near_nullspace)
+                    finally:
+                        coordinates.destroy()
             self._solver.setTolerances(rtol=tolerance, atol=1e-14, max_it=10000)
             self._solver.setErrorIfNotConverged(True)
         except BaseException:
@@ -70,7 +92,7 @@ class ElasticitySolver:
         if self._closed:
             return
         self._closed = True
-        for name in ("_solver", "_solution", "_rhs", "_residual", "_matrix"):
+        for name in ("_solver", "_solution", "_rhs", "_residual", "_matrix", "_near_nullspace"):
             obj = getattr(self, name)
             if obj is not None:
                 obj.destroy()

@@ -17,7 +17,7 @@ function readModel() {
   const model = {};
   for (const [key, value] of new FormData(form)) {
     model[key] = key === "robust" ? value === "true" :
-      ["optimizer", "field_execution", "state_solver", "rom_training_id", "material_model", "projection_schedule"].includes(key) ? value : Number(value);
+      ["optimizer", "field_execution", "state_solver", "linear_solver", "rom_training_id", "material_model", "projection_schedule"].includes(key) ? value : Number(value);
   }
   if (model.state_solver !== "rom") delete model.rom_training_id;
   return model;
@@ -33,7 +33,8 @@ function updateSolverDescription() {
   const latest = state.history.at(-1);
   byId("run-solver-description").textContent = config?.state_solver === "rom" ?
     `ROM · ${latest?.rom_basis_rank || romChoice.selected?.basis.rank || "—"} modes · basis ${config.rom_basis_sha256?.slice(0,12) || romChoice.selected?.id.slice(0,8) || "not selected"} · approximate compliance and sensitivities` :
-    "FOM · full-order elasticity";
+    `FOM · ${(config?.linear_solver || "lu").toUpperCase()} · full-order elasticity`;
+  byId("fom-linear-options").hidden = state.model?.state_solver === "rom";
 }
 
 const configTabs = Array.from(document.querySelectorAll('.config-tabs [role="tab"]'));
@@ -316,8 +317,8 @@ async function start(event) {
       const error = await response.json();
       const details = error.detail;
       if (Array.isArray(details) && details.some(item => item.type === "extra_forbidden" &&
-          ["projection_beta", "projection_eta", "robust", "robust_eta_offset", "field_execution", "material_model", "penalisation", "projection_schedule", "projection_beta_interval", "projection_beta_multiplier", "projection_beta_max"].includes(item.loc?.at(-1)))) {
-        throw new Error("The running server needs an update. Restart TOptVis, then refresh this page to load the material and β schedule controls.");
+          ["projection_beta", "projection_eta", "robust", "robust_eta_offset", "field_execution", "linear_solver", "material_model", "penalisation", "projection_schedule", "projection_beta_interval", "projection_beta_multiplier", "projection_beta_max"].includes(item.loc?.at(-1)))) {
+        throw new Error("The running server needs an update. Restart TOptVis, then refresh this page to load the current solver controls.");
       }
       throw new Error(typeof details === "string" ? details : details?.map(item => `${item.loc?.at(-1) || "Input"}: ${item.msg}`).join("; ") || "Could not start the solver.");
     }
@@ -410,9 +411,9 @@ async function connectSolver() {
     const health = await response.json();
     state.romSupported = !!health.rom_optimisation_supported;
     await romChoice.refresh(state.romSupported);
-    if (!health.projection_supported || !health.robust_supported || !health.material_schedule_supported) {
+    if (!health.projection_supported || !health.robust_supported || !health.material_schedule_supported || !health.linear_solver_supported) {
       byId("connection").lastElementChild.textContent = "Server restart needed";
-      showError("Restart TOptVis and refresh this page to load the material and β schedule controls in the server.");
+      showError("Restart TOptVis and refresh this page to load the current solver controls in the server.");
       setRunning(false);
     } else {
       state.ready = true;
