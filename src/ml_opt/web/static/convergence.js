@@ -14,6 +14,9 @@ const specifications = [
    value: row => row.design_change, format: number, reference: model => model.design_tolerance},
   {id: "objective", label: "Relative compliance change", key: "relative_objective_change", color: "#4b7eaf", zero: true, changes: true,
    value: row => row.relative_objective_change, format: number, reference: model => model.objective_tolerance},
+  {id: "elapsed", label: "Elapsed solver time in seconds", key: "elapsed_seconds", color: "#748c41", zero: true,
+   value: row => row.elapsed_seconds, format: value => `${number(value)} s`,
+   unavailable: "Timing unavailable · restart TOptVis to record elapsed time"},
 ];
 
 function setText(element, text) {
@@ -127,7 +130,8 @@ export class ConvergencePlots {
       ctx.fillStyle = plot.color; ctx.fill();
     } else {
       ctx.fillStyle = "#93a2a9";
-      ctx.fillText(plot.changes && this.history.length ? "Waiting for iteration 1" : "Run an optimisation to see this graph", left+plotWidth/2, top+plotHeight/2);
+      ctx.fillText(plot.unavailable && this.history.length ? "Timing unavailable for this run" :
+        plot.changes && this.history.length ? "Waiting for iteration 1" : "Run an optimisation to see this graph", left+plotWidth/2, top+plotHeight/2);
     }
 
     const selected = this.history[this.selected ?? this.history.length-1];
@@ -140,7 +144,8 @@ export class ConvergencePlots {
       }
     }
     const text = !selected ? "No evaluated iterations yet" : plot.changes && selected.iteration === 0 ?
-      "Iteration 0 · changes start at iteration 1" : `Iteration ${selected.iteration} · ${plot.format(plot.value(selected))}`;
+      "Iteration 0 · changes start at iteration 1" : !Number.isFinite(plot.value(selected)) ?
+      plot.unavailable || "Value unavailable for this iteration" : `Iteration ${selected.iteration} · ${plot.format(plot.value(selected))}`;
     setText(readout, text);
     canvas.setAttribute("aria-label", `${plot.label} against outer iteration. ${text}. Use left and right arrows to inspect iterations.`);
   }

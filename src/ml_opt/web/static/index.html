@@ -102,8 +102,9 @@
                 <div><span>Latest iteration</span><strong id="history-iteration">—</strong></div>
                 <div><span>Compliance</span><strong id="history-compliance">—</strong></div>
                 <div><span>Physical material volume</span><strong id="history-volume">—</strong></div>
+                <div><span>Elapsed solver time</span><strong id="history-elapsed">—</strong></div>
               </div>
-              <div class="config-info">Hover over a graph to inspect an iteration across all four plots. You can also focus a graph and use the arrow keys, Home, and End.</div>
+              <div class="config-info">Hover over a graph to inspect an iteration across all plots. You can also focus a graph and use the arrow keys, Home, and End.</div>
               <div class="section-note">History stays available after stopping or finishing. A new run or a model change clears it.</div>
             </section>
           </fieldset>
@@ -157,8 +158,14 @@
             <div class="chart-wrap"><canvas id="convergence-objective" tabindex="0" role="img" aria-label="Relative compliance change against outer iteration, with its stopping tolerance"></canvas></div>
             <output class="chart-readout" id="convergence-objective-readout">Changes start at iteration 1</output>
           </section>
+          <section class="panel convergence-card elapsed-card" aria-labelledby="elapsed-chart-title">
+            <div class="chart-heading"><h3 id="elapsed-chart-title">Elapsed solver time</h3><span>Cumulative seconds</span></div>
+            <div class="chart-wrap"><canvas id="convergence-elapsed" tabindex="0" role="img" aria-label="Elapsed solver time in seconds against outer iteration"></canvas></div>
+            <output class="chart-readout" id="convergence-elapsed-readout">No evaluated iterations yet</output>
+          </section>
         </div>
         <p class="convergence-note">Dashed lines show the volume target and stopping tolerances. Compliance and volume include the initial design at iteration 0; change curves start at iteration 1. A flat curve alone does not certify convergence.</p>
+        <p class="convergence-note">Elapsed time is wall-clock time from solver start through each evaluated iteration, including problem setup. Process warm-up, browser/network delay, and final cleanup are excluded.</p>
       </section>
       </div>
     </div>

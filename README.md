@@ -68,16 +68,17 @@ all values. Use arrow keys, Home, and End to navigate the tab rail.
 
 ### Convergence visualisation
 
-Select **Visualisation** on the far-left rail to see four live graphs:
-compliance, physical material volume, maximum design change, and relative
-compliance change versus outer iteration. The graphs use the actual evaluated
+Select **Visualisation** on the far-left rail to see five live graphs:
+compliance, physical material volume, maximum design change, relative
+compliance change, and cumulative elapsed solver time versus outer iteration.
+The graphs use the actual evaluated
 history rows received by the interface, including the projected physical volume.
 Dashed reference lines show the selected volume target and the design/objective
 stopping tolerances reported by the server when the run starts.
 
 Compliance and volume include iteration 0; change curves start at iteration 1
 because there is no previous design for the initial evaluation. Hover over a
-graph to inspect the nearest iteration across all four plots, or focus a graph
+graph to inspect the nearest iteration across all plots, or focus a graph
 and use Left/Right, Home, and End. The sidebar always shows the latest iteration.
 
 History continues collecting while the mesh is visible. Switching tabs preserves
@@ -88,6 +89,15 @@ the solver's actual stopping reason.
 
 The plots are rendered locally with canvas and no additional dependencies.
 Only scalar history is retained; density images are not saved for every iteration.
+
+**Elapsed solver time** uses a monotonic wall clock started before problem
+creation. Each evaluated history row records cumulative `elapsed_seconds`,
+including setup, the initial solve, previous callbacks, and all optimisation
+work through that iteration. Process/import warm-up, browser/network delays,
+and cleanup after the last sample are excluded. Timing resets for each run,
+and stopping retains the last evaluated sample. The same values are saved in
+`history.csv` and the final sample is included in `summary.json`. An older
+running server without timing data is labelled as unavailable until restarted.
 
 Model inputs are locked during a run; tabs remain available for inspection.
 Editing the model afterward clears

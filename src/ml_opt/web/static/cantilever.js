@@ -70,6 +70,7 @@ function updateConvergence() {
   byId("history-iteration").textContent = latest ? String(latest.iteration) : "—";
   byId("history-compliance").textContent = latest ? format(latest.compliance) : "—";
   byId("history-volume").textContent = latest ? `${(100*latest.volume_fraction).toFixed(2)}%` : "—";
+  byId("history-elapsed").textContent = Number.isFinite(latest?.elapsed_seconds) ? `${filterFormat(latest.elapsed_seconds)} s` : "—";
   byId("convergence-description").textContent = latest ?
     `${state.model.optimizer.toUpperCase()} · ${state.history.length} evaluated history ${state.history.length === 1 ? "point" : "points"} · iterations 0–${latest.iteration}` :
     "Run an optimisation to build the convergence history.";

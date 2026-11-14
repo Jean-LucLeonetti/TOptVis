@@ -144,6 +144,7 @@ input[type=range]:disabled {cursor:default}
 .convergence-actions .button {height:34px;font-size:10px;padding:0 11px}
 .convergence-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px}
 .convergence-card {overflow:hidden;min-width:0}
+.elapsed-card {grid-column:1/-1}
 .chart-heading {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:18px 19px 6px}
 .chart-heading h3 {margin:0;font-size:12px}
 .chart-heading span {font-size:10px;color:#8a979f;font-variant-numeric:tabular-nums}
