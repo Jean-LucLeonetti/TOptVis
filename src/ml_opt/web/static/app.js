@@ -1,4 +1,4 @@
-import {drawModel, drawTopology, pickNode, equivalentFilterRadius} from "/static/viewer.js";
+import {drawModel, drawTopology, pickNode} from "/static/viewer.js";
 
 const byId = id => document.getElementById(id);
 const form = byId("model-form"), modelCanvas = byId("model-canvas"), topologyCanvas = byId("topology-canvas");
@@ -74,9 +74,8 @@ function updateLabels(resizeFilterRange = true) {
   slider.step = "any";
   slider.value = radius;
   byId("filter-range-max").textContent = filterFormat(sliderMax);
-  const referenceRadius = equivalentFilterRadius(radius);
   byId("filter-description").textContent = radius > 0 ?
-    `R ≈ ${filterFormat(referenceRadius)} · Ø ≈ ${filterFormat(2 * referenceRadius)} model units · radius ${filterFormat(referenceRadius * m.nx / m.length)} × ${filterFormat(referenceRadius * m.ny / m.height)} cells` : "Filter off · design densities used directly";
+    `ℓ = ${filterFormat(radius)} · Ø = ${filterFormat(2 * radius)} model units · radius ${filterFormat(radius * m.nx / m.length)} × ${filterFormat(radius * m.ny / m.height)} cells` : "Filter off · design densities used directly";
   const beta = m.projection_beta, eta = m.projection_eta;
   const projectionSlider = byId("projection-slider");
   const projectionMax = resizeFilterRange ? Math.max(16, beta) : Number(projectionSlider.max);
@@ -86,7 +85,7 @@ function updateLabels(resizeFilterRange = true) {
   byId("projection-description").textContent = beta > 0 ?
     `β = ${filterFormat(beta)} · η = ${filterFormat(eta)} · fixed during run` : "Projection off · smoothed densities used directly";
   byId("filter-status").textContent = [radius > 0 ? "Helmholtz" : null, beta > 0 ? "Projection" : null].filter(Boolean).join(" + ") || "Filters off";
-  byId("model-filter-summary").textContent = `${radius > 0 ? `R ≈ ${filterFormat(referenceRadius)}` : "Smoothing off"} · ${beta > 0 ? `β = ${filterFormat(beta)}` : "Projection off"}`;
+  byId("model-filter-summary").textContent = `${radius > 0 ? `ℓ = ${filterFormat(radius)}` : "Smoothing off"} · ${beta > 0 ? `β = ${filterFormat(beta)}` : "Projection off"}`;
   byId("filter-legend").hidden = radius === 0;
   const rad = m.load_angle * Math.PI / 180;
   byId("force-components").textContent = `F = (${signed(m.load * Math.cos(rad))}, ${signed(m.load * Math.sin(rad))})`;

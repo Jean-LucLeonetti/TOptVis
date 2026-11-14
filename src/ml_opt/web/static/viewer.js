@@ -1,6 +1,5 @@
 const FORCE = "#df7a40";
 const clamp = (value, lower, upper) => Math.min(upper, Math.max(lower, value));
-export const equivalentFilterRadius = length => 2 * Math.sqrt(3) * length;
 
 function surface(canvas, model) {
   const {width, height} = canvas.getBoundingClientRect();
@@ -77,12 +76,11 @@ function dimensions(view, model) {
 }
 
 function filterReference(view, model, fill = true) {
-  const radius = equivalentFilterRadius(model.filter_radius || 0);
+  const radius = model.filter_radius || 0;
   if (radius <= 0) return;
   const {ctx, width, height, left, top, w, h} = view;
   const x = left + w / 2, y = top + h / 2;
-  // Conventional equivalent finite-filter radius R = 2 sqrt(3) ell.
-  // Use the same physical scale on both axes, including rectangular cells.
+  // Show the PDE length ell directly, at the same physical scale on both axes.
   const pixels = radius * w / model.length;
   ctx.save();
   ctx.beginPath(); ctx.rect(0, 0, width, height); ctx.clip();
@@ -94,7 +92,7 @@ function filterReference(view, model, fill = true) {
   ctx.moveTo(x, y - 3); ctx.lineTo(x, y + 3);
   ctx.moveTo(x + pixels, y - 3); ctx.lineTo(x + pixels, y + 3); ctx.stroke();
   ctx.font = "11px 'Segoe UI',sans-serif"; ctx.textAlign = "center";
-  const label = `R ≈ ${Number(radius.toPrecision(4))}`;
+  const label = `ℓ = ${Number(radius.toPrecision(4))}`;
   const textWidth = ctx.measureText(label).width;
   const labelX = clamp(x + pixels / 2, textWidth / 2 + 8, width - textWidth / 2 - 8);
   const labelY = Math.max(18, y - Math.min(pixels, 24) - 9);

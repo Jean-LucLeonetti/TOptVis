@@ -66,8 +66,8 @@ the previous result so it cannot be mistaken for the updated load case.
 The interface uses the same solver as the command-line example. The
 **Length · ℓ** control in the Filters tab sets the density filter length
 in model units (initially 0.1). Drag the slider or enter a value: the purple
-circle shows the conventional equivalent finite-filter radius
-`R ≈ 2√3 ℓ` at the actual geometry scale. The readout gives R, its diameter,
+circle shows the Helmholtz length ℓ as its radius
+at the actual geometry scale. The readout gives ℓ, its diameter,
 and its radius in x/y cell spacings. The same reference is drawn over the
 live topology so it can be compared with the members. Geometry and mesh
 changes update that reference
@@ -140,11 +140,12 @@ both compliance and volume sensitivities through the projection and the
 Helmholtz adjoint. The live frames and saved `density` array contain exactly
 the physical density used for the state solve.
 
-ℓ is the coefficient length in the PDE. The displayed circle uses the
-approximate equivalent radius `R ≈ 2√3 ℓ` of the classical finite-support
-linear density filter; for ℓ = 0.1 it shows R ≈ 0.3464 and diameter ≈ 0.6928.
-This is a feature-scale reference, not a guaranteed member thickness. The
-Helmholtz influence extends beyond the circle. See
+ℓ is the coefficient length in the PDE. The displayed circle has radius ℓ;
+for ℓ = 0.1 it shows radius 0.1 and diameter 0.2. This is a smoothing-length
+reference, not a guaranteed member thickness. The Helmholtz influence extends
+beyond the circle. For comparison with a classical finite-support linear
+filter, its conventional approximate equivalent radius is `R ≈ 2√3 ℓ`;
+this larger R is not used for the visual circle. See
 [the DTU filter comparison, Eq. 17](https://www.topopt.mek.dtu.dk/-/media/subsites/topopt/apps/dokumenter-og-filer-til-apps/topopt88.pdf).
 The Helmholtz PDE with homogeneous
 Neumann boundary conditions follows the approach of

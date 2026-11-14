@@ -68,8 +68,8 @@
               <label for="filter_radius">Length · ℓ<input id="filter_radius" name="filter_radius" type="number" min="0" max="1000" step="any" value="0.1" aria-describedby="filter-description filter-hint" required></label>
               <input id="filter-slider" type="range" min="0" max="0.5" step="0.005" value="0.1" aria-label="Helmholtz filter size in model units">
               <div class="range-labels"><span>Off</span><span id="filter-range-max">0.5</span></div>
-              <div class="filter-description" id="filter-description" aria-live="polite">R ≈ 0.3464 · Ø ≈ 0.6928 model units</div>
-              <p class="filter-hint" id="filter-hint">Circle radius R ≈ 2√3 ℓ is an equivalent finite-filter scale, not a guaranteed member thickness. Set ℓ to 0 to disable.</p>
+              <div class="filter-description" id="filter-description" aria-live="polite">ℓ = 0.1 · Ø = 0.2 model units · radius 2 × 2 cells</div>
+              <p class="filter-hint" id="filter-hint">The circle shows the Helmholtz length ℓ as its radius, in model units. Set ℓ to 0 to disable smoothing.</p>
               <div class="filter-divider"></div>
               <h3>Heaviside projection</h3>
               <div class="input-grid">
@@ -98,9 +98,9 @@
 
       <div class="viewers">
         <section class="panel viewer-panel" aria-labelledby="model-title">
-          <div class="panel-heading"><div><h2 id="model-title">Geometry & mesh</h2><p id="selection-description">Load at node (60, 10)</p></div><span class="viewer-badge" id="model-filter-summary">R ≈ 0.3464 · β = 2</span></div>
-          <div class="canvas-wrap model-wrap"><canvas id="model-canvas" tabindex="0" role="img" aria-label="Cantilever mesh with the equivalent finite-filter radius reference circle. Click a free node to select the load position."></canvas></div>
-          <div class="viewer-footer"><div class="legend"><span><i class="legend-support"></i>Fixed edge</span><span><i class="legend-load"></i>Applied load</span><span id="filter-legend"><i class="legend-filter"></i>Equivalent radius R</span></div><span id="force-components">F = (0.00, −1.00)</span></div>
+          <div class="panel-heading"><div><h2 id="model-title">Geometry & mesh</h2><p id="selection-description">Load at node (60, 10)</p></div><span class="viewer-badge" id="model-filter-summary">ℓ = 0.1 · β = 2</span></div>
+          <div class="canvas-wrap model-wrap"><canvas id="model-canvas" tabindex="0" role="img" aria-label="Cantilever mesh with the Helmholtz length reference circle. Click a free node to select the load position."></canvas></div>
+          <div class="viewer-footer"><div class="legend"><span><i class="legend-support"></i>Fixed edge</span><span><i class="legend-load"></i>Applied load</span><span id="filter-legend"><i class="legend-filter"></i>Helmholtz length ℓ</span></div><span id="force-components">F = (0.00, −1.00)</span></div>
         </section>
 
         <section class="panel viewer-panel topology-panel" aria-labelledby="topology-title">
@@ -110,7 +110,7 @@
             <div><span>MATERIAL VOLUME</span><strong id="current-volume">—</strong><small id="volume-target">Target 40%</small></div>
             <div><span>ITERATION</span><strong id="iteration">—<em> / 100</em></strong><small id="density-change">No iterations yet</small></div>
           </div>
-          <div class="canvas-wrap topology-wrap"><canvas id="topology-canvas" role="img" aria-label="Live physical material density after Helmholtz filtering and Heaviside projection, with an equivalent finite-filter radius reference circle"></canvas><div class="empty-state" id="empty-state"><span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M4 4h8v8H4zm12 0h8v8h-8zM4 16h8v8H4zm12 0h8v8h-8z"/></svg></span><strong>Your design starts here</strong><span>Click Run optimisation to begin.</span></div></div>
+          <div class="canvas-wrap topology-wrap"><canvas id="topology-canvas" role="img" aria-label="Live physical material density after Helmholtz filtering and Heaviside projection, with a Helmholtz length reference circle"></canvas><div class="empty-state" id="empty-state"><span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M4 4h8v8H4zm12 0h8v8h-8zM4 16h8v8H4zm12 0h8v8h-8z"/></svg></span><strong>Your design starts here</strong><span>Click Run optimisation to begin.</span></div></div>
           <div class="iteration-progress"><span id="progress-bar"></span></div>
           <div class="viewer-footer"><div class="density-legend"><span>Void</span><i></i><span>Solid</span></div><span id="live-note">Updates after every evaluated iteration</span></div>
         </section>
