@@ -109,7 +109,7 @@ a message recommending more training or correction. A low raw-model
 stopping metric does not certify the physical design.
 
 Trials use one material field, the training mesh, fixed training projection
-beta and filter, and no maximum-size constraint. Adaptive basis updates occur
+beta and filter, and no solid/void maximum-size constraints. Adaptive basis updates occur
 only after accepted outer states, including the initial state; GCMMA trials
 never mutate the basis. An enriched span includes the accepted FOM state,
 so its state and physical gradient at that accepted design are preserved.

@@ -130,7 +130,7 @@ def experiment_config(metadata,options):
     return replace(base,load_node_x=base.nx,load_node_y=int(np.floor(height*base.ny+.5)),
         load_angle=options.get('load_angle',-75.),volume_fraction=options.get('volume_fraction',.35),
         optimizer=options.get('optimizer','mma'),max_iterations=options.get('max_iterations',20),
-        min_iterations=options.get('max_iterations',20),robust=False,max_solid_size=0,
+        min_iterations=options.get('max_iterations',20),robust=False,max_solid_size=0,max_void_size=0,
         projection_schedule='fixed',state_solver='fom',rom_basis_path=None,rom_basis_sha256=None)
 
 

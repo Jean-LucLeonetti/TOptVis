@@ -175,10 +175,11 @@ async function refresh({preferredDataset=null,preferredModel=null}={}) {
   if (!state.datasets.length) $("ml-dataset").add(new Option("No saved datasets",""));
   if (state.datasets.some(item=>item.id===previous)) $("ml-dataset").value=previous;
   dataNote();
-  const id=preferredModel||state.selectedId||state.models.find(usable)?.id;
+  const initialSelection=!state.selectedId&&!preferredDataset&&!preferredModel;
+  const id=preferredModel||state.selectedId||state.models.find(model=>usable(model)&&model.family===state.family)?.id||state.models.find(usable)?.id;
   if (preferredModel) state.checked.add(preferredModel);
   library();
-  if (id&&state.models.some(item=>item.id===id)) await inspect(id,{syncTraining:!!preferredModel&&!preferredDataset});
+  if (id&&state.models.some(item=>item.id===id)) await inspect(id,{syncTraining:initialSelection||!!preferredModel&&!preferredDataset});
   buttons();
 }
 

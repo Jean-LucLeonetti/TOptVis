@@ -105,10 +105,11 @@ class Predictor:
             displacement=self.tensor(torch.from_numpy(moduli)[None])[0].numpy()
         return state_from_displacement(displacement,moduli,self.mesh,self.stiffness,self.force)
 
-    def elasticity(self):
+    def elasticity(self,linear_solver=None):
         config=self.config
         return ElasticitySolver(self.mesh,config.poisson_ratio,config.thickness,config.load,config.linear_tolerance,
-            load_angle=config.load_angle,load_node=None if config.load_node_x is None else (config.load_node_x,config.load_node_y))
+            load_angle=config.load_angle,load_node=None if config.load_node_x is None else (config.load_node_x,config.load_node_y),
+            linear_solver=linear_solver or config.linear_solver)
 
     def solve(self,moduli):
         if self.closed: raise RuntimeError('The model solver is closed')
@@ -116,9 +117,7 @@ class Predictor:
         self.last_used_fom=False
         if self.mode=='corrected':
             if self.corrector is None:
-                self.corrector=self.elasticity()
-                self.corrector._solver.setType('cg')
-                self.corrector._solver.getPC().setType('gamg')
+                self.corrector=self.elasticity('cg-gamg')
                 self.corrector._solver.setInitialGuessNonzero(True)
             if not self.lu_fallbacks:
                 self.corrector._solution.array[:]=raw.displacement[self.mesh.free_dofs]
@@ -126,9 +125,9 @@ class Predictor:
             except (RuntimeError,PETSc.Error):
                 # A difficult contrast/mesh can defeat the iterative configuration.
                 # Record the fallback and retain the same checked equilibrium target.
-                self.corrector._solver.setType('preonly')
-                self.corrector._solver.getPC().setType('lu')
-                self.corrector._solver.setInitialGuessNonzero(False)
+                self.correction_iterations+=self.corrector._solver.getIterationNumber()
+                self.corrector.close()
+                self.corrector=self.elasticity('lu')
                 self.lu_fallbacks+=1
                 state=self.corrector.solve(moduli)
             self.correction_iterations+=state.iterations; self.fom_solves+=1; self.last_used_fom=True

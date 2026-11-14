@@ -8,6 +8,7 @@ import pytest
 import torch
 
 from ml_opt.config import CantileverConfig
+from ml_opt.fem.elasticity import ElasticitySolver
 from ml_opt.problem import CantileverProblem
 from ml_opt.rom.training import SnapshotConfig,generate_snapshots,read_metadata
 from ml_opt.rom.validation import ValidationConfig
@@ -133,6 +134,29 @@ def test_cancellation_preserves_checkpoint_and_bad_geometry_is_rejected(fitted,t
     path=directory/'model.pt';path.write_bytes(path.read_bytes()+b'changed')
     with pytest.raises(ValueError,match='changed'):
         Predictor(directory,config())
+
+
+def test_correction_lu_fallback_is_checked_and_counted(fitted,monkeypatch):
+    _,_,models=fitted; directory,_=models['cnn']; settings=config()
+    original=ElasticitySolver.solve
+    def fail_iterative(solver,moduli):
+        if solver.linear_solver=='cg-gamg': raise RuntimeError('Synthetic iterative failure')
+        return original(solver,moduli)
+    monkeypatch.setattr(ElasticitySolver,'solve',fail_iterative)
+    with ModelProblem(settings,Predictor(directory,settings,mode='corrected')) as problem:
+        evaluation=problem.evaluate(problem.initial_design())
+        assert evaluation.residual<1e-7 and problem.solver.lu_fallbacks==1
+        assert problem.solver.corrector.linear_solver=='lu'
+        problem.evaluate(np.full(18,.45))
+        assert problem.solver.lu_fallbacks==1 and problem.solver.fom_solves==2
+
+
+@pytest.mark.parametrize('family',['fno','adaptive_pod'])
+def test_gcmma_experiment_preserves_consistency_with_state_cache(fitted,family):
+    _,_,models=fitted; directory,_=models[family]
+    result=run_experiment(directory,dict(mode='corrected',optimizer='gcmma',max_iterations=2))
+    assert result['final_fom_check']['passed']
+    assert all(row['state_solver']==f'{family}/corrected' for row in result['history'])
 
 
 @pytest.mark.parametrize('options',[dict(family='unknown'),dict(width=7),dict(family='transformer',width=10),
