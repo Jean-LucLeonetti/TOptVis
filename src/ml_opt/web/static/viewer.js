@@ -1,5 +1,6 @@
 const FORCE = "#df7a40";
 const clamp = (value, lower, upper) => Math.min(upper, Math.max(lower, value));
+export const equivalentFilterRadius = length => 2 * Math.sqrt(3) * length;
 
 function surface(canvas, model) {
   const {width, height} = canvas.getBoundingClientRect();
@@ -75,25 +76,25 @@ function dimensions(view, model) {
   ctx.fillText(`H = ${model.height}`, 0, 0); ctx.restore();
 }
 
-function filterReference(view, model) {
-  const radius = model.filter_radius || 0;
+function filterReference(view, model, fill = true) {
+  const radius = equivalentFilterRadius(model.filter_radius || 0);
   if (radius <= 0) return;
   const {ctx, width, height, left, top, w, h} = view;
   const x = left + w / 2, y = top + h / 2;
-  // One physical scale on both axes: a circular PDE length reference, even
-  // when cells are rectangular. Keep the true radius if it exceeds the mesh.
+  // Conventional equivalent finite-filter radius R = 2 sqrt(3) ell.
+  // Use the same physical scale on both axes, including rectangular cells.
   const pixels = radius * w / model.length;
   ctx.save();
   ctx.beginPath(); ctx.rect(0, 0, width, height); ctx.clip();
   ctx.beginPath(); ctx.arc(x, y, pixels, 0, 2 * Math.PI);
-  ctx.fillStyle = "#8272c41a"; ctx.fill();
+  if (fill) { ctx.fillStyle = "#8272c41a"; ctx.fill(); }
   ctx.strokeStyle = "#7961b2"; ctx.lineWidth = 1.6;
   ctx.setLineDash([5, 3]); ctx.stroke(); ctx.setLineDash([]);
   ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + pixels, y);
   ctx.moveTo(x, y - 3); ctx.lineTo(x, y + 3);
   ctx.moveTo(x + pixels, y - 3); ctx.lineTo(x + pixels, y + 3); ctx.stroke();
   ctx.font = "11px 'Segoe UI',sans-serif"; ctx.textAlign = "center";
-  const label = `ℓ = ${Number(radius.toPrecision(4))}`;
+  const label = `R ≈ ${Number(radius.toPrecision(4))}`;
   const textWidth = ctx.measureText(label).width;
   const labelX = clamp(x + pixels / 2, textWidth / 2 + 8, width - textWidth / 2 - 8);
   const labelY = Math.max(18, y - Math.min(pixels, 24) - 9);
@@ -147,7 +148,7 @@ export function drawTopology(canvas, model, density) {
     ctx.fillStyle = "#f7fafb"; ctx.fillRect(left, top, w, h);
   }
   support(view); outline(view); dimensions(view, model);
-  if (density) load(view, model);
+  if (density) { filterReference(view, model, false); load(view, model); }
 }
 
 export function pickNode(canvas, model, event) {

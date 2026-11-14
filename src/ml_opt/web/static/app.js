@@ -1,4 +1,4 @@
-import {drawModel, drawTopology, pickNode} from "/static/viewer.js";
+import {drawModel, drawTopology, pickNode, equivalentFilterRadius} from "/static/viewer.js";
 
 const byId = id => document.getElementById(id);
 const form = byId("model-form"), modelCanvas = byId("model-canvas"), topologyCanvas = byId("topology-canvas");
@@ -44,8 +44,9 @@ function updateLabels(resizeFilterRange = true) {
   slider.step = "any";
   slider.value = radius;
   byId("filter-range-max").textContent = filterFormat(sliderMax);
+  const referenceRadius = equivalentFilterRadius(radius);
   byId("filter-description").textContent = radius > 0 ?
-    `ℓ = ${filterFormat(radius)} model units · ${filterFormat(radius * m.nx / m.length)} × ${filterFormat(radius * m.ny / m.height)} cells` : "Filter off · design densities used directly";
+    `R ≈ ${filterFormat(referenceRadius)} · Ø ≈ ${filterFormat(2 * referenceRadius)} model units · radius ${filterFormat(referenceRadius * m.nx / m.length)} × ${filterFormat(referenceRadius * m.ny / m.height)} cells` : "Filter off · design densities used directly";
   byId("filter-status").textContent = radius > 0 ? "Helmholtz filter" : "Filter off";
   byId("filter-legend").hidden = radius === 0;
   const rad = m.load_angle * Math.PI / 180;

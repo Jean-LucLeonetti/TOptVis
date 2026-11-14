@@ -57,8 +57,11 @@ the previous result so it cannot be mistaken for the updated load case.
 The interface uses the same solver as the command-line example. The
 **Helmholtz size · ℓ** control beside the mesh sets the density filter length
 in model units (initially 0.1). Drag the slider or enter a value: the purple
-circle shows radius ℓ at the actual geometry scale, and the readout gives
-the size in x/y cell spacings. Geometry and mesh changes update that reference
+circle shows the conventional equivalent finite-filter radius
+`R ≈ 2√3 ℓ` at the actual geometry scale. The readout gives R, its diameter,
+and its radius in x/y cell spacings. The same reference is drawn over the
+live topology so it can be compared with the members. Geometry and mesh
+changes update that reference
 immediately. Set ℓ to 0 to disable filtering. Controls lock during a run;
 changing the size afterward clears the previous result.
 Mesh and load edits update the preview before the run starts. A local worker
@@ -102,9 +105,13 @@ compliance and volume gradients back through the filter to the design
 variables. As with the elasticity bridge, this supports first derivatives on
 CPU float64 tensors. No projection is applied.
 
-ℓ is the coefficient length in the PDE, not a compact support radius or a
-guaranteed minimum member thickness. The visual circle is a size reference;
-the filter's influence decays beyond it. The Helmholtz PDE with homogeneous
+ℓ is the coefficient length in the PDE. The displayed circle uses the
+approximate equivalent radius `R ≈ 2√3 ℓ` of the classical finite-support
+linear density filter; for ℓ = 0.1 it shows R ≈ 0.3464 and diameter ≈ 0.6928.
+This is a feature-scale reference, not a guaranteed member thickness. The
+Helmholtz influence extends beyond the circle. See
+[the DTU filter comparison, Eq. 17](https://www.topopt.mek.dtu.dk/-/media/subsites/topopt/apps/dokumenter-og-filer-til-apps/topopt88.pdf).
+The Helmholtz PDE with homogeneous
 Neumann boundary conditions follows the approach of
 [Lazarov and Sigmund (2011)](https://orbit.dtu.dk/en/publications/filters-in-topology-optimization-based-on-helmholtztype-different/).
 

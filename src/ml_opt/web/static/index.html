@@ -83,12 +83,12 @@
               <div class="range-labels"><span>Off</span><span id="filter-range-max">0.5</span></div>
             </div>
             <div class="filter-caption">
-              <div class="filter-description" id="filter-description" aria-live="polite">ℓ = 0.1 model units · 2 × 2 cells</div>
-              <p class="filter-hint" id="filter-hint">Circle radius ℓ in model units, not a cutoff. Set 0 to disable.</p>
+              <div class="filter-description" id="filter-description" aria-live="polite">R ≈ 0.3464 · Ø ≈ 0.6928 model units · radius 6.928 × 6.928 cells</div>
+              <p class="filter-hint" id="filter-hint">Circle radius R ≈ 2√3 ℓ: equivalent finite-filter scale, not a guaranteed member thickness. Set 0 to disable.</p>
             </div>
           </fieldset>
-          <div class="canvas-wrap model-wrap"><canvas id="model-canvas" tabindex="0" role="img" aria-label="Cantilever mesh with a Helmholtz size reference circle. Click a free node to select the load position. You can also use the node column and row inputs."></canvas></div>
-          <div class="viewer-footer"><div class="legend"><span><i class="legend-support"></i>Fixed edge</span><span><i class="legend-load"></i>Applied load</span><span id="filter-legend"><i class="legend-filter"></i>Helmholtz ℓ</span></div><span id="force-components">F = (0.00, −1.00)</span></div>
+          <div class="canvas-wrap model-wrap"><canvas id="model-canvas" tabindex="0" role="img" aria-label="Cantilever mesh with the equivalent finite-filter radius reference circle. Click a free node to select the load position. You can also use the node column and row inputs."></canvas></div>
+          <div class="viewer-footer"><div class="legend"><span><i class="legend-support"></i>Fixed edge</span><span><i class="legend-load"></i>Applied load</span><span id="filter-legend"><i class="legend-filter"></i>Equivalent radius R</span></div><span id="force-components">F = (0.00, −1.00)</span></div>
         </section>
 
         <section class="panel viewer-panel topology-panel" aria-labelledby="topology-title">
@@ -98,7 +98,7 @@
             <div><span>MATERIAL VOLUME</span><strong id="current-volume">—</strong><small id="volume-target">Target 40%</small></div>
             <div><span>ITERATION</span><strong id="iteration">—<em> / 100</em></strong><small id="density-change">No iterations yet</small></div>
           </div>
-          <div class="canvas-wrap topology-wrap"><canvas id="topology-canvas" role="img" aria-label="Live material density for each mesh element"></canvas><div class="empty-state" id="empty-state"><span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M4 4h8v8H4zm12 0h8v8h-8zM4 16h8v8H4zm12 0h8v8h-8z"/></svg></span><strong>Your design starts here</strong><span>Click Run optimisation to begin.</span></div></div>
+          <div class="canvas-wrap topology-wrap"><canvas id="topology-canvas" role="img" aria-label="Live material density with an equivalent finite-filter radius reference circle"></canvas><div class="empty-state" id="empty-state"><span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M4 4h8v8H4zm12 0h8v8h-8zM4 16h8v8H4zm12 0h8v8h-8z"/></svg></span><strong>Your design starts here</strong><span>Click Run optimisation to begin.</span></div></div>
           <div class="iteration-progress"><span id="progress-bar"></span></div>
           <div class="viewer-footer"><div class="density-legend"><span>Void</span><i></i><span>Solid</span></div><span id="live-note">Updates after every evaluated iteration</span></div>
         </section>
