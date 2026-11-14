@@ -1,0 +1,524 @@
+{
+  "timestamp_utc": "2026-11-14T11:40:59.410316+00:00",
+  "baseline_commit": "b6596a7",
+  "source_commit": "a14b5097bfdd21fa4b20423147d7b3eabdb2ae63",
+  "environment": {
+    "python": "3.14.4",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+    "logical_cpus": 20,
+    "torch_threads": 14,
+    "torch_interop_threads": 14,
+    "versions": {
+      "numpy": "2.5.4",
+      "scipy": "1.18.1",
+      "torch": "2.15.0",
+      "petsc4py": "3.26.1",
+      "mmapy": "0.3.1",
+      "fastapi": "0.162.7",
+      "uvicorn": "0.54.0"
+    },
+    "thread_environment": {
+      "OMP_NUM_THREADS": null,
+      "MKL_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": null
+    },
+    "parallel_info": "ATen/Parallel:\n\tat::get_num_threads() : 14\n\tat::get_num_interop_threads() : 14\nOpenMP 2019\n\tomp_get_max_threads() : 14\nIntel(R) oneAPI Math Kernel Library Version 2026.2-Product Build 20260915 for Intel(R) 64 architecture applications\n\tmkl_get_max_threads() : 14\nIntel(R) MKL-DNN v3.13.3 (Git Hash b38f97eb6f2173513112f15a0481750b8a66e901)\nstd::thread::hardware_concurrency() : 20\nEnvironment variables:\n\tOMP_NUM_THREADS : [not set]\n\tMKL_NUM_THREADS : [not set]\nATen parallel backend: OpenMP\n",
+    "memory": {
+      "total_ram_bytes": 16866312192,
+      "available_ram_bytes": 1772355584,
+      "memory_load_percent": 89
+    }
+  },
+  "repeats": 3,
+  "cases": [
+    {
+      "nx": 60,
+      "ny": 20,
+      "method": "mma",
+      "iterations": 20,
+      "variants": {
+        "original": {
+          "timing": {
+            "samples": [
+              0.33489870000630617,
+              0.3344902999815531,
+              0.33583830000134185
+            ],
+            "median": 0.33489870000630617,
+            "min": 0.3344902999815531,
+            "max": 0.33583830000134185
+          },
+          "trials": [
+            {
+              "seconds": 0.33489870000630617,
+              "compliance": 249.95223641538215,
+              "volume": 0.39800900556783775,
+              "residual": 7.895731855268528e-13,
+              "state_solves": 21,
+              "inner_retries": 0
+            },
+            {
+              "seconds": 0.3344902999815531,
+              "compliance": 249.95223641538215,
+              "volume": 0.39800900556783775,
+              "residual": 7.895731855268528e-13,
+              "state_solves": 21,
+              "inner_retries": 0
+            },
+            {
+              "seconds": 0.33583830000134185,
+              "compliance": 249.95223641538215,
+              "volume": 0.39800900556783775,
+              "residual": 7.895731855268528e-13,
+              "state_solves": 21,
+              "inner_retries": 0
+            }
+          ]
+        },
+        "petsc_reuse": {
+          "timing": {
+            "samples": [
+              0.2735409000015352,
+              0.267857400001958,
+              0.2701599999854807
+            ],
+            "median": 0.2701599999854807,
+            "min": 0.267857400001958,
+            "max": 0.2735409000015352
+          },
+          "trials": [
+            {
+              "seconds": 0.2735409000015352,
+              "compliance": 249.95223641934024,
+              "volume": 0.39800900556663343,
+              "residual": 8.102674588277267e-13,
+              "state_solves": 21,
+              "inner_retries": 0
+            },
+            {
+              "seconds": 0.267857400001958,
+              "compliance": 249.95223641934024,
+              "volume": 0.39800900556663343,
+              "residual": 8.102674588277267e-13,
+              "state_solves": 21,
+              "inner_retries": 0
+            },
+            {
+              "seconds": 0.2701599999854807,
+              "compliance": 249.95223641934024,
+              "volume": 0.39800900556663343,
+              "residual": 8.102674588277267e-13,
+              "state_solves": 21,
+              "inner_retries": 0
+            }
+          ]
+        },
+        "petsc_and_broadcast": {
+          "timing": {
+            "samples": [
+              0.1754081999824848,
+              0.17307420002180152,
+              0.17678790001082234
+            ],
+            "median": 0.1754081999824848,
+            "min": 0.17307420002180152,
+            "max": 0.17678790001082234
+          },
+          "trials": [
+            {
+              "seconds": 0.1754081999824848,
+              "compliance": 249.95223641934024,
+              "volume": 0.39800900556663343,
+              "residual": 8.102674588277267e-13,
+              "state_solves": 21,
+              "inner_retries": 0
+            },
+            {
+              "seconds": 0.17307420002180152,
+              "compliance": 249.95223641934024,
+              "volume": 0.39800900556663343,
+              "residual": 8.102674588277267e-13,
+              "state_solves": 21,
+              "inner_retries": 0
+            },
+            {
+              "seconds": 0.17678790001082234,
+              "compliance": 249.95223641934024,
+              "volume": 0.39800900556663343,
+              "residual": 8.102674588277267e-13,
+              "state_solves": 21,
+              "inner_retries": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "nx": 60,
+      "ny": 20,
+      "method": "gcmma",
+      "iterations": 20,
+      "variants": {
+        "original": {
+          "timing": {
+            "samples": [
+              0.5944038000016008,
+              0.566738500026986,
+              0.5097884999995586
+            ],
+            "median": 0.566738500026986,
+            "min": 0.5097884999995586,
+            "max": 0.5944038000016008
+          },
+          "trials": [
+            {
+              "seconds": 0.5944038000016008,
+              "compliance": 249.33914629148833,
+              "volume": 0.398823682296354,
+              "residual": 8.623348172669347e-13,
+              "state_solves": 43,
+              "inner_retries": 2
+            },
+            {
+              "seconds": 0.566738500026986,
+              "compliance": 249.33914629148833,
+              "volume": 0.398823682296354,
+              "residual": 8.623348172669347e-13,
+              "state_solves": 43,
+              "inner_retries": 2
+            },
+            {
+              "seconds": 0.5097884999995586,
+              "compliance": 249.33914629148833,
+              "volume": 0.398823682296354,
+              "residual": 8.623348172669347e-13,
+              "state_solves": 43,
+              "inner_retries": 2
+            }
+          ]
+        },
+        "petsc_reuse": {
+          "timing": {
+            "samples": [
+              0.38035170000512153,
+              0.3821240000252146,
+              0.38151469998410903
+            ],
+            "median": 0.38151469998410903,
+            "min": 0.38035170000512153,
+            "max": 0.3821240000252146
+          },
+          "trials": [
+            {
+              "seconds": 0.38035170000512153,
+              "compliance": 249.33914623683336,
+              "volume": 0.3988236823028819,
+              "residual": 9.815088247354347e-13,
+              "state_solves": 43,
+              "inner_retries": 2
+            },
+            {
+              "seconds": 0.3821240000252146,
+              "compliance": 249.33914623683336,
+              "volume": 0.3988236823028819,
+              "residual": 9.815088247354347e-13,
+              "state_solves": 43,
+              "inner_retries": 2
+            },
+            {
+              "seconds": 0.38151469998410903,
+              "compliance": 249.33914623683336,
+              "volume": 0.3988236823028819,
+              "residual": 9.815088247354347e-13,
+              "state_solves": 43,
+              "inner_retries": 2
+            }
+          ]
+        },
+        "petsc_and_broadcast": {
+          "timing": {
+            "samples": [
+              0.29199230001540855,
+              0.25631549998070113,
+              0.2629538000037428
+            ],
+            "median": 0.2629538000037428,
+            "min": 0.25631549998070113,
+            "max": 0.29199230001540855
+          },
+          "trials": [
+            {
+              "seconds": 0.29199230001540855,
+              "compliance": 249.33914623683336,
+              "volume": 0.3988236823028819,
+              "residual": 9.815088247354347e-13,
+              "state_solves": 43,
+              "inner_retries": 2
+            },
+            {
+              "seconds": 0.25631549998070113,
+              "compliance": 249.33914623683336,
+              "volume": 0.3988236823028819,
+              "residual": 9.815088247354347e-13,
+              "state_solves": 43,
+              "inner_retries": 2
+            },
+            {
+              "seconds": 0.2629538000037428,
+              "compliance": 249.33914623683336,
+              "volume": 0.3988236823028819,
+              "residual": 9.815088247354347e-13,
+              "state_solves": 43,
+              "inner_retries": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "nx": 120,
+      "ny": 40,
+      "method": "mma",
+      "iterations": 20,
+      "variants": {
+        "original": {
+          "timing": {
+            "samples": [
+              1.4377547999902163,
+              1.4846747999836225,
+              1.3869674000015948
+            ],
+            "median": 1.4377547999902163,
+            "min": 1.3869674000015948,
+            "max": 1.4846747999836225
+          },
+          "trials": [
+            {
+              "seconds": 1.4377547999902163,
+              "compliance": 250.71379376433143,
+              "volume": 0.3983603860754859,
+              "residual": 1.8787858423796866e-12,
+              "state_solves": 21,
+              "inner_retries": 0
+            },
+            {
+              "seconds": 1.4846747999836225,
+              "compliance": 250.71379376433143,
+              "volume": 0.3983603860754859,
+              "residual": 1.8787858423796866e-12,
+              "state_solves": 21,
+              "inner_retries": 0
+            },
+            {
+              "seconds": 1.3869674000015948,
+              "compliance": 250.71379376433143,
+              "volume": 0.3983603860754859,
+              "residual": 1.8787858423796866e-12,
+              "state_solves": 21,
+              "inner_retries": 0
+            }
+          ]
+        },
+        "petsc_reuse": {
+          "timing": {
+            "samples": [
+              1.0968149999971502,
+              1.0681487000256311,
+              1.069240600016201
+            ],
+            "median": 1.069240600016201,
+            "min": 1.0681487000256311,
+            "max": 1.0968149999971502
+          },
+          "trials": [
+            {
+              "seconds": 1.0968149999971502,
+              "compliance": 250.71379374070264,
+              "volume": 0.39836038609952645,
+              "residual": 1.861179715577796e-12,
+              "state_solves": 21,
+              "inner_retries": 0
+            },
+            {
+              "seconds": 1.0681487000256311,
+              "compliance": 250.71379374070264,
+              "volume": 0.39836038609952645,
+              "residual": 1.861179715577796e-12,
+              "state_solves": 21,
+              "inner_retries": 0
+            },
+            {
+              "seconds": 1.069240600016201,
+              "compliance": 250.71379374070264,
+              "volume": 0.39836038609952645,
+              "residual": 1.861179715577796e-12,
+              "state_solves": 21,
+              "inner_retries": 0
+            }
+          ]
+        },
+        "petsc_and_broadcast": {
+          "timing": {
+            "samples": [
+              0.9475919000105932,
+              1.1067729000060353,
+              0.9102320000238251
+            ],
+            "median": 0.9475919000105932,
+            "min": 0.9102320000238251,
+            "max": 1.1067729000060353
+          },
+          "trials": [
+            {
+              "seconds": 0.9475919000105932,
+              "compliance": 250.71379374070264,
+              "volume": 0.39836038609952645,
+              "residual": 1.861179715577796e-12,
+              "state_solves": 21,
+              "inner_retries": 0
+            },
+            {
+              "seconds": 1.1067729000060353,
+              "compliance": 250.71379374070264,
+              "volume": 0.39836038609952645,
+              "residual": 1.861179715577796e-12,
+              "state_solves": 21,
+              "inner_retries": 0
+            },
+            {
+              "seconds": 0.9102320000238251,
+              "compliance": 250.71379374070264,
+              "volume": 0.39836038609952645,
+              "residual": 1.861179715577796e-12,
+              "state_solves": 21,
+              "inner_retries": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "nx": 120,
+      "ny": 40,
+      "method": "gcmma",
+      "iterations": 20,
+      "variants": {
+        "original": {
+          "timing": {
+            "samples": [
+              2.5429057000146713,
+              2.545255300006829,
+              2.557404699997278
+            ],
+            "median": 2.545255300006829,
+            "min": 2.5429057000146713,
+            "max": 2.557404699997278
+          },
+          "trials": [
+            {
+              "seconds": 2.5429057000146713,
+              "compliance": 247.0268409541911,
+              "volume": 0.3978290740238071,
+              "residual": 2.044084448716876e-12,
+              "state_solves": 45,
+              "inner_retries": 4
+            },
+            {
+              "seconds": 2.545255300006829,
+              "compliance": 247.0268409541911,
+              "volume": 0.3978290740238071,
+              "residual": 2.044084448716876e-12,
+              "state_solves": 45,
+              "inner_retries": 4
+            },
+            {
+              "seconds": 2.557404699997278,
+              "compliance": 247.0268409541911,
+              "volume": 0.3978290740238071,
+              "residual": 2.044084448716876e-12,
+              "state_solves": 45,
+              "inner_retries": 4
+            }
+          ]
+        },
+        "petsc_reuse": {
+          "timing": {
+            "samples": [
+              1.7747712999989744,
+              1.7421602999966126,
+              1.7382887999992818
+            ],
+            "median": 1.7421602999966126,
+            "min": 1.7382887999992818,
+            "max": 1.7747712999989744
+          },
+          "trials": [
+            {
+              "seconds": 1.7747712999989744,
+              "compliance": 247.02684090841748,
+              "volume": 0.39782907403169027,
+              "residual": 2.0029622718792393e-12,
+              "state_solves": 45,
+              "inner_retries": 4
+            },
+            {
+              "seconds": 1.7421602999966126,
+              "compliance": 247.02684090841748,
+              "volume": 0.39782907403169027,
+              "residual": 2.0029622718792393e-12,
+              "state_solves": 45,
+              "inner_retries": 4
+            },
+            {
+              "seconds": 1.7382887999992818,
+              "compliance": 247.02684090841748,
+              "volume": 0.39782907403169027,
+              "residual": 2.0029622718792393e-12,
+              "state_solves": 45,
+              "inner_retries": 4
+            }
+          ]
+        },
+        "petsc_and_broadcast": {
+          "timing": {
+            "samples": [
+              1.5342603999888524,
+              1.5389368000032846,
+              1.5672090000007302
+            ],
+            "median": 1.5389368000032846,
+            "min": 1.5342603999888524,
+            "max": 1.5672090000007302
+          },
+          "trials": [
+            {
+              "seconds": 1.5342603999888524,
+              "compliance": 247.02684090841748,
+              "volume": 0.39782907403169027,
+              "residual": 2.0029622718792393e-12,
+              "state_solves": 45,
+              "inner_retries": 4
+            },
+            {
+              "seconds": 1.5389368000032846,
+              "compliance": 247.02684090841748,
+              "volume": 0.39782907403169027,
+              "residual": 2.0029622718792393e-12,
+              "state_solves": 45,
+              "inner_retries": 4
+            },
+            {
+              "seconds": 1.5672090000007302,
+              "compliance": 247.02684090841748,
+              "volume": 0.39782907403169027,
+              "residual": 2.0029622718792393e-12,
+              "state_solves": 45,
+              "inner_retries": 4
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

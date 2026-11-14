@@ -1,0 +1,132 @@
+{
+  "timestamp_utc": "2026-11-14T11:44:45.090327+00:00",
+  "source_commit": "3872ab2b1514dadc068d92792719b0cdf46491a6",
+  "environment": {
+    "python": "3.14.4",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+    "logical_cpus": 20,
+    "torch_threads": 14,
+    "torch_interop_threads": 14,
+    "versions": {
+      "numpy": "2.5.4",
+      "scipy": "1.18.1",
+      "torch": "2.15.0",
+      "petsc4py": "3.26.1",
+      "mmapy": "0.3.1",
+      "fastapi": "0.162.7",
+      "uvicorn": "0.54.0"
+    },
+    "thread_environment": {
+      "OMP_NUM_THREADS": null,
+      "MKL_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": null
+    },
+    "parallel_info": "ATen/Parallel:\n\tat::get_num_threads() : 14\n\tat::get_num_interop_threads() : 14\nOpenMP 2019\n\tomp_get_max_threads() : 14\nIntel(R) oneAPI Math Kernel Library Version 2026.2-Product Build 20260915 for Intel(R) 64 architecture applications\n\tmkl_get_max_threads() : 14\nIntel(R) MKL-DNN v3.13.3 (Git Hash b38f97eb6f2173513112f15a0481750b8a66e901)\nstd::thread::hardware_concurrency() : 20\nEnvironment variables:\n\tOMP_NUM_THREADS : [not set]\n\tMKL_NUM_THREADS : [not set]\nATen parallel backend: OpenMP\n",
+    "memory": {
+      "total_ram_bytes": 16866312192,
+      "available_ram_bytes": 1978384384,
+      "memory_load_percent": 88
+    }
+  },
+  "repeats": 3,
+  "loops_per_representative_input": 10,
+  "results": [
+    {
+      "nx": 60,
+      "ny": 20,
+      "method": "mma",
+      "captured_calls": 20,
+      "maximum_output_absolute_error": 0.0,
+      "seconds_per_subproblem": {
+        "upstream": [
+          0.024765900000541782,
+          0.012788706666712338,
+          0.01899159666597067
+        ],
+        "broadcast": [
+          0.007383406666728358,
+          0.007475560000360323,
+          0.006538949999958276
+        ]
+      },
+      "median_seconds": {
+        "upstream": 0.01899159666597067,
+        "broadcast": 0.007383406666728358
+      },
+      "speedup": 2.572199734243541
+    },
+    {
+      "nx": 60,
+      "ny": 20,
+      "method": "gcmma",
+      "captured_calls": 22,
+      "maximum_output_absolute_error": 0.0,
+      "seconds_per_subproblem": {
+        "upstream": [
+          0.012525699999726688,
+          0.013298696666606703,
+          0.015814623333668957
+        ],
+        "broadcast": [
+          0.005759503333441292,
+          0.005945016666858768,
+          0.00842929666590256
+        ]
+      },
+      "median_seconds": {
+        "upstream": 0.013298696666606703,
+        "broadcast": 0.005945016666858768
+      },
+      "speedup": 2.236948592716642
+    },
+    {
+      "nx": 120,
+      "ny": 40,
+      "method": "mma",
+      "captured_calls": 20,
+      "maximum_output_absolute_error": 0.0,
+      "seconds_per_subproblem": {
+        "upstream": [
+          0.03469639666727744,
+          0.04471621666646873,
+          0.05141976333300893
+        ],
+        "broadcast": [
+          0.02354339666684003,
+          0.02476219333378443,
+          0.031045293332620835
+        ]
+      },
+      "median_seconds": {
+        "upstream": 0.04471621666646873,
+        "broadcast": 0.02476219333378443
+      },
+      "speedup": 1.8058261666772435
+    },
+    {
+      "nx": 120,
+      "ny": 40,
+      "method": "gcmma",
+      "captured_calls": 24,
+      "maximum_output_absolute_error": 0.0,
+      "seconds_per_subproblem": {
+        "upstream": [
+          0.032542099999651936,
+          0.04254434999990432,
+          0.03550371333355239
+        ],
+        "broadcast": [
+          0.024003256666280018,
+          0.023117160000644312,
+          0.020533196666898828
+        ]
+      },
+      "median_seconds": {
+        "upstream": 0.03550371333355239,
+        "broadcast": 0.023117160000644312
+      },
+      "speedup": 1.535816394944831
+    }
+  ]
+}

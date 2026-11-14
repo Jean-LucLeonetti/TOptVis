@@ -6,7 +6,8 @@ A Python project for topology optimisation with PyTorch and PETSc through
 ## Performance
 
 Measured timings, bottleneck locations, methodology, and raw data are in
-[`benchmarks/RESULTS.md`](benchmarks/RESULTS.md). Source comments `PERF B1`–`B4`
+[`benchmarks/IMPROVEMENTS.md`](benchmarks/IMPROVEMENTS.md), with the original
+baseline retained in [`benchmarks/RESULTS.md`](benchmarks/RESULTS.md). Source comments `PERF B1`–`B4`
 mark the measured hotspots. The app now prewarms and reuses one solver worker;
 each problem retains its PETSc matrix graph, vectors, KSP, and symbolic LU
 factorisation. Numerical LU factors are updated for every density evaluation.

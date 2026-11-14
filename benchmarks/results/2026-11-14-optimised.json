@@ -1,0 +1,5601 @@
+{
+  "timestamp_utc": "2026-11-14T11:37:55.154292+00:00",
+  "source_commit": "a14b5097bfdd21fa4b20423147d7b3eabdb2ae63",
+  "repeats": 3,
+  "initial_memory": {
+    "total_ram_bytes": 16866312192,
+    "available_ram_bytes": 1408839680,
+    "memory_load_percent": 91
+  },
+  "core": [
+    {
+      "case": {
+        "nx": 30,
+        "ny": 10,
+        "method": "mma",
+        "iterations": 20
+      },
+      "timing": {
+        "samples": [
+          0.11774030001834035,
+          0.2157535000005737,
+          0.17829949999577366
+        ],
+        "median": 0.17829949999577366,
+        "min": 0.11774030001834035,
+        "max": 0.2157535000005737
+      },
+      "trials": [
+        {
+          "seconds": 0.11774030001834035,
+          "iterations": 20,
+          "state_solves": 21,
+          "inner_retries": 0,
+          "compliance": 273.7097255027458,
+          "volume": 0.39823862301058965,
+          "residual": 3.6054729270008583e-13,
+          "stop_reason": "maximum_iterations",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1370664960,
+            "memory_load_percent": 91
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1368940544,
+            "memory_load_percent": 91
+          }
+        },
+        {
+          "seconds": 0.2157535000005737,
+          "iterations": 20,
+          "state_solves": 21,
+          "inner_retries": 0,
+          "compliance": 273.7097255027458,
+          "volume": 0.39823862301058965,
+          "residual": 3.6054729270008583e-13,
+          "stop_reason": "maximum_iterations",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1368940544,
+            "memory_load_percent": 91
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1356660736,
+            "memory_load_percent": 91
+          }
+        },
+        {
+          "seconds": 0.17829949999577366,
+          "iterations": 20,
+          "state_solves": 21,
+          "inner_retries": 0,
+          "compliance": 273.7097255027458,
+          "volume": 0.39823862301058965,
+          "residual": 3.6054729270008583e-13,
+          "stop_reason": "maximum_iterations",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1356660736,
+            "memory_load_percent": 91
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1341046784,
+            "memory_load_percent": 92
+          }
+        }
+      ],
+      "environment": {
+        "python": "3.14.4",
+        "platform": "Windows-11-10.0.26200-SP0",
+        "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+        "logical_cpus": 20,
+        "torch_threads": 14,
+        "torch_interop_threads": 14,
+        "versions": {
+          "numpy": "2.5.4",
+          "scipy": "1.18.1",
+          "torch": "2.15.0",
+          "petsc4py": "3.26.1",
+          "mmapy": "0.3.1",
+          "fastapi": "0.162.7",
+          "uvicorn": "0.54.0"
+        },
+        "thread_environment": {
+          "OMP_NUM_THREADS": null,
+          "MKL_NUM_THREADS": null,
+          "OPENBLAS_NUM_THREADS": null
+        },
+        "parallel_info": "ATen/Parallel:\n\tat::get_num_threads() : 14\n\tat::get_num_interop_threads() : 14\nOpenMP 2019\n\tomp_get_max_threads() : 14\nIntel(R) oneAPI Math Kernel Library Version 2026.2-Product Build 20260915 for Intel(R) 64 architecture applications\n\tmkl_get_max_threads() : 14\nIntel(R) MKL-DNN v3.13.3 (Git Hash b38f97eb6f2173513112f15a0481750b8a66e901)\nstd::thread::hardware_concurrency() : 20\nEnvironment variables:\n\tOMP_NUM_THREADS : [not set]\n\tMKL_NUM_THREADS : [not set]\nATen parallel backend: OpenMP\n",
+        "memory": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1334407168,
+          "memory_load_percent": 92
+        }
+      }
+    },
+    {
+      "case": {
+        "nx": 30,
+        "ny": 10,
+        "method": "gcmma",
+        "iterations": 20
+      },
+      "timing": {
+        "samples": [
+          0.23653600001125596,
+          0.24010190000990406,
+          0.27869239999563433
+        ],
+        "median": 0.24010190000990406,
+        "min": 0.23653600001125596,
+        "max": 0.27869239999563433
+      },
+      "trials": [
+        {
+          "seconds": 0.23653600001125596,
+          "iterations": 20,
+          "state_solves": 50,
+          "inner_retries": 9,
+          "compliance": 266.0952342890127,
+          "volume": 0.39811629144274474,
+          "residual": 4.304390231137659e-13,
+          "stop_reason": "maximum_iterations",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1207463936,
+            "memory_load_percent": 92
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1223794688,
+            "memory_load_percent": 92
+          }
+        },
+        {
+          "seconds": 0.24010190000990406,
+          "iterations": 20,
+          "state_solves": 50,
+          "inner_retries": 9,
+          "compliance": 266.0952342890127,
+          "volume": 0.39811629144274474,
+          "residual": 4.304390231137659e-13,
+          "stop_reason": "maximum_iterations",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1223794688,
+            "memory_load_percent": 92
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1281503232,
+            "memory_load_percent": 92
+          }
+        },
+        {
+          "seconds": 0.27869239999563433,
+          "iterations": 20,
+          "state_solves": 50,
+          "inner_retries": 9,
+          "compliance": 266.0952342890127,
+          "volume": 0.39811629144274474,
+          "residual": 4.304390231137659e-13,
+          "stop_reason": "maximum_iterations",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1281503232,
+            "memory_load_percent": 92
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1542344704,
+            "memory_load_percent": 90
+          }
+        }
+      ],
+      "environment": {
+        "python": "3.14.4",
+        "platform": "Windows-11-10.0.26200-SP0",
+        "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+        "logical_cpus": 20,
+        "torch_threads": 14,
+        "torch_interop_threads": 14,
+        "versions": {
+          "numpy": "2.5.4",
+          "scipy": "1.18.1",
+          "torch": "2.15.0",
+          "petsc4py": "3.26.1",
+          "mmapy": "0.3.1",
+          "fastapi": "0.162.7",
+          "uvicorn": "0.54.0"
+        },
+        "thread_environment": {
+          "OMP_NUM_THREADS": null,
+          "MKL_NUM_THREADS": null,
+          "OPENBLAS_NUM_THREADS": null
+        },
+        "parallel_info": "ATen/Parallel:\n\tat::get_num_threads() : 14\n\tat::get_num_interop_threads() : 14\nOpenMP 2019\n\tomp_get_max_threads() : 14\nIntel(R) oneAPI Math Kernel Library Version 2026.2-Product Build 20260915 for Intel(R) 64 architecture applications\n\tmkl_get_max_threads() : 14\nIntel(R) MKL-DNN v3.13.3 (Git Hash b38f97eb6f2173513112f15a0481750b8a66e901)\nstd::thread::hardware_concurrency() : 20\nEnvironment variables:\n\tOMP_NUM_THREADS : [not set]\n\tMKL_NUM_THREADS : [not set]\nATen parallel backend: OpenMP\n",
+        "memory": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1542377472,
+          "memory_load_percent": 90
+        }
+      }
+    },
+    {
+      "case": {
+        "nx": 60,
+        "ny": 20,
+        "method": "mma",
+        "iterations": 20
+      },
+      "timing": {
+        "samples": [
+          0.3120231000066269,
+          0.2650190999847837,
+          0.30017549998592585
+        ],
+        "median": 0.30017549998592585,
+        "min": 0.2650190999847837,
+        "max": 0.3120231000066269
+      },
+      "trials": [
+        {
+          "seconds": 0.3120231000066269,
+          "iterations": 20,
+          "state_solves": 21,
+          "inner_retries": 0,
+          "compliance": 249.95223641934024,
+          "volume": 0.39800900556663343,
+          "residual": 8.102674588277267e-13,
+          "stop_reason": "maximum_iterations",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1488252928,
+            "memory_load_percent": 91
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1481080832,
+            "memory_load_percent": 91
+          }
+        },
+        {
+          "seconds": 0.2650190999847837,
+          "iterations": 20,
+          "state_solves": 21,
+          "inner_retries": 0,
+          "compliance": 249.95223641934024,
+          "volume": 0.39800900556663343,
+          "residual": 8.102674588277267e-13,
+          "stop_reason": "maximum_iterations",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1481080832,
+            "memory_load_percent": 91
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1481080832,
+            "memory_load_percent": 91
+          }
+        },
+        {
+          "seconds": 0.30017549998592585,
+          "iterations": 20,
+          "state_solves": 21,
+          "inner_retries": 0,
+          "compliance": 249.95223641934024,
+          "volume": 0.39800900556663343,
+          "residual": 8.102674588277267e-13,
+          "stop_reason": "maximum_iterations",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1481080832,
+            "memory_load_percent": 91
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1480847360,
+            "memory_load_percent": 91
+          }
+        }
+      ],
+      "environment": {
+        "python": "3.14.4",
+        "platform": "Windows-11-10.0.26200-SP0",
+        "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+        "logical_cpus": 20,
+        "torch_threads": 14,
+        "torch_interop_threads": 14,
+        "versions": {
+          "numpy": "2.5.4",
+          "scipy": "1.18.1",
+          "torch": "2.15.0",
+          "petsc4py": "3.26.1",
+          "mmapy": "0.3.1",
+          "fastapi": "0.162.7",
+          "uvicorn": "0.54.0"
+        },
+        "thread_environment": {
+          "OMP_NUM_THREADS": null,
+          "MKL_NUM_THREADS": null,
+          "OPENBLAS_NUM_THREADS": null
+        },
+        "parallel_info": "ATen/Parallel:\n\tat::get_num_threads() : 14\n\tat::get_num_interop_threads() : 14\nOpenMP 2019\n\tomp_get_max_threads() : 14\nIntel(R) oneAPI Math Kernel Library Version 2026.2-Product Build 20260915 for Intel(R) 64 architecture applications\n\tmkl_get_max_threads() : 14\nIntel(R) MKL-DNN v3.13.3 (Git Hash b38f97eb6f2173513112f15a0481750b8a66e901)\nstd::thread::hardware_concurrency() : 20\nEnvironment variables:\n\tOMP_NUM_THREADS : [not set]\n\tMKL_NUM_THREADS : [not set]\nATen parallel backend: OpenMP\n",
+        "memory": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1472552960,
+          "memory_load_percent": 91
+        }
+      }
+    },
+    {
+      "case": {
+        "nx": 60,
+        "ny": 20,
+        "method": "gcmma",
+        "iterations": 20
+      },
+      "timing": {
+        "samples": [
+          0.4522896999842487,
+          0.3573389000084717,
+          0.39594400001806207
+        ],
+        "median": 0.39594400001806207,
+        "min": 0.3573389000084717,
+        "max": 0.4522896999842487
+      },
+      "trials": [
+        {
+          "seconds": 0.4522896999842487,
+          "iterations": 20,
+          "state_solves": 43,
+          "inner_retries": 2,
+          "compliance": 249.33914623683336,
+          "volume": 0.3988236823028819,
+          "residual": 9.815088247354347e-13,
+          "stop_reason": "maximum_iterations",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1414430720,
+            "memory_load_percent": 91
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1227411456,
+            "memory_load_percent": 92
+          }
+        },
+        {
+          "seconds": 0.3573389000084717,
+          "iterations": 20,
+          "state_solves": 43,
+          "inner_retries": 2,
+          "compliance": 249.33914623683336,
+          "volume": 0.3988236823028819,
+          "residual": 9.815088247354347e-13,
+          "stop_reason": "maximum_iterations",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1227411456,
+            "memory_load_percent": 92
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1121411072,
+            "memory_load_percent": 93
+          }
+        },
+        {
+          "seconds": 0.39594400001806207,
+          "iterations": 20,
+          "state_solves": 43,
+          "inner_retries": 2,
+          "compliance": 249.33914623683336,
+          "volume": 0.3988236823028819,
+          "residual": 9.815088247354347e-13,
+          "stop_reason": "maximum_iterations",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1121411072,
+            "memory_load_percent": 93
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 897912832,
+            "memory_load_percent": 94
+          }
+        }
+      ],
+      "environment": {
+        "python": "3.14.4",
+        "platform": "Windows-11-10.0.26200-SP0",
+        "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+        "logical_cpus": 20,
+        "torch_threads": 14,
+        "torch_interop_threads": 14,
+        "versions": {
+          "numpy": "2.5.4",
+          "scipy": "1.18.1",
+          "torch": "2.15.0",
+          "petsc4py": "3.26.1",
+          "mmapy": "0.3.1",
+          "fastapi": "0.162.7",
+          "uvicorn": "0.54.0"
+        },
+        "thread_environment": {
+          "OMP_NUM_THREADS": null,
+          "MKL_NUM_THREADS": null,
+          "OPENBLAS_NUM_THREADS": null
+        },
+        "parallel_info": "ATen/Parallel:\n\tat::get_num_threads() : 14\n\tat::get_num_interop_threads() : 14\nOpenMP 2019\n\tomp_get_max_threads() : 14\nIntel(R) oneAPI Math Kernel Library Version 2026.2-Product Build 20260915 for Intel(R) 64 architecture applications\n\tmkl_get_max_threads() : 14\nIntel(R) MKL-DNN v3.13.3 (Git Hash b38f97eb6f2173513112f15a0481750b8a66e901)\nstd::thread::hardware_concurrency() : 20\nEnvironment variables:\n\tOMP_NUM_THREADS : [not set]\n\tMKL_NUM_THREADS : [not set]\nATen parallel backend: OpenMP\n",
+        "memory": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 892362752,
+          "memory_load_percent": 94
+        }
+      }
+    },
+    {
+      "case": {
+        "nx": 120,
+        "ny": 40,
+        "method": "mma",
+        "iterations": 20
+      },
+      "timing": {
+        "samples": [
+          1.9197268999996595,
+          1.7413447999861091,
+          1.4897708999924362
+        ],
+        "median": 1.7413447999861091,
+        "min": 1.4897708999924362,
+        "max": 1.9197268999996595
+      },
+      "trials": [
+        {
+          "seconds": 1.9197268999996595,
+          "iterations": 20,
+          "state_solves": 21,
+          "inner_retries": 0,
+          "compliance": 250.71379374070264,
+          "volume": 0.39836038609952645,
+          "residual": 1.861179715577796e-12,
+          "stop_reason": "maximum_iterations",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1363947520,
+            "memory_load_percent": 91
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 903192576,
+            "memory_load_percent": 94
+          }
+        },
+        {
+          "seconds": 1.7413447999861091,
+          "iterations": 20,
+          "state_solves": 21,
+          "inner_retries": 0,
+          "compliance": 250.71379374070264,
+          "volume": 0.39836038609952645,
+          "residual": 1.861179715577796e-12,
+          "stop_reason": "maximum_iterations",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 903192576,
+            "memory_load_percent": 94
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1049944064,
+            "memory_load_percent": 93
+          }
+        },
+        {
+          "seconds": 1.4897708999924362,
+          "iterations": 20,
+          "state_solves": 21,
+          "inner_retries": 0,
+          "compliance": 250.71379374070264,
+          "volume": 0.39836038609952645,
+          "residual": 1.861179715577796e-12,
+          "stop_reason": "maximum_iterations",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1049944064,
+            "memory_load_percent": 93
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1045286912,
+            "memory_load_percent": 93
+          }
+        }
+      ],
+      "environment": {
+        "python": "3.14.4",
+        "platform": "Windows-11-10.0.26200-SP0",
+        "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+        "logical_cpus": 20,
+        "torch_threads": 14,
+        "torch_interop_threads": 14,
+        "versions": {
+          "numpy": "2.5.4",
+          "scipy": "1.18.1",
+          "torch": "2.15.0",
+          "petsc4py": "3.26.1",
+          "mmapy": "0.3.1",
+          "fastapi": "0.162.7",
+          "uvicorn": "0.54.0"
+        },
+        "thread_environment": {
+          "OMP_NUM_THREADS": null,
+          "MKL_NUM_THREADS": null,
+          "OPENBLAS_NUM_THREADS": null
+        },
+        "parallel_info": "ATen/Parallel:\n\tat::get_num_threads() : 14\n\tat::get_num_interop_threads() : 14\nOpenMP 2019\n\tomp_get_max_threads() : 14\nIntel(R) oneAPI Math Kernel Library Version 2026.2-Product Build 20260915 for Intel(R) 64 architecture applications\n\tmkl_get_max_threads() : 14\nIntel(R) MKL-DNN v3.13.3 (Git Hash b38f97eb6f2173513112f15a0481750b8a66e901)\nstd::thread::hardware_concurrency() : 20\nEnvironment variables:\n\tOMP_NUM_THREADS : [not set]\n\tMKL_NUM_THREADS : [not set]\nATen parallel backend: OpenMP\n",
+        "memory": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1047044096,
+          "memory_load_percent": 93
+        }
+      }
+    },
+    {
+      "case": {
+        "nx": 120,
+        "ny": 40,
+        "method": "gcmma",
+        "iterations": 20
+      },
+      "timing": {
+        "samples": [
+          2.4486057000176515,
+          2.731398400006583,
+          2.47881430000416
+        ],
+        "median": 2.47881430000416,
+        "min": 2.4486057000176515,
+        "max": 2.731398400006583
+      },
+      "trials": [
+        {
+          "seconds": 2.4486057000176515,
+          "iterations": 20,
+          "state_solves": 45,
+          "inner_retries": 4,
+          "compliance": 247.02684090841748,
+          "volume": 0.39782907403169027,
+          "residual": 2.0029622718792393e-12,
+          "stop_reason": "maximum_iterations",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 962387968,
+            "memory_load_percent": 94
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1641271296,
+            "memory_load_percent": 90
+          }
+        },
+        {
+          "seconds": 2.731398400006583,
+          "iterations": 20,
+          "state_solves": 45,
+          "inner_retries": 4,
+          "compliance": 247.02684090841748,
+          "volume": 0.39782907403169027,
+          "residual": 2.0029622718792393e-12,
+          "stop_reason": "maximum_iterations",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1641336832,
+            "memory_load_percent": 90
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1576292352,
+            "memory_load_percent": 90
+          }
+        },
+        {
+          "seconds": 2.47881430000416,
+          "iterations": 20,
+          "state_solves": 45,
+          "inner_retries": 4,
+          "compliance": 247.02684090841748,
+          "volume": 0.39782907403169027,
+          "residual": 2.0029622718792393e-12,
+          "stop_reason": "maximum_iterations",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1576292352,
+            "memory_load_percent": 90
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1683009536,
+            "memory_load_percent": 90
+          }
+        }
+      ],
+      "environment": {
+        "python": "3.14.4",
+        "platform": "Windows-11-10.0.26200-SP0",
+        "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+        "logical_cpus": 20,
+        "torch_threads": 14,
+        "torch_interop_threads": 14,
+        "versions": {
+          "numpy": "2.5.4",
+          "scipy": "1.18.1",
+          "torch": "2.15.0",
+          "petsc4py": "3.26.1",
+          "mmapy": "0.3.1",
+          "fastapi": "0.162.7",
+          "uvicorn": "0.54.0"
+        },
+        "thread_environment": {
+          "OMP_NUM_THREADS": null,
+          "MKL_NUM_THREADS": null,
+          "OPENBLAS_NUM_THREADS": null
+        },
+        "parallel_info": "ATen/Parallel:\n\tat::get_num_threads() : 14\n\tat::get_num_interop_threads() : 14\nOpenMP 2019\n\tomp_get_max_threads() : 14\nIntel(R) oneAPI Math Kernel Library Version 2026.2-Product Build 20260915 for Intel(R) 64 architecture applications\n\tmkl_get_max_threads() : 14\nIntel(R) MKL-DNN v3.13.3 (Git Hash b38f97eb6f2173513112f15a0481750b8a66e901)\nstd::thread::hardware_concurrency() : 20\nEnvironment variables:\n\tOMP_NUM_THREADS : [not set]\n\tMKL_NUM_THREADS : [not set]\nATen parallel backend: OpenMP\n",
+        "memory": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1682522112,
+          "memory_load_percent": 90
+        }
+      }
+    },
+    {
+      "case": {
+        "nx": 60,
+        "ny": 20,
+        "method": "mma",
+        "iterations": 100
+      },
+      "timing": {
+        "samples": [
+          0.8782946999999695,
+          1.6520871999964584,
+          1.35857899999246
+        ],
+        "median": 1.35857899999246,
+        "min": 0.8782946999999695,
+        "max": 1.6520871999964584
+      },
+      "trials": [
+        {
+          "seconds": 0.8782946999999695,
+          "iterations": 89,
+          "state_solves": 90,
+          "inner_retries": 0,
+          "compliance": 232.3490875447142,
+          "volume": 0.3999994574911663,
+          "residual": 8.78363487356546e-13,
+          "stop_reason": "design_and_objective_stable",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1415954432,
+            "memory_load_percent": 91
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1457397760,
+            "memory_load_percent": 91
+          }
+        },
+        {
+          "seconds": 1.6520871999964584,
+          "iterations": 89,
+          "state_solves": 90,
+          "inner_retries": 0,
+          "compliance": 232.3490875447142,
+          "volume": 0.3999994574911663,
+          "residual": 8.78363487356546e-13,
+          "stop_reason": "design_and_objective_stable",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1457397760,
+            "memory_load_percent": 91
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1169440768,
+            "memory_load_percent": 93
+          }
+        },
+        {
+          "seconds": 1.35857899999246,
+          "iterations": 89,
+          "state_solves": 90,
+          "inner_retries": 0,
+          "compliance": 232.3490875447142,
+          "volume": 0.3999994574911663,
+          "residual": 8.78363487356546e-13,
+          "stop_reason": "design_and_objective_stable",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1169440768,
+            "memory_load_percent": 93
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1055395840,
+            "memory_load_percent": 93
+          }
+        }
+      ],
+      "environment": {
+        "python": "3.14.4",
+        "platform": "Windows-11-10.0.26200-SP0",
+        "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+        "logical_cpus": 20,
+        "torch_threads": 14,
+        "torch_interop_threads": 14,
+        "versions": {
+          "numpy": "2.5.4",
+          "scipy": "1.18.1",
+          "torch": "2.15.0",
+          "petsc4py": "3.26.1",
+          "mmapy": "0.3.1",
+          "fastapi": "0.162.7",
+          "uvicorn": "0.54.0"
+        },
+        "thread_environment": {
+          "OMP_NUM_THREADS": null,
+          "MKL_NUM_THREADS": null,
+          "OPENBLAS_NUM_THREADS": null
+        },
+        "parallel_info": "ATen/Parallel:\n\tat::get_num_threads() : 14\n\tat::get_num_interop_threads() : 14\nOpenMP 2019\n\tomp_get_max_threads() : 14\nIntel(R) oneAPI Math Kernel Library Version 2026.2-Product Build 20260915 for Intel(R) 64 architecture applications\n\tmkl_get_max_threads() : 14\nIntel(R) MKL-DNN v3.13.3 (Git Hash b38f97eb6f2173513112f15a0481750b8a66e901)\nstd::thread::hardware_concurrency() : 20\nEnvironment variables:\n\tOMP_NUM_THREADS : [not set]\n\tMKL_NUM_THREADS : [not set]\nATen parallel backend: OpenMP\n",
+        "memory": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1056649216,
+          "memory_load_percent": 93
+        }
+      }
+    },
+    {
+      "case": {
+        "nx": 60,
+        "ny": 20,
+        "method": "gcmma",
+        "iterations": 100
+      },
+      "timing": {
+        "samples": [
+          1.0939477999927476,
+          1.1951002000132576,
+          1.4383582000155002
+        ],
+        "median": 1.1951002000132576,
+        "min": 1.0939477999927476,
+        "max": 1.4383582000155002
+      },
+      "trials": [
+        {
+          "seconds": 1.0939477999927476,
+          "iterations": 50,
+          "state_solves": 121,
+          "inner_retries": 20,
+          "compliance": 240.17521779235074,
+          "volume": 0.3999995497627165,
+          "residual": 9.479186156048427e-13,
+          "stop_reason": "design_and_objective_stable",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1170804736,
+            "memory_load_percent": 93
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1195667456,
+            "memory_load_percent": 92
+          }
+        },
+        {
+          "seconds": 1.1951002000132576,
+          "iterations": 50,
+          "state_solves": 121,
+          "inner_retries": 20,
+          "compliance": 240.17521779235074,
+          "volume": 0.3999995497627165,
+          "residual": 9.479186156048427e-13,
+          "stop_reason": "design_and_objective_stable",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1195667456,
+            "memory_load_percent": 92
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1303941120,
+            "memory_load_percent": 92
+          }
+        },
+        {
+          "seconds": 1.4383582000155002,
+          "iterations": 50,
+          "state_solves": 121,
+          "inner_retries": 20,
+          "compliance": 240.17521779235074,
+          "volume": 0.3999995497627165,
+          "residual": 9.479186156048427e-13,
+          "stop_reason": "design_and_objective_stable",
+          "memory_before": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1303941120,
+            "memory_load_percent": 92
+          },
+          "memory_after": {
+            "total_ram_bytes": 16866312192,
+            "available_ram_bytes": 1234116608,
+            "memory_load_percent": 92
+          }
+        }
+      ],
+      "environment": {
+        "python": "3.14.4",
+        "platform": "Windows-11-10.0.26200-SP0",
+        "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+        "logical_cpus": 20,
+        "torch_threads": 14,
+        "torch_interop_threads": 14,
+        "versions": {
+          "numpy": "2.5.4",
+          "scipy": "1.18.1",
+          "torch": "2.15.0",
+          "petsc4py": "3.26.1",
+          "mmapy": "0.3.1",
+          "fastapi": "0.162.7",
+          "uvicorn": "0.54.0"
+        },
+        "thread_environment": {
+          "OMP_NUM_THREADS": null,
+          "MKL_NUM_THREADS": null,
+          "OPENBLAS_NUM_THREADS": null
+        },
+        "parallel_info": "ATen/Parallel:\n\tat::get_num_threads() : 14\n\tat::get_num_interop_threads() : 14\nOpenMP 2019\n\tomp_get_max_threads() : 14\nIntel(R) oneAPI Math Kernel Library Version 2026.2-Product Build 20260915 for Intel(R) 64 architecture applications\n\tmkl_get_max_threads() : 14\nIntel(R) MKL-DNN v3.13.3 (Git Hash b38f97eb6f2173513112f15a0481750b8a66e901)\nstd::thread::hardware_concurrency() : 20\nEnvironment variables:\n\tOMP_NUM_THREADS : [not set]\n\tMKL_NUM_THREADS : [not set]\nATen parallel backend: OpenMP\n",
+        "memory": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1235746816,
+          "memory_load_percent": 92
+        }
+      }
+    }
+  ],
+  "profiles": [
+    {
+      "case": {
+        "nx": 30,
+        "ny": 10,
+        "method": "mma",
+        "iterations": 20
+      },
+      "profiled_seconds": 0.2551545000169426,
+      "diagnostic_seconds": 0.17026030001579784,
+      "phase_times": {
+        "elasticity_total": 0.01687690001563169,
+        "torch_grad": 0.00712339993333444,
+        "evaluation_total": 0.033836300048278645,
+        "mmasub": 0.13312340000993572
+      },
+      "phase_calls": {
+        "elasticity_total": 21,
+        "torch_grad": 42,
+        "evaluation_total": 21,
+        "mmasub": 20
+      },
+      "iterations": 20,
+      "state_solves": 21,
+      "inner_retries": 0,
+      "consecutive_duplicate_solves": 0,
+      "duplicate_solve_seconds": 0.0,
+      "functions": {
+        "elasticity_total": {
+          "calls": 21,
+          "seconds": 0.018557
+        },
+        "evaluation_total": {
+          "calls": 21,
+          "seconds": 0.0397291
+        },
+        "optimizer_inclusive": {
+          "calls": 20,
+          "seconds": 0.20492020000000002
+        },
+        "mma_subproblems": {
+          "calls": 20,
+          "seconds": 0.2032719
+        },
+        "gcmma_subproblems": {
+          "calls": 0,
+          "seconds": 0
+        },
+        "primal_dual_subsolver": {
+          "calls": 20,
+          "seconds": 0.1991899
+        },
+        "torch_grad": {
+          "calls": 42,
+          "seconds": 0.008915900000000001
+        },
+        "coo_to_csr": {
+          "calls": 0,
+          "seconds": 0
+        }
+      },
+      "petsc_events": {
+        "MatLUFactorSym": {
+          "count": 1,
+          "time": 0.0003169999999999007,
+          "flops": 0.0
+        },
+        "MatLUFactorNum": {
+          "count": 21,
+          "time": 0.008967199999998954,
+          "flops": 24549047.0
+        },
+        "MatSolve": {
+          "count": 21,
+          "time": 0.000627299999998332,
+          "flops": 1477644.0
+        },
+        "PCSetUp": {
+          "count": 21,
+          "time": 0.009598999999999691,
+          "flops": 24549047.0
+        },
+        "KSPSetUp": {
+          "count": 21,
+          "time": 5.600000000605121e-06,
+          "flops": 0.0
+        },
+        "KSPSolve": {
+          "count": 21,
+          "time": 0.0007313000000008785,
+          "flops": 1477644.0
+        },
+        "MatAssemblyBegin": {
+          "count": 21,
+          "time": 8.69999999952853e-06,
+          "flops": 0.0
+        },
+        "MatAssemblyEnd": {
+          "count": 21,
+          "time": 3.009999999870061e-05,
+          "flops": 0.0
+        }
+      },
+      "top_self_functions": [
+        {
+          "function": "site-packages/mmapy/mma.py:288(subsolv)",
+          "calls": 20,
+          "self_seconds": 0.1146603,
+          "cumulative_seconds": 0.1991899
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:87(solve)",
+          "calls": 21,
+          "self_seconds": 0.0163482,
+          "cumulative_seconds": 0.018557
+        },
+        {
+          "function": "site-packages/scipy/linalg/_basic.py:57(solve)",
+          "calls": 390,
+          "self_seconds": 0.0085325,
+          "cumulative_seconds": 0.0519015
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:447(_broadcast_to)",
+          "calls": 780,
+          "self_seconds": 0.0076795000000000006,
+          "cumulative_seconds": 0.0098063
+        },
+        {
+          "function": "~:0(<method 'disable' of '_lsprof.Profiler' objects>)",
+          "calls": 1,
+          "self_seconds": 0.005650700000000001,
+          "cumulative_seconds": 0.005650700000000001
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:26(__add__)",
+          "calls": 390,
+          "self_seconds": 0.005576800000000001,
+          "cumulative_seconds": 0.0071133
+        },
+        {
+          "function": "~:0(<method 'reduce' of 'numpy.ufunc' objects>)",
+          "calls": 2687,
+          "self_seconds": 0.0055166,
+          "cumulative_seconds": 0.0055166
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:66(_wrapreduction)",
+          "calls": 1742,
+          "self_seconds": 0.0040162,
+          "cumulative_seconds": 0.008394
+        },
+        {
+          "function": "~:0(<method 'run_backward' of 'torch._C._EngineBase' objects>)",
+          "calls": 42,
+          "self_seconds": 0.00368,
+          "cumulative_seconds": 0.0053549
+        },
+        {
+          "function": "~:0(<method 'flatten' of 'numpy.ndarray' objects>)",
+          "calls": 1602,
+          "self_seconds": 0.0034899,
+          "cumulative_seconds": 0.0034899
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:22(dot)",
+          "calls": 1210,
+          "self_seconds": 0.003369,
+          "cumulative_seconds": 0.0047629000000000005
+        },
+        {
+          "function": "~:0(<method 'copy' of 'numpy.ndarray' objects>)",
+          "calls": 4248,
+          "self_seconds": 0.0032375000000000004,
+          "cumulative_seconds": 0.0032375000000000004
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:32(mmasub)",
+          "calls": 20,
+          "self_seconds": 0.0032140000000000003,
+          "cumulative_seconds": 0.2032719
+        },
+        {
+          "function": "src/ml_opt/problem.py:48(evaluate)",
+          "calls": 21,
+          "self_seconds": 0.0031920000000000004,
+          "cumulative_seconds": 0.0397291
+        },
+        {
+          "function": "site-packages/numpy/lib/_function_base_impl.py:615(asarray_chkfinite)",
+          "calls": 780,
+          "self_seconds": 0.0027149,
+          "cumulative_seconds": 0.0058484
+        },
+        {
+          "function": "site-packages/scipy/linalg/lapack.py:1161(_ensure_dtype_cdsz)",
+          "calls": 390,
+          "self_seconds": 0.0027147,
+          "cumulative_seconds": 0.0066351000000000005
+        },
+        {
+          "function": "site-packages/scipy/linalg/blas.py:289(find_best_blas_type)",
+          "calls": 390,
+          "self_seconds": 0.0026567,
+          "cumulative_seconds": 0.0030957000000000003
+        },
+        {
+          "function": "site-packages/scipy/_lib/_util.py:364(_asarray_validated)",
+          "calls": 780,
+          "self_seconds": 0.0026272,
+          "cumulative_seconds": 0.0113366
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:3049(max)",
+          "calls": 1741,
+          "self_seconds": 0.0023279,
+          "cumulative_seconds": 0.0107119
+        },
+        {
+          "function": "~:0(<built-in method torch.tensor>)",
+          "calls": 21,
+          "self_seconds": 0.0019573,
+          "cumulative_seconds": 0.0019573
+        },
+        {
+          "function": "~:0(<built-in method scipy.linalg._batched_linalg._solve>)",
+          "calls": 390,
+          "self_seconds": 0.0018573,
+          "cumulative_seconds": 0.0018573
+        },
+        {
+          "function": "~:0(<built-in method numpy._core._multiarray_umath.c_einsum>)",
+          "calls": 21,
+          "self_seconds": 0.0016393,
+          "cumulative_seconds": 0.0016393
+        },
+        {
+          "function": "site-packages/numpy/_core/numerictypes.py:418(issubdtype)",
+          "calls": 1170,
+          "self_seconds": 0.0015182000000000001,
+          "cumulative_seconds": 0.0042544
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:520(_broadcast_shape)",
+          "calls": 390,
+          "self_seconds": 0.0015172,
+          "cumulative_seconds": 0.0015951000000000001
+        },
+        {
+          "function": "site-packages/numpy/_core/numerictypes.py:230(issubclass_)",
+          "calls": 2340,
+          "self_seconds": 0.0014645,
+          "cumulative_seconds": 0.0025584
+        }
+      ],
+      "top_cumulative_functions": [
+        {
+          "function": "src/ml_opt/runner.py:40(optimise)",
+          "calls": 1,
+          "self_seconds": 1.98e-05,
+          "cumulative_seconds": 0.2478808
+        },
+        {
+          "function": "src/ml_opt/runner.py:48(_optimise_problem)",
+          "calls": 1,
+          "self_seconds": 0.0012304,
+          "cumulative_seconds": 0.2463216
+        },
+        {
+          "function": "src/ml_opt/optimizers/moving_asymptotes.py:50(step)",
+          "calls": 20,
+          "self_seconds": 0.0009703000000000001,
+          "cumulative_seconds": 0.20492020000000002
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:32(mmasub)",
+          "calls": 20,
+          "self_seconds": 0.0032140000000000003,
+          "cumulative_seconds": 0.2032719
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:288(subsolv)",
+          "calls": 20,
+          "self_seconds": 0.1146603,
+          "cumulative_seconds": 0.1991899
+        },
+        {
+          "function": "site-packages/scipy/linalg/_basic.py:57(solve)",
+          "calls": 390,
+          "self_seconds": 0.0085325,
+          "cumulative_seconds": 0.0519015
+        },
+        {
+          "function": "src/ml_opt/problem.py:48(evaluate)",
+          "calls": 21,
+          "self_seconds": 0.0031920000000000004,
+          "cumulative_seconds": 0.0397291
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:134(compliance)",
+          "calls": 21,
+          "self_seconds": 6.720000000000001e-05,
+          "cumulative_seconds": 0.021888300000000003
+        },
+        {
+          "function": "~:0(<built-in method apply>)",
+          "calls": 21,
+          "self_seconds": 0.000943,
+          "cumulative_seconds": 0.021821100000000003
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:118(forward)",
+          "calls": 21,
+          "self_seconds": 0.0006566,
+          "cumulative_seconds": 0.0208781
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:87(solve)",
+          "calls": 21,
+          "self_seconds": 0.0163482,
+          "cumulative_seconds": 0.018557
+        },
+        {
+          "function": "site-packages/scipy/_lib/_util.py:364(_asarray_validated)",
+          "calls": 780,
+          "self_seconds": 0.0026272,
+          "cumulative_seconds": 0.0113366
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:3049(max)",
+          "calls": 1741,
+          "self_seconds": 0.0023279,
+          "cumulative_seconds": 0.0107119
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:474(broadcast_to)",
+          "calls": 780,
+          "self_seconds": 0.0005881,
+          "cumulative_seconds": 0.0103944
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:447(_broadcast_to)",
+          "calls": 780,
+          "self_seconds": 0.0076795000000000006,
+          "cumulative_seconds": 0.0098063
+        },
+        {
+          "function": "site-packages/torch/autograd/__init__.py:434(grad)",
+          "calls": 42,
+          "self_seconds": 0.0011542,
+          "cumulative_seconds": 0.008915900000000001
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:66(_wrapreduction)",
+          "calls": 1742,
+          "self_seconds": 0.0040162,
+          "cumulative_seconds": 0.008394
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:26(__add__)",
+          "calls": 390,
+          "self_seconds": 0.005576800000000001,
+          "cumulative_seconds": 0.0071133
+        },
+        {
+          "function": "site-packages/scipy/linalg/lapack.py:1161(_ensure_dtype_cdsz)",
+          "calls": 390,
+          "self_seconds": 0.0027147,
+          "cumulative_seconds": 0.0066351000000000005
+        },
+        {
+          "function": "site-packages/torch/autograd/graph.py:1100(_engine_run_backward)",
+          "calls": 42,
+          "self_seconds": 0.00036080000000000004,
+          "cumulative_seconds": 0.0060796
+        },
+        {
+          "function": "site-packages/numpy/lib/_function_base_impl.py:615(asarray_chkfinite)",
+          "calls": 780,
+          "self_seconds": 0.0027149,
+          "cumulative_seconds": 0.0058484
+        },
+        {
+          "function": "~:0(<method 'disable' of '_lsprof.Profiler' objects>)",
+          "calls": 1,
+          "self_seconds": 0.005650700000000001,
+          "cumulative_seconds": 0.005650700000000001
+        },
+        {
+          "function": "~:0(<method 'reduce' of 'numpy.ufunc' objects>)",
+          "calls": 2687,
+          "self_seconds": 0.0055166,
+          "cumulative_seconds": 0.0055166
+        },
+        {
+          "function": "~:0(<method 'run_backward' of 'torch._C._EngineBase' objects>)",
+          "calls": 42,
+          "self_seconds": 0.00368,
+          "cumulative_seconds": 0.0053549
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:22(dot)",
+          "calls": 1210,
+          "self_seconds": 0.003369,
+          "cumulative_seconds": 0.0047629000000000005
+        }
+      ],
+      "payload": {
+        "bytes": 6788,
+        "snapshot_seconds": {
+          "samples": [
+            2.95999925583601e-05,
+            1.3699987903237343e-05,
+            1.1399999493733048e-05,
+            1.1600001016631722e-05,
+            1.090002479031682e-05,
+            8.300004992634058e-06,
+            8.000002708286047e-06,
+            7.599999662488699e-06,
+            6.89999433234334e-06,
+            7.000024197623134e-06,
+            7.499998901039362e-06,
+            6.700021913275123e-06,
+            6.600021151825786e-06,
+            6.499991286545992e-06,
+            6.499991286545992e-06,
+            3.229998401366174e-05,
+            1.8300022929906845e-05,
+            3.279998782090843e-05,
+            1.9800005247816443e-05,
+            5.669999518431723e-05,
+            2.5999994250014424e-05,
+            1.650000922381878e-05,
+            1.580000389367342e-05,
+            1.9400002202019095e-05,
+            7.599999662488699e-06,
+            6.699992809444666e-06,
+            7.300026481971145e-06,
+            6.499991286545992e-06,
+            6.399990525096655e-06,
+            6.399990525096655e-06,
+            5.80001506023109e-06,
+            5.999987479299307e-06,
+            7.099995855242014e-06,
+            9.300012607127428e-06,
+            6.999995093792677e-06,
+            6.700021913275123e-06,
+            2.449998282827437e-05,
+            1.3900018529966474e-05,
+            7.199996616691351e-06,
+            3.3199990866705775e-05,
+            2.0599982235580683e-05,
+            6.400019628927112e-06,
+            1.8399994587525725e-05,
+            8.299975888803601e-06,
+            9.90001717582345e-06,
+            1.0799994925037026e-05,
+            1.0899995686486363e-05,
+            9.600014891475439e-06,
+            8.300004992634058e-06,
+            7.099995855242014e-06,
+            7.299997378140688e-06,
+            6.599992047995329e-06,
+            6.89999433234334e-06,
+            6.80002267472446e-06,
+            1.470002462156117e-05,
+            7.499998901039362e-06,
+            6.499991286545992e-06,
+            6.499991286545992e-06,
+            6.099988240748644e-06,
+            8.000002708286047e-06,
+            1.8099992303177714e-05,
+            8.200004231184721e-06,
+            2.7000001864507794e-05,
+            1.750001683831215e-05,
+            6.520000169984996e-05,
+            7.100024959072471e-06,
+            6.399990525096655e-06,
+            1.3399985618889332e-05,
+            1.2100004823878407e-05,
+            1.090002479031682e-05,
+            9.599985787644982e-06,
+            8.299975888803601e-06,
+            8.000002708286047e-06,
+            6.100017344579101e-06,
+            6.399990525096655e-06,
+            6.299989763647318e-06,
+            6.699992809444666e-06,
+            5.999987479299307e-06,
+            6.199989002197981e-06,
+            5.600013537332416e-06,
+            6.100017344579101e-06,
+            7.599999662488699e-06,
+            1.4099990949034691e-05,
+            6.500020390376449e-06,
+            6.799993570894003e-06,
+            6.599992047995329e-06,
+            6.100017344579101e-06,
+            2.3200002033263445e-05,
+            8.199975127354264e-06,
+            6.999995093792677e-06,
+            8.100003469735384e-06,
+            8.000002708286047e-06,
+            9.200011845678091e-06,
+            8.400005754083395e-06,
+            1.0299991117790341e-05,
+            6.300018867477775e-06,
+            6.199989002197981e-06,
+            6.199989002197981e-06,
+            5.999987479299307e-06,
+            6.100017344579101e-06
+          ],
+          "median": 7.599999662488699e-06,
+          "min": 5.600013537332416e-06,
+          "max": 6.520000169984996e-05
+        },
+        "json_seconds": {
+          "samples": [
+            0.0001674999948590994,
+            0.00015049998182803392,
+            0.00014509999891743064,
+            0.00013719999697059393,
+            0.0001464999804738909,
+            0.00013150001177564263,
+            0.00012169999536126852,
+            0.0001260999997612089,
+            0.0001221999991685152,
+            0.0001235000090673566,
+            0.0001233000075444579,
+            0.00012359998072497547,
+            0.0001227000029757619,
+            0.00012240000069141388,
+            0.00029799999902024865,
+            0.00024950000806711614,
+            0.0002345999819226563,
+            0.00025240000104531646,
+            0.00026810000417754054,
+            0.0003217000048607588,
+            0.00025179999647662044,
+            0.0002488000027369708,
+            0.0002136999974027276,
+            0.0001270999782718718,
+            0.00011789999553002417,
+            0.0001134999911300838,
+            0.00011439999798312783,
+            0.00011339999036863446,
+            0.00011160000576637685,
+            0.00011260001338087022,
+            0.00011150000500492752,
+            0.0001663000148255378,
+            0.0001619999820832163,
+            0.00011500000255182385,
+            0.00011220001033507288,
+            0.00037819999852217734,
+            0.00020199999562464654,
+            0.00011979998089373112,
+            0.00014380001812241971,
+            0.0001480000209994614,
+            0.0001480999926570803,
+            0.00020099998801015317,
+            0.0001401000190526247,
+            0.00013410000246949494,
+            0.00012919999426230788,
+            0.0001312999811489135,
+            0.00013159998343326151,
+            0.00012299997615627944,
+            0.00012310000602155924,
+            0.00012000001152046025,
+            0.00011780002387240529,
+            0.00011470000026747584,
+            0.00011950000771321356,
+            0.0001957999775186181,
+            0.00015359997632913291,
+            0.00011069999891333282,
+            0.0001109000004362315,
+            0.00011470000026747584,
+            0.00013160001253709197,
+            0.00011140000424347818,
+            0.00013959998614154756,
+            0.00012399998377077281,
+            0.00019079999765381217,
+            0.00012639997294172645,
+            0.00011630001245066524,
+            0.00011169997742399573,
+            0.00011900000390596688,
+            0.00012420001439750195,
+            0.00012169999536126852,
+            0.00011990001075901091,
+            0.00011739999172277749,
+            0.00015010000788606703,
+            0.00010839998139999807,
+            0.00010919998749159276,
+            0.00011750002158805728,
+            0.00010959999053739011,
+            0.00011100000119768083,
+            0.00011019999510608613,
+            0.00010880001354962587,
+            0.00010679999832063913,
+            0.00013719999697059393,
+            0.00016419999883510172,
+            0.00011759999324567616,
+            0.00013079997734166682,
+            0.0001109000004362315,
+            0.00010990002192556858,
+            0.0002460999821778387,
+            0.00017830001888796687,
+            0.00011650001397356391,
+            0.00011449999874457717,
+            0.00012159999459981918,
+            0.0001170000177808106,
+            0.00012209999840706587,
+            0.0001815000141505152,
+            0.0001100999943446368,
+            0.00010889998520724475,
+            0.00010850001126527786,
+            0.00010850001126527786,
+            0.00010750000365078449,
+            0.00010639999527484179
+          ],
+          "median": 0.00012284998956602067,
+          "min": 0.00010639999527484179,
+          "max": 0.00037819999852217734
+        },
+        "pickle_seconds": {
+          "samples": [
+            4.6600005589425564e-05,
+            2.3800006601959467e-05,
+            2.099998528137803e-05,
+            1.4500023098662496e-05,
+            1.4599994756281376e-05,
+            1.2999982573091984e-05,
+            1.2300006346777081e-05,
+            1.09999964479357e-05,
+            1.1500000255182385e-05,
+            1.789999078027904e-05,
+            1.0100018698722124e-05,
+            1.1299998732283711e-05,
+            1.0499992640689015e-05,
+            1.069999416358769e-05,
+            5.900001269765198e-05,
+            3.160000778734684e-05,
+            3.0399998649954796e-05,
+            3.679998917505145e-05,
+            4.309997893869877e-05,
+            4.939999780617654e-05,
+            3.1899980967864394e-05,
+            2.8399983420968056e-05,
+            3.960001049563289e-05,
+            1.3400014722719789e-05,
+            1.1399999493733048e-05,
+            1.0600022505968809e-05,
+            1.1199997970834374e-05,
+            1.0100018698722124e-05,
+            1.0099989594891667e-05,
+            9.499985026195645e-06,
+            9.799987310543656e-06,
+            1.1600001016631722e-05,
+            1.479999627918005e-05,
+            1.1299998732283711e-05,
+            1.2199976481497288e-05,
+            3.749999450519681e-05,
+            2.2799998987466097e-05,
+            1.1299998732283711e-05,
+            3.679998917505145e-05,
+            2.5500019546598196e-05,
+            1.09999964479357e-05,
+            2.9799994081258774e-05,
+            1.4699995517730713e-05,
+            1.4999997802078724e-05,
+            1.6600009985268116e-05,
+            1.7700018361210823e-05,
+            1.5900004655122757e-05,
+            1.3100012438371778e-05,
+            1.279998105019331e-05,
+            1.3299984857439995e-05,
+            1.0099989594891667e-05,
+            1.0399991879239678e-05,
+            9.899988071992993e-06,
+            2.5999994250014424e-05,
+            1.4200020814314485e-05,
+            9.99998883344233e-06,
+            9.500014130026102e-06,
+            1.1600001016631722e-05,
+            1.3699987903237343e-05,
+            4.549999721348286e-05,
+            2.060001133941114e-05,
+            2.090001362375915e-05,
+            0.0003226999833714217,
+            1.7900019884109497e-05,
+            1.2900010915473104e-05,
+            1.0800024028867483e-05,
+            1.8499995348975062e-05,
+            1.8699996871873736e-05,
+            1.6399979358538985e-05,
+            1.7000013031065464e-05,
+            1.3800017768517137e-05,
+            1.3600016245618463e-05,
+            1.1199997970834374e-05,
+            1.09999964479357e-05,
+            1.1199997970834374e-05,
+            1.0000017937272787e-05,
+            9.700015652924776e-06,
+            8.90000956133008e-06,
+            9.599985787644982e-06,
+            8.69997893460095e-06,
+            1.1500000255182385e-05,
+            3.090000245720148e-05,
+            1.0599993402138352e-05,
+            1.0600022505968809e-05,
+            9.899988071992993e-06,
+            8.899980457499623e-06,
+            0.00010750000365078449,
+            1.8999999156221747e-05,
+            1.1500000255182385e-05,
+            1.09999964479357e-05,
+            1.3999990187585354e-05,
+            1.6699981642886996e-05,
+            1.810002140700817e-05,
+            2.2299995180219412e-05,
+            1.0399991879239678e-05,
+            9.600014891475439e-06,
+            9.69998654909432e-06,
+            9.600014891475439e-06,
+            1.0099989594891667e-05,
+            9.099981980398297e-06
+          ],
+          "median": 1.304999750573188e-05,
+          "min": 8.69997893460095e-06,
+          "max": 0.0003226999833714217
+        }
+      }
+    },
+    {
+      "case": {
+        "nx": 30,
+        "ny": 10,
+        "method": "gcmma",
+        "iterations": 20
+      },
+      "profiled_seconds": 0.306118400010746,
+      "diagnostic_seconds": 0.20812900000601076,
+      "phase_times": {
+        "elasticity_total": 0.03423829999519512,
+        "torch_grad": 0.006631500000366941,
+        "evaluation_total": 0.05904749996261671,
+        "asymp": 0.0011016999487765133,
+        "gcmmasub": 0.14229879991034977,
+        "concheck": 0.0013396000140346587,
+        "raaupdate": 0.0006566999945789576
+      },
+      "phase_calls": {
+        "elasticity_total": 50,
+        "torch_grad": 42,
+        "evaluation_total": 50,
+        "asymp": 20,
+        "gcmmasub": 29,
+        "concheck": 29,
+        "raaupdate": 9
+      },
+      "iterations": 20,
+      "state_solves": 50,
+      "inner_retries": 9,
+      "consecutive_duplicate_solves": 20,
+      "duplicate_solve_seconds": 0.012186499981908128,
+      "functions": {
+        "elasticity_total": {
+          "calls": 50,
+          "seconds": 0.037380500000000004
+        },
+        "evaluation_total": {
+          "calls": 50,
+          "seconds": 0.0671347
+        },
+        "optimizer_inclusive": {
+          "calls": 20,
+          "seconds": 0.27127480000000004
+        },
+        "mma_subproblems": {
+          "calls": 0,
+          "seconds": 0
+        },
+        "gcmma_subproblems": {
+          "calls": 29,
+          "seconds": 0.22866660000000003
+        },
+        "primal_dual_subsolver": {
+          "calls": 29,
+          "seconds": 0.2250037
+        },
+        "torch_grad": {
+          "calls": 42,
+          "seconds": 0.0073172
+        },
+        "coo_to_csr": {
+          "calls": 0,
+          "seconds": 0
+        }
+      },
+      "petsc_events": {
+        "MatLUFactorSym": {
+          "count": 1,
+          "time": 0.00032869999999984856,
+          "flops": 0.0
+        },
+        "MatLUFactorNum": {
+          "count": 50,
+          "time": 0.017469299999999688,
+          "flops": 58451087.0
+        },
+        "MatSolve": {
+          "count": 50,
+          "time": 0.0013316000000012096,
+          "flops": 3518200.0
+        },
+        "PCSetUp": {
+          "count": 50,
+          "time": 0.018282900000001323,
+          "flops": 58451087.0
+        },
+        "KSPSetUp": {
+          "count": 50,
+          "time": 1.0900000000368948e-05,
+          "flops": 0.0
+        },
+        "KSPSolve": {
+          "count": 50,
+          "time": 0.0015734999999996724,
+          "flops": 3518200.0
+        },
+        "MatAssemblyBegin": {
+          "count": 50,
+          "time": 2.1499999999896602e-05,
+          "flops": 0.0
+        },
+        "MatAssemblyEnd": {
+          "count": 50,
+          "time": 5.340000000053635e-05,
+          "flops": 0.0
+        }
+      },
+      "top_self_functions": [
+        {
+          "function": "site-packages/mmapy/mma.py:288(subsolv)",
+          "calls": 29,
+          "self_seconds": 0.1309075,
+          "cumulative_seconds": 0.2250037
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:87(solve)",
+          "calls": 50,
+          "self_seconds": 0.0326358,
+          "cumulative_seconds": 0.037380500000000004
+        },
+        {
+          "function": "site-packages/scipy/linalg/_basic.py:57(solve)",
+          "calls": 578,
+          "self_seconds": 0.009784300000000001,
+          "cumulative_seconds": 0.058609100000000004
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:447(_broadcast_to)",
+          "calls": 1156,
+          "self_seconds": 0.009114800000000001,
+          "cumulative_seconds": 0.0119114
+        },
+        {
+          "function": "~:0(<method 'reduce' of 'numpy.ufunc' objects>)",
+          "calls": 4070,
+          "self_seconds": 0.006203500000000001,
+          "cumulative_seconds": 0.006203500000000001
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:26(__add__)",
+          "calls": 578,
+          "self_seconds": 0.005565700000000001,
+          "cumulative_seconds": 0.0073264
+        },
+        {
+          "function": "src/ml_opt/problem.py:48(evaluate)",
+          "calls": 50,
+          "self_seconds": 0.0055481,
+          "cumulative_seconds": 0.0671347
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:66(_wrapreduction)",
+          "calls": 2566,
+          "self_seconds": 0.0044644,
+          "cumulative_seconds": 0.009356100000000001
+        },
+        {
+          "function": "~:0(<method 'copy' of 'numpy.ndarray' objects>)",
+          "calls": 6287,
+          "self_seconds": 0.0039698,
+          "cumulative_seconds": 0.0039698
+        },
+        {
+          "function": "~:0(<method 'flatten' of 'numpy.ndarray' objects>)",
+          "calls": 2546,
+          "self_seconds": 0.0037578000000000004,
+          "cumulative_seconds": 0.0037578000000000004
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:22(dot)",
+          "calls": 1850,
+          "self_seconds": 0.003634,
+          "cumulative_seconds": 0.005170200000000001
+        },
+        {
+          "function": "~:0(<built-in method numpy._core._multiarray_umath.c_einsum>)",
+          "calls": 50,
+          "self_seconds": 0.0036282000000000003,
+          "cumulative_seconds": 0.0036282000000000003
+        },
+        {
+          "function": "~:0(<built-in method torch.tensor>)",
+          "calls": 50,
+          "self_seconds": 0.0033624,
+          "cumulative_seconds": 0.0033624
+        },
+        {
+          "function": "~:0(<method 'run_backward' of 'torch._C._EngineBase' objects>)",
+          "calls": 42,
+          "self_seconds": 0.0030497000000000002,
+          "cumulative_seconds": 0.0041784000000000005
+        },
+        {
+          "function": "site-packages/scipy/_lib/_util.py:364(_asarray_validated)",
+          "calls": 1156,
+          "self_seconds": 0.0029503000000000003,
+          "cumulative_seconds": 0.012131900000000001
+        },
+        {
+          "function": "~:0(<method 'mean' of 'torch._C.TensorBase' objects>)",
+          "calls": 50,
+          "self_seconds": 0.0029499,
+          "cumulative_seconds": 0.0029499
+        },
+        {
+          "function": "site-packages/scipy/linalg/lapack.py:1161(_ensure_dtype_cdsz)",
+          "calls": 578,
+          "self_seconds": 0.0028577000000000003,
+          "cumulative_seconds": 0.0074733
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:167(gcmmasub)",
+          "calls": 29,
+          "self_seconds": 0.0028354,
+          "cumulative_seconds": 0.22866660000000003
+        },
+        {
+          "function": "site-packages/numpy/lib/_function_base_impl.py:615(asarray_chkfinite)",
+          "calls": 1156,
+          "self_seconds": 0.0028336000000000004,
+          "cumulative_seconds": 0.0060762
+        },
+        {
+          "function": "site-packages/scipy/linalg/blas.py:289(find_best_blas_type)",
+          "calls": 578,
+          "self_seconds": 0.0024994,
+          "cumulative_seconds": 0.0030514
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:3049(max)",
+          "calls": 2565,
+          "self_seconds": 0.0024525000000000003,
+          "cumulative_seconds": 0.0117909
+        },
+        {
+          "function": "~:0(<built-in method scipy.linalg._batched_linalg._solve>)",
+          "calls": 578,
+          "self_seconds": 0.0020183,
+          "cumulative_seconds": 0.0020183
+        },
+        {
+          "function": "site-packages/numpy/_core/numerictypes.py:418(issubdtype)",
+          "calls": 1734,
+          "self_seconds": 0.0018436000000000001,
+          "cumulative_seconds": 0.0049938000000000005
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:520(_broadcast_shape)",
+          "calls": 578,
+          "self_seconds": 0.0018284000000000002,
+          "cumulative_seconds": 0.0019232000000000001
+        },
+        {
+          "function": "site-packages/numpy/_core/numerictypes.py:230(issubclass_)",
+          "calls": 3468,
+          "self_seconds": 0.0017788,
+          "cumulative_seconds": 0.0029298
+        }
+      ],
+      "top_cumulative_functions": [
+        {
+          "function": "src/ml_opt/runner.py:40(optimise)",
+          "calls": 1,
+          "self_seconds": 2.08e-05,
+          "cumulative_seconds": 0.30593370000000003
+        },
+        {
+          "function": "src/ml_opt/runner.py:48(_optimise_problem)",
+          "calls": 1,
+          "self_seconds": 0.0008651,
+          "cumulative_seconds": 0.30269850000000004
+        },
+        {
+          "function": "src/ml_opt/optimizers/moving_asymptotes.py:50(step)",
+          "calls": 20,
+          "self_seconds": 0.0012752,
+          "cumulative_seconds": 0.27127480000000004
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:167(gcmmasub)",
+          "calls": 29,
+          "self_seconds": 0.0028354,
+          "cumulative_seconds": 0.22866660000000003
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:288(subsolv)",
+          "calls": 29,
+          "self_seconds": 0.1309075,
+          "cumulative_seconds": 0.2250037
+        },
+        {
+          "function": "src/ml_opt/problem.py:48(evaluate)",
+          "calls": 50,
+          "self_seconds": 0.0055481,
+          "cumulative_seconds": 0.0671347
+        },
+        {
+          "function": "site-packages/scipy/linalg/_basic.py:57(solve)",
+          "calls": 578,
+          "self_seconds": 0.009784300000000001,
+          "cumulative_seconds": 0.058609100000000004
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:134(compliance)",
+          "calls": 50,
+          "self_seconds": 0.000131,
+          "cumulative_seconds": 0.043915600000000006
+        },
+        {
+          "function": "~:0(<built-in method apply>)",
+          "calls": 50,
+          "self_seconds": 0.0017758000000000001,
+          "cumulative_seconds": 0.0437846
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:118(forward)",
+          "calls": 50,
+          "self_seconds": 0.0014980000000000002,
+          "cumulative_seconds": 0.042008800000000006
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:87(solve)",
+          "calls": 50,
+          "self_seconds": 0.0326358,
+          "cumulative_seconds": 0.037380500000000004
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:474(broadcast_to)",
+          "calls": 1156,
+          "self_seconds": 0.0007078000000000001,
+          "cumulative_seconds": 0.0126192
+        },
+        {
+          "function": "site-packages/scipy/_lib/_util.py:364(_asarray_validated)",
+          "calls": 1156,
+          "self_seconds": 0.0029503000000000003,
+          "cumulative_seconds": 0.012131900000000001
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:447(_broadcast_to)",
+          "calls": 1156,
+          "self_seconds": 0.009114800000000001,
+          "cumulative_seconds": 0.0119114
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:3049(max)",
+          "calls": 2565,
+          "self_seconds": 0.0024525000000000003,
+          "cumulative_seconds": 0.0117909
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:66(_wrapreduction)",
+          "calls": 2566,
+          "self_seconds": 0.0044644,
+          "cumulative_seconds": 0.009356100000000001
+        },
+        {
+          "function": "site-packages/scipy/linalg/lapack.py:1161(_ensure_dtype_cdsz)",
+          "calls": 578,
+          "self_seconds": 0.0028577000000000003,
+          "cumulative_seconds": 0.0074733
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:26(__add__)",
+          "calls": 578,
+          "self_seconds": 0.005565700000000001,
+          "cumulative_seconds": 0.0073264
+        },
+        {
+          "function": "site-packages/torch/autograd/__init__.py:434(grad)",
+          "calls": 42,
+          "self_seconds": 0.0007559,
+          "cumulative_seconds": 0.0073172
+        },
+        {
+          "function": "~:0(<method 'reduce' of 'numpy.ufunc' objects>)",
+          "calls": 4070,
+          "self_seconds": 0.006203500000000001,
+          "cumulative_seconds": 0.006203500000000001
+        },
+        {
+          "function": "site-packages/numpy/lib/_function_base_impl.py:615(asarray_chkfinite)",
+          "calls": 1156,
+          "self_seconds": 0.0028336000000000004,
+          "cumulative_seconds": 0.0060762
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:22(dot)",
+          "calls": 1850,
+          "self_seconds": 0.003634,
+          "cumulative_seconds": 0.005170200000000001
+        },
+        {
+          "function": "site-packages/numpy/_core/numerictypes.py:418(issubdtype)",
+          "calls": 1734,
+          "self_seconds": 0.0018436000000000001,
+          "cumulative_seconds": 0.0049938000000000005
+        },
+        {
+          "function": "site-packages/torch/autograd/graph.py:1100(_engine_run_backward)",
+          "calls": 42,
+          "self_seconds": 0.00031580000000000003,
+          "cumulative_seconds": 0.0047859
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:540(broadcast_shapes)",
+          "calls": 578,
+          "self_seconds": 0.0015258000000000001,
+          "cumulative_seconds": 0.0043119000000000005
+        }
+      ],
+      "payload": {
+        "bytes": 6834,
+        "snapshot_seconds": {
+          "samples": [
+            2.269999822601676e-05,
+            1.1900003300979733e-05,
+            7.700000423938036e-06,
+            7.399998139590025e-06,
+            6.89999433234334e-06,
+            6.499991286545992e-06,
+            6.200018106028438e-06,
+            6.099988240748644e-06,
+            5.900015821680427e-06,
+            6.399990525096655e-06,
+            5.80001506023109e-06,
+            6.599992047995329e-06,
+            6.699992809444666e-06,
+            6.499991286545992e-06,
+            5.89998671784997e-06,
+            5.700014298781753e-06,
+            6.199989002197981e-06,
+            5.80001506023109e-06,
+            5.999987479299307e-06,
+            7.700000423938036e-06,
+            5.700014298781753e-06,
+            5.80001506023109e-06,
+            6.199989002197981e-06,
+            5.900015821680427e-06,
+            5.699985194951296e-06,
+            6.300018867477775e-06,
+            6.000016583129764e-06,
+            6.299989763647318e-06,
+            6.100017344579101e-06,
+            6.400019628927112e-06,
+            1.2300006346777081e-05,
+            1.0799994925037026e-05,
+            4.67000063508749e-05,
+            1.4200020814314485e-05,
+            1.550000160932541e-05,
+            8.100003469735384e-06,
+            6.999995093792677e-06,
+            7.199996616691351e-06,
+            6.199989002197981e-06,
+            6.999995093792677e-06,
+            6.799993570894003e-06,
+            1.7399986973032355e-05,
+            1.5900004655122757e-05,
+            1.1899974197149277e-05,
+            9.299983503296971e-06,
+            1.2499978765845299e-05,
+            1.6400008462369442e-05,
+            7.099995855242014e-06,
+            6.599992047995329e-06,
+            7.800001185387373e-06,
+            7.599999662488699e-06,
+            8.100003469735384e-06,
+            1.9700004486367106e-05,
+            3.63999861292541e-05,
+            1.9500002963468432e-05,
+            8.90000956133008e-06,
+            1.1199997970834374e-05,
+            7.90000194683671e-06,
+            6.399990525096655e-06,
+            6.200018106028438e-06,
+            2.609999501146376e-05,
+            4.429998807609081e-05,
+            7.189999450929463e-05,
+            6.919997395016253e-05,
+            2.789997961372137e-05,
+            1.9099999917671084e-05,
+            1.930000144056976e-05,
+            8.600007276982069e-06,
+            7.499998901039362e-06,
+            7.299997378140688e-06,
+            7.399998139590025e-06,
+            7.700000423938036e-06,
+            6.80002267472446e-06,
+            1.09999964479357e-05,
+            9.000010322779417e-06,
+            1.1199997970834374e-05,
+            7.700000423938036e-06,
+            9.899988071992993e-06,
+            8.600007276982069e-06,
+            9.600014891475439e-06,
+            7.700000423938036e-06,
+            6.999995093792677e-06,
+            7.499998901039362e-06,
+            7.199996616691351e-06,
+            7.299997378140688e-06,
+            7.399998139590025e-06,
+            6.399990525096655e-06,
+            6.700021913275123e-06,
+            6.599992047995329e-06,
+            6.400019628927112e-06,
+            6.699992809444666e-06,
+            6.399990525096655e-06,
+            8.200004231184721e-06,
+            6.299989763647318e-06,
+            6.799993570894003e-06,
+            7.299997378140688e-06,
+            6.300018867477775e-06,
+            6.199989002197981e-06,
+            7.499998901039362e-06,
+            6.900023436173797e-06
+          ],
+          "median": 7.299997378140688e-06,
+          "min": 5.699985194951296e-06,
+          "max": 7.189999450929463e-05
+        },
+        "json_seconds": {
+          "samples": [
+            0.00014599997666664422,
+            0.0001241999852936715,
+            0.00012670000432990491,
+            0.00011439999798312783,
+            0.00011210000957362354,
+            0.00011150000500492752,
+            0.00011069999891333282,
+            0.00010920001659542322,
+            0.00011029999586753547,
+            0.00011190000805072486,
+            0.0001120000088121742,
+            0.00011399999493733048,
+            0.00010939998901449144,
+            0.00010880001354962587,
+            0.00010570001904852688,
+            0.00010559998918324709,
+            0.00010480001219548285,
+            0.00010729997302405536,
+            0.00012320000678300858,
+            0.00010770000517368317,
+            0.00010619999375194311,
+            0.00010489998385310173,
+            0.00010430000838823617,
+            0.00010559998918324709,
+            0.00010710000060498714,
+            0.00010659999679774046,
+            0.00010750000365078449,
+            0.00010530001600272954,
+            0.00010839998139999807,
+            0.00013109997962601483,
+            0.00011230001109652221,
+            0.00019520000205375254,
+            0.00015629999688826501,
+            0.0001514999894425273,
+            0.00011989998165518045,
+            0.00011490000179037452,
+            0.00011059999815188348,
+            0.00010969999129883945,
+            0.00011110000195913017,
+            0.00011060002725571394,
+            0.00013719999697059393,
+            0.00014369998825713992,
+            0.00012359998072497547,
+            0.00011970000923611224,
+            0.0001323999895248562,
+            0.00011449999874457717,
+            0.00012370001059025526,
+            0.00010919998749159276,
+            0.00011029999586753547,
+            0.00011079999967478216,
+            0.00011240001185797155,
+            0.0003318999952170998,
+            0.00023020000662654638,
+            0.00028989999555051327,
+            0.00013689999468624592,
+            0.00016910000704228878,
+            0.00011610001092776656,
+            0.00011059999815188348,
+            0.0001109000004362315,
+            0.0002896999940276146,
+            0.00029999998514540493,
+            0.00029529997846111655,
+            0.00029520000680349767,
+            0.0002834000042639673,
+            0.0002605999761726707,
+            0.00029319999157451093,
+            0.00013770000077784061,
+            0.00012829998740926385,
+            0.00012209999840706587,
+            0.00012349997996352613,
+            0.00012060001608915627,
+            0.00012319997767917812,
+            0.0001210999907925725,
+            0.00012599999899975955,
+            0.00012569999671541154,
+            0.00013050000416114926,
+            0.00013380000018514693,
+            0.00012500002048909664,
+            0.00012809998588636518,
+            0.00011959997937083244,
+            0.0001170000177808106,
+            0.00011639998410828412,
+            0.00011690001701936126,
+            0.00011660001473501325,
+            0.00011299998732283711,
+            0.00011029999586753547,
+            0.00011110000195913017,
+            0.0001112000027205795,
+            0.00011190000805072486,
+            0.00011189997894689441,
+            0.00011250001261942089,
+            0.0001275000104214996,
+            0.00011260001338087022,
+            0.00011019999510608613,
+            0.00011299998732283711,
+            0.00011399999493733048,
+            0.00011259998427703977,
+            0.00011270001414231956,
+            0.00011329998960718513,
+            0.00012749998131766915
+          ],
+          "median": 0.0001144499983638525,
+          "min": 0.00010430000838823617,
+          "max": 0.0003318999952170998
+        },
+        "pickle_seconds": {
+          "samples": [
+            3.5600009141489863e-05,
+            1.5400000847876072e-05,
+            1.2400007108226418e-05,
+            1.0499992640689015e-05,
+            1.09999964479357e-05,
+            1.0099989594891667e-05,
+            9.599985787644982e-06,
+            9.899988071992993e-06,
+            9.99998883344233e-06,
+            1.0199990356341004e-05,
+            9.99998883344233e-06,
+            1.0400020983070135e-05,
+            9.200011845678091e-06,
+            9.599985787644982e-06,
+            9.199982741847634e-06,
+            9.400013368576765e-06,
+            9.399984264746308e-06,
+            9.300012607127428e-06,
+            1.2200005585327744e-05,
+            9.799987310543656e-06,
+            9.399984264746308e-06,
+            9.500014130026102e-06,
+            9.199982741847634e-06,
+            9.400013368576765e-06,
+            9.90001717582345e-06,
+            9.799987310543656e-06,
+            9.99998883344233e-06,
+            9.499985026195645e-06,
+            1.0499992640689015e-05,
+            1.470002462156117e-05,
+            1.3499986380338669e-05,
+            8.530000923201442e-05,
+            2.5699991965666413e-05,
+            2.269999822601676e-05,
+            1.2500007869675756e-05,
+            1.1399999493733048e-05,
+            1.0199990356341004e-05,
+            1.0500021744519472e-05,
+            9.799987310543656e-06,
+            1.0199990356341004e-05,
+            2.3500004317611456e-05,
+            2.850001328624785e-05,
+            1.810002140700817e-05,
+            1.7600017599761486e-05,
+            1.7400016076862812e-05,
+            4.980000085197389e-05,
+            1.4699995517730713e-05,
+            1.0300020221620798e-05,
+            1.069999416358769e-05,
+            1.09999964479357e-05,
+            1.4199991710484028e-05,
+            3.6699988413602114e-05,
+            4.680000711232424e-05,
+            4.650000482797623e-05,
+            2.169999061152339e-05,
+            1.6799982404336333e-05,
+            1.1399999493733048e-05,
+            1.2400007108226418e-05,
+            9.499985026195645e-06,
+            4.0799990529194474e-05,
+            5.1000009989365935e-05,
+            9.129999671131372e-05,
+            8.239998714998364e-05,
+            5.040000542066991e-05,
+            4.67000063508749e-05,
+            3.749999450519681e-05,
+            1.4699995517730713e-05,
+            1.200000406242907e-05,
+            1.2400007108226418e-05,
+            1.1800002539530396e-05,
+            1.1299998732283711e-05,
+            1.1099997209385037e-05,
+            1.309998333454132e-05,
+            1.6600009985268116e-05,
+            1.819999306462705e-05,
+            1.7699989257380366e-05,
+            1.680001150816679e-05,
+            1.2800010154023767e-05,
+            1.550000160932541e-05,
+            1.2100004823878407e-05,
+            1.0499992640689015e-05,
+            1.1299998732283711e-05,
+            1.0899995686486363e-05,
+            1.1199997970834374e-05,
+            1.0499992640689015e-05,
+            9.700015652924776e-06,
+            9.800016414374113e-06,
+            9.899988071992993e-06,
+            9.899988071992993e-06,
+            9.600014891475439e-06,
+            9.599985787644982e-06,
+            1.379998866468668e-05,
+            9.800016414374113e-06,
+            1.0300020221620798e-05,
+            1.1500000255182385e-05,
+            1.1000025551766157e-05,
+            9.90001717582345e-06,
+            9.69998654909432e-06,
+            1.1199997970834374e-05,
+            1.5900004655122757e-05
+          ],
+          "median": 1.1249998351559043e-05,
+          "min": 9.199982741847634e-06,
+          "max": 9.129999671131372e-05
+        }
+      }
+    },
+    {
+      "case": {
+        "nx": 60,
+        "ny": 20,
+        "method": "mma",
+        "iterations": 20
+      },
+      "profiled_seconds": 0.255244700005278,
+      "diagnostic_seconds": 0.31199639997794293,
+      "phase_times": {
+        "elasticity_total": 0.10090160006075166,
+        "torch_grad": 0.007232499920064583,
+        "evaluation_total": 0.12014340001042001,
+        "mmasub": 0.1848961999930907
+      },
+      "phase_calls": {
+        "elasticity_total": 21,
+        "torch_grad": 42,
+        "evaluation_total": 21,
+        "mmasub": 20
+      },
+      "iterations": 20,
+      "state_solves": 21,
+      "inner_retries": 0,
+      "consecutive_duplicate_solves": 0,
+      "duplicate_solve_seconds": 0.0,
+      "functions": {
+        "elasticity_total": {
+          "calls": 21,
+          "seconds": 0.0758617
+        },
+        "evaluation_total": {
+          "calls": 21,
+          "seconds": 0.08928710000000001
+        },
+        "optimizer_inclusive": {
+          "calls": 20,
+          "seconds": 0.16075830000000002
+        },
+        "mma_subproblems": {
+          "calls": 20,
+          "seconds": 0.1597366
+        },
+        "gcmma_subproblems": {
+          "calls": 0,
+          "seconds": 0
+        },
+        "primal_dual_subsolver": {
+          "calls": 20,
+          "seconds": 0.15660490000000002
+        },
+        "torch_grad": {
+          "calls": 42,
+          "seconds": 0.0057333
+        },
+        "coo_to_csr": {
+          "calls": 0,
+          "seconds": 0
+        }
+      },
+      "petsc_events": {
+        "MatLUFactorSym": {
+          "count": 1,
+          "time": 0.0018193000000001902,
+          "flops": 0.0
+        },
+        "MatLUFactorNum": {
+          "count": 21,
+          "time": 0.07622330000000055,
+          "flops": 234579797.0
+        },
+        "MatSolve": {
+          "count": 21,
+          "time": 0.004599899999999213,
+          "flops": 8305752.0
+        },
+        "PCSetUp": {
+          "count": 21,
+          "time": 0.0787924000000011,
+          "flops": 234579797.0
+        },
+        "KSPSetUp": {
+          "count": 21,
+          "time": 5.799999999833716e-06,
+          "flops": 0.0
+        },
+        "KSPSolve": {
+          "count": 21,
+          "time": 0.0047671999999998604,
+          "flops": 8305752.0
+        },
+        "MatAssemblyBegin": {
+          "count": 21,
+          "time": 1.1499999999387e-05,
+          "flops": 0.0
+        },
+        "MatAssemblyEnd": {
+          "count": 21,
+          "time": 6.349999999999412e-05,
+          "flops": 0.0
+        }
+      },
+      "top_self_functions": [
+        {
+          "function": "site-packages/mmapy/mma.py:288(subsolv)",
+          "calls": 20,
+          "self_seconds": 0.1007247,
+          "cumulative_seconds": 0.15660490000000002
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:87(solve)",
+          "calls": 21,
+          "self_seconds": 0.071326,
+          "cumulative_seconds": 0.0758617
+        },
+        {
+          "function": "site-packages/scipy/linalg/_basic.py:57(solve)",
+          "calls": 449,
+          "self_seconds": 0.0057085,
+          "cumulative_seconds": 0.0340654
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:447(_broadcast_to)",
+          "calls": 898,
+          "self_seconds": 0.0052047000000000005,
+          "cumulative_seconds": 0.0069214
+        },
+        {
+          "function": "~:0(<built-in method numpy._core._multiarray_umath.c_einsum>)",
+          "calls": 21,
+          "self_seconds": 0.0041653,
+          "cumulative_seconds": 0.0041653
+        },
+        {
+          "function": "~:0(<method 'reduce' of 'numpy.ufunc' objects>)",
+          "calls": 3041,
+          "self_seconds": 0.0039712,
+          "cumulative_seconds": 0.0039712
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:26(__add__)",
+          "calls": 449,
+          "self_seconds": 0.0030276,
+          "cumulative_seconds": 0.0039162
+        },
+        {
+          "function": "~:0(<method 'copy' of 'numpy.ndarray' objects>)",
+          "calls": 4838,
+          "self_seconds": 0.0027654000000000003,
+          "cumulative_seconds": 0.0027654000000000003
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:23(__init__)",
+          "calls": 1,
+          "self_seconds": 0.0027643000000000004,
+          "cumulative_seconds": 0.0038555000000000004
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:66(_wrapreduction)",
+          "calls": 1978,
+          "self_seconds": 0.0026996000000000004,
+          "cumulative_seconds": 0.0060550000000000005
+        },
+        {
+          "function": "~:0(<method 'run_backward' of 'torch._C._EngineBase' objects>)",
+          "calls": 42,
+          "self_seconds": 0.0025614,
+          "cumulative_seconds": 0.0035084
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:22(dot)",
+          "calls": 1387,
+          "self_seconds": 0.0024876,
+          "cumulative_seconds": 0.0033281
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:32(mmasub)",
+          "calls": 20,
+          "self_seconds": 0.0024259000000000004,
+          "cumulative_seconds": 0.1597366
+        },
+        {
+          "function": "~:0(<method 'flatten' of 'numpy.ndarray' objects>)",
+          "calls": 1838,
+          "self_seconds": 0.0020157,
+          "cumulative_seconds": 0.0020157
+        },
+        {
+          "function": "src/ml_opt/problem.py:48(evaluate)",
+          "calls": 21,
+          "self_seconds": 0.0019811,
+          "cumulative_seconds": 0.08928710000000001
+        },
+        {
+          "function": "site-packages/numpy/lib/_function_base_impl.py:615(asarray_chkfinite)",
+          "calls": 898,
+          "self_seconds": 0.0016465000000000002,
+          "cumulative_seconds": 0.0035328000000000004
+        },
+        {
+          "function": "site-packages/scipy/linalg/lapack.py:1161(_ensure_dtype_cdsz)",
+          "calls": 449,
+          "self_seconds": 0.0016353000000000001,
+          "cumulative_seconds": 0.0043841
+        },
+        {
+          "function": "site-packages/scipy/_lib/_util.py:364(_asarray_validated)",
+          "calls": 898,
+          "self_seconds": 0.0015895000000000002,
+          "cumulative_seconds": 0.0069341
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:3049(max)",
+          "calls": 1977,
+          "self_seconds": 0.0015222,
+          "cumulative_seconds": 0.0075516
+        },
+        {
+          "function": "site-packages/scipy/linalg/blas.py:289(find_best_blas_type)",
+          "calls": 449,
+          "self_seconds": 0.0014649,
+          "cumulative_seconds": 0.0017728000000000002
+        },
+        {
+          "function": "site-packages/numpy/_core/numerictypes.py:418(issubdtype)",
+          "calls": 1347,
+          "self_seconds": 0.0012184000000000001,
+          "cumulative_seconds": 0.0030555
+        },
+        {
+          "function": "~:0(<built-in method torch.tensor>)",
+          "calls": 21,
+          "self_seconds": 0.0010799000000000002,
+          "cumulative_seconds": 0.0010799000000000002
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:520(_broadcast_shape)",
+          "calls": 449,
+          "self_seconds": 0.0010376,
+          "cumulative_seconds": 0.0011015
+        },
+        {
+          "function": "site-packages/numpy/_core/numerictypes.py:230(issubclass_)",
+          "calls": 2694,
+          "self_seconds": 0.0010125000000000002,
+          "cumulative_seconds": 0.0016889000000000001
+        },
+        {
+          "function": "~:0(<method 'mean' of 'torch._C.TensorBase' objects>)",
+          "calls": 21,
+          "self_seconds": 0.0009958,
+          "cumulative_seconds": 0.0009958
+        }
+      ],
+      "top_cumulative_functions": [
+        {
+          "function": "src/ml_opt/runner.py:40(optimise)",
+          "calls": 1,
+          "self_seconds": 1.36e-05,
+          "cumulative_seconds": 0.2550439
+        },
+        {
+          "function": "src/ml_opt/runner.py:48(_optimise_problem)",
+          "calls": 1,
+          "self_seconds": 0.0006897,
+          "cumulative_seconds": 0.2510119
+        },
+        {
+          "function": "src/ml_opt/optimizers/moving_asymptotes.py:50(step)",
+          "calls": 20,
+          "self_seconds": 0.0005713000000000001,
+          "cumulative_seconds": 0.16075830000000002
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:32(mmasub)",
+          "calls": 20,
+          "self_seconds": 0.0024259000000000004,
+          "cumulative_seconds": 0.1597366
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:288(subsolv)",
+          "calls": 20,
+          "self_seconds": 0.1007247,
+          "cumulative_seconds": 0.15660490000000002
+        },
+        {
+          "function": "src/ml_opt/problem.py:48(evaluate)",
+          "calls": 21,
+          "self_seconds": 0.0019811,
+          "cumulative_seconds": 0.08928710000000001
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:134(compliance)",
+          "calls": 21,
+          "self_seconds": 4.1200000000000005e-05,
+          "cumulative_seconds": 0.078087
+        },
+        {
+          "function": "~:0(<built-in method apply>)",
+          "calls": 21,
+          "self_seconds": 0.0005354,
+          "cumulative_seconds": 0.0780458
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:118(forward)",
+          "calls": 21,
+          "self_seconds": 0.0005564000000000001,
+          "cumulative_seconds": 0.07751040000000001
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:87(solve)",
+          "calls": 21,
+          "self_seconds": 0.071326,
+          "cumulative_seconds": 0.0758617
+        },
+        {
+          "function": "site-packages/scipy/linalg/_basic.py:57(solve)",
+          "calls": 449,
+          "self_seconds": 0.0057085,
+          "cumulative_seconds": 0.0340654
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:3049(max)",
+          "calls": 1977,
+          "self_seconds": 0.0015222,
+          "cumulative_seconds": 0.0075516
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:474(broadcast_to)",
+          "calls": 898,
+          "self_seconds": 0.00046290000000000003,
+          "cumulative_seconds": 0.007384300000000001
+        },
+        {
+          "function": "site-packages/scipy/_lib/_util.py:364(_asarray_validated)",
+          "calls": 898,
+          "self_seconds": 0.0015895000000000002,
+          "cumulative_seconds": 0.0069341
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:447(_broadcast_to)",
+          "calls": 898,
+          "self_seconds": 0.0052047000000000005,
+          "cumulative_seconds": 0.0069214
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:66(_wrapreduction)",
+          "calls": 1978,
+          "self_seconds": 0.0026996000000000004,
+          "cumulative_seconds": 0.0060550000000000005
+        },
+        {
+          "function": "site-packages/torch/autograd/__init__.py:434(grad)",
+          "calls": 42,
+          "self_seconds": 0.0006866,
+          "cumulative_seconds": 0.0057333
+        },
+        {
+          "function": "site-packages/scipy/linalg/lapack.py:1161(_ensure_dtype_cdsz)",
+          "calls": 449,
+          "self_seconds": 0.0016353000000000001,
+          "cumulative_seconds": 0.0043841
+        },
+        {
+          "function": "site-packages/numpy/_core/einsumfunc.py:1242(einsum)",
+          "calls": 21,
+          "self_seconds": 2.8800000000000002e-05,
+          "cumulative_seconds": 0.0041941
+        },
+        {
+          "function": "~:0(<built-in method numpy._core._multiarray_umath.c_einsum>)",
+          "calls": 21,
+          "self_seconds": 0.0041653,
+          "cumulative_seconds": 0.0041653
+        },
+        {
+          "function": "~:0(<method 'reduce' of 'numpy.ufunc' objects>)",
+          "calls": 3041,
+          "self_seconds": 0.0039712,
+          "cumulative_seconds": 0.0039712
+        },
+        {
+          "function": "site-packages/torch/autograd/graph.py:1100(_engine_run_backward)",
+          "calls": 42,
+          "self_seconds": 0.00021470000000000001,
+          "cumulative_seconds": 0.0039706
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:26(__add__)",
+          "calls": 449,
+          "self_seconds": 0.0030276,
+          "cumulative_seconds": 0.0039162
+        },
+        {
+          "function": "src/ml_opt/problem.py:27(__init__)",
+          "calls": 1,
+          "self_seconds": 1.43e-05,
+          "cumulative_seconds": 0.0038736
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:23(__init__)",
+          "calls": 1,
+          "self_seconds": 0.0027643000000000004,
+          "cumulative_seconds": 0.0038555000000000004
+        }
+      ],
+      "payload": {
+        "bytes": 26357,
+        "snapshot_seconds": {
+          "samples": [
+            2.8600014047697186e-05,
+            3.0099996365606785e-05,
+            1.759998849593103e-05,
+            1.71000137925148e-05,
+            1.4699995517730713e-05,
+            1.479999627918005e-05,
+            1.5300000086426735e-05,
+            1.6700010746717453e-05,
+            1.4599994756281376e-05,
+            1.5099998563528061e-05,
+            1.6300007700920105e-05,
+            1.7799990018829703e-05,
+            1.580000389367342e-05,
+            3.1499977922067046e-05,
+            1.619997783564031e-05,
+            0.00013299999409355223,
+            1.7999991541728377e-05,
+            2.3200002033263445e-05,
+            1.610000617802143e-05,
+            1.8799997633323073e-05,
+            3.1400006264448166e-05,
+            1.5600002370774746e-05,
+            1.4999997802078724e-05,
+            1.5099998563528061e-05,
+            1.5099998563528061e-05,
+            1.4699995517730713e-05,
+            2.13000166695565e-05,
+            1.4999997802078724e-05,
+            1.479999627918005e-05,
+            1.550000160932541e-05,
+            1.4600023860111833e-05,
+            1.5300000086426735e-05,
+            1.759998849593103e-05,
+            1.479999627918005e-05,
+            2.9499991796910763e-05,
+            1.5400000847876072e-05,
+            2.3399974452331662e-05,
+            1.7300015315413475e-05,
+            1.479999627918005e-05,
+            1.4899997040629387e-05,
+            1.4499993994832039e-05,
+            1.5400000847876072e-05,
+            1.5400000847876072e-05,
+            1.4400022337213159e-05,
+            1.5300000086426735e-05,
+            1.4200020814314485e-05,
+            1.5300000086426735e-05,
+            1.4100020052865148e-05,
+            1.4599994756281376e-05,
+            1.4199991710484028e-05,
+            1.3500015484169126e-05,
+            1.3999990187585354e-05,
+            1.4800025383010507e-05,
+            1.4199991710484028e-05,
+            1.4899997040629387e-05,
+            1.4899997040629387e-05,
+            1.4500023098662496e-05,
+            1.4899997040629387e-05,
+            1.4699995517730713e-05,
+            1.5099998563528061e-05,
+            1.4699995517730713e-05,
+            1.5099998563528061e-05,
+            1.4499993994832039e-05,
+            1.4500023098662496e-05,
+            1.4699995517730713e-05,
+            2.3100001271814108e-05,
+            1.4999997802078724e-05,
+            1.5700003132224083e-05,
+            1.5400000847876072e-05,
+            1.5400000847876072e-05,
+            1.5400000847876072e-05,
+            1.550000160932541e-05,
+            1.619997783564031e-05,
+            4.810001701116562e-05,
+            5.85000088904053e-05,
+            6.10999995842576e-05,
+            5.639999289996922e-05,
+            3.1899980967864394e-05,
+            1.8699996871873736e-05,
+            2.2899999748915434e-05,
+            2.0700012100860476e-05,
+            1.580000389367342e-05,
+            1.4699995517730713e-05,
+            1.4399993233382702e-05,
+            1.580000389367342e-05,
+            1.5199999324977398e-05,
+            2.929999027401209e-05,
+            4.060001811012626e-05,
+            1.6700010746717453e-05,
+            1.5099998563528061e-05,
+            1.780001912266016e-05,
+            1.580000389367342e-05,
+            1.610000617802143e-05,
+            1.479999627918005e-05,
+            1.500002690590918e-05,
+            1.4299992471933365e-05,
+            1.3999990187585354e-05,
+            1.5999976312741637e-05,
+            1.4999997802078724e-05,
+            2.039998071268201e-05
+          ],
+          "median": 1.5400000847876072e-05,
+          "min": 1.3500015484169126e-05,
+          "max": 0.00013299999409355223
+        },
+        "json_seconds": {
+          "samples": [
+            0.0005044999998062849,
+            0.00044839998008683324,
+            0.0004301000153645873,
+            0.00039760000072419643,
+            0.00040450002416037023,
+            0.00040839999564923346,
+            0.0004180000105407089,
+            0.00040499999886378646,
+            0.00040229997830465436,
+            0.00043559999903663993,
+            0.000457499991171062,
+            0.0004096000047866255,
+            0.0004343999898992479,
+            0.00040920000174082816,
+            0.0009195000166073442,
+            0.00045319998753257096,
+            0.0004853999998886138,
+            0.0004121999954804778,
+            0.00040989997796714306,
+            0.0004970000009052455,
+            0.0004260999849066138,
+            0.00041229999624192715,
+            0.0004136999777983874,
+            0.00040600000647827983,
+            0.00039820000529289246,
+            0.000538699998287484,
+            0.0004118999931961298,
+            0.00041280000004917383,
+            0.00041619999683462083,
+            0.0003994000144302845,
+            0.0004017000028397888,
+            0.0004143000114709139,
+            0.0004126999992877245,
+            0.0012052000092808157,
+            0.00041989999590441585,
+            0.0004755000118166208,
+            0.00040869999793358147,
+            0.0004102000093553215,
+            0.00039579998701810837,
+            0.00040079999598674476,
+            0.00040339998668059707,
+            0.0003918999864254147,
+            0.00039300002390518785,
+            0.00039679999463260174,
+            0.0003971999976783991,
+            0.00039179998566396534,
+            0.00043039998854510486,
+            0.00039259999175556004,
+            0.0003926999925170094,
+            0.0003896999987773597,
+            0.0003911999810952693,
+            0.00039300002390518785,
+            0.000391999987186864,
+            0.00039770000148564577,
+            0.00039370000013150275,
+            0.00039140001172199845,
+            0.0003899000003002584,
+            0.00040049999370239675,
+            0.0003848000196740031,
+            0.0003834000090137124,
+            0.00038410001434385777,
+            0.00038729998050257564,
+            0.0003856000257655978,
+            0.00039069997728802264,
+            0.00038499999209307134,
+            0.00040049999370239675,
+            0.00045960000716149807,
+            0.0004140000091865659,
+            0.0004005999944638461,
+            0.00041130001773126423,
+            0.0004090000002179295,
+            0.00041119998786598444,
+            0.00040889999945648015,
+            0.0004498000198509544,
+            0.0011685999925248325,
+            0.0006563999922946095,
+            0.0004430999979376793,
+            0.00042240001494064927,
+            0.00041989999590441585,
+            0.0004288000054657459,
+            0.00039919998380355537,
+            0.000385499995900318,
+            0.00039190001552924514,
+            0.00038240000139921904,
+            0.00039090000791475177,
+            0.0004264999879524112,
+            0.0005088000034447759,
+            0.00042979998397640884,
+            0.0004073999880347401,
+            0.0003978000022470951,
+            0.0004310999938752502,
+            0.00038740001036785543,
+            0.00039549998473376036,
+            0.0003930999955628067,
+            0.00039629999082535505,
+            0.0003932999970857054,
+            0.0003988000098615885,
+            0.00039709999691694975,
+            0.0003913000109605491,
+            0.00041730000521056354
+          ],
+          "median": 0.00040669999725650996,
+          "min": 0.00038240000139921904,
+          "max": 0.0012052000092808157
+        },
+        "pickle_seconds": {
+          "samples": [
+            4.810001701116562e-05,
+            3.290001768618822e-05,
+            2.7000001864507794e-05,
+            2.5299988919869065e-05,
+            2.5300018023699522e-05,
+            2.4899985874071717e-05,
+            2.6299996534362435e-05,
+            2.3600005079060793e-05,
+            2.6299996534362435e-05,
+            2.910001785494387e-05,
+            2.7400004910305142e-05,
+            2.8999987989664078e-05,
+            4.0000013541430235e-05,
+            2.4500011932104826e-05,
+            4.509999416768551e-05,
+            3.1400006264448166e-05,
+            3.630001447163522e-05,
+            2.649999805726111e-05,
+            3.4199998481199145e-05,
+            6.059999577701092e-05,
+            2.609999501146376e-05,
+            2.600002335384488e-05,
+            2.5100016500800848e-05,
+            2.3499975213781e-05,
+            2.2799998987466097e-05,
+            3.0000024707987905e-05,
+            2.6299996534362435e-05,
+            2.47000134550035e-05,
+            2.4299981305375695e-05,
+            2.4399982066825032e-05,
+            2.3900007363408804e-05,
+            2.6599998818710446e-05,
+            2.5599991204217076e-05,
+            4.320000880397856e-05,
+            2.5599991204217076e-05,
+            3.809999907389283e-05,
+            2.6699999580159783e-05,
+            2.5899993488565087e-05,
+            2.4200009647756815e-05,
+            2.4300010409206152e-05,
+            2.4200009647756815e-05,
+            2.1599989850074053e-05,
+            2.3599975975230336e-05,
+            2.549999044276774e-05,
+            2.2199994418770075e-05,
+            2.2799998987466097e-05,
+            2.300000051036477e-05,
+            2.3500004317611456e-05,
+            2.3500004317611456e-05,
+            2.2899999748915434e-05,
+            2.3300002794712782e-05,
+            2.3399974452331662e-05,
+            2.440001117065549e-05,
+            2.5699991965666413e-05,
+            2.340000355616212e-05,
+            2.3399974452331662e-05,
+            2.1899992134422064e-05,
+            2.3100001271814108e-05,
+            2.3999979021027684e-05,
+            2.1499989088624716e-05,
+            2.3300002794712782e-05,
+            2.370000584051013e-05,
+            2.300000051036477e-05,
+            2.4100008886307478e-05,
+            2.5300018023699522e-05,
+            2.8499984182417393e-05,
+            3.0199997127056122e-05,
+            2.5399989681318402e-05,
+            2.5599991204217076e-05,
+            2.3100001271814108e-05,
+            2.540001878514886e-05,
+            2.8300011763349175e-05,
+            2.3800006601959467e-05,
+            0.000155999994603917,
+            0.00011150000500492752,
+            4.199999966658652e-05,
+            3.850000211969018e-05,
+            2.579999272711575e-05,
+            4.640000406652689e-05,
+            3.269998705945909e-05,
+            2.61999957729131e-05,
+            2.2599997464567423e-05,
+            2.5399989681318402e-05,
+            2.4100008886307478e-05,
+            2.5699991965666413e-05,
+            4.230000195093453e-05,
+            6.960000609979033e-05,
+            2.6900001103058457e-05,
+            2.6299996534362435e-05,
+            3.409999771974981e-05,
+            2.2199994418770075e-05,
+            2.379997749812901e-05,
+            2.4300010409206152e-05,
+            2.400000812485814e-05,
+            2.370000584051013e-05,
+            2.3500004317611456e-05,
+            2.370000584051013e-05,
+            2.4500011932104826e-05,
+            2.3500004317611456e-05,
+            2.81000102404505e-05
+          ],
+          "median": 2.5350003852508962e-05,
+          "min": 2.1499989088624716e-05,
+          "max": 0.000155999994603917
+        }
+      }
+    },
+    {
+      "case": {
+        "nx": 60,
+        "ny": 20,
+        "method": "gcmma",
+        "iterations": 20
+      },
+      "profiled_seconds": 0.5507808000256773,
+      "diagnostic_seconds": 0.48985509999329224,
+      "phase_times": {
+        "elasticity_total": 0.21705660020234063,
+        "torch_grad": 0.009016599913593382,
+        "evaluation_total": 0.25117639993550256,
+        "asymp": 0.00225789996329695,
+        "gcmmasub": 0.22571070000412874,
+        "concheck": 0.001475299970479682,
+        "raaupdate": 0.00029779999749735
+      },
+      "phase_calls": {
+        "elasticity_total": 43,
+        "torch_grad": 42,
+        "evaluation_total": 43,
+        "asymp": 20,
+        "gcmmasub": 22,
+        "concheck": 22,
+        "raaupdate": 2
+      },
+      "iterations": 20,
+      "state_solves": 43,
+      "inner_retries": 2,
+      "consecutive_duplicate_solves": 20,
+      "duplicate_solve_seconds": 0.10208180005429313,
+      "functions": {
+        "elasticity_total": {
+          "calls": 43,
+          "seconds": 0.2278261
+        },
+        "evaluation_total": {
+          "calls": 43,
+          "seconds": 0.26626130000000003
+        },
+        "optimizer_inclusive": {
+          "calls": 20,
+          "seconds": 0.402058
+        },
+        "mma_subproblems": {
+          "calls": 0,
+          "seconds": 0
+        },
+        "gcmma_subproblems": {
+          "calls": 22,
+          "seconds": 0.2661895
+        },
+        "primal_dual_subsolver": {
+          "calls": 22,
+          "seconds": 0.2616595
+        },
+        "torch_grad": {
+          "calls": 42,
+          "seconds": 0.0101957
+        },
+        "coo_to_csr": {
+          "calls": 0,
+          "seconds": 0
+        }
+      },
+      "petsc_events": {
+        "MatLUFactorSym": {
+          "count": 1,
+          "time": 0.002237199999999717,
+          "flops": 0.0
+        },
+        "MatLUFactorNum": {
+          "count": 43,
+          "time": 0.15877280000000127,
+          "flops": 480335521.0
+        },
+        "MatSolve": {
+          "count": 43,
+          "time": 0.01322320000000099,
+          "flops": 17007016.0
+        },
+        "PCSetUp": {
+          "count": 43,
+          "time": 0.16196699999999975,
+          "flops": 480335521.0
+        },
+        "KSPSetUp": {
+          "count": 43,
+          "time": 8.69999999908444e-06,
+          "flops": 0.0
+        },
+        "KSPSolve": {
+          "count": 43,
+          "time": 0.013759000000001631,
+          "flops": 17007016.0
+        },
+        "MatAssemblyBegin": {
+          "count": 43,
+          "time": 2.3699999998960664e-05,
+          "flops": 0.0
+        },
+        "MatAssemblyEnd": {
+          "count": 43,
+          "time": 7.779999999923959e-05,
+          "flops": 0.0
+        }
+      },
+      "top_self_functions": [
+        {
+          "function": "src/ml_opt/fem/elasticity.py:87(solve)",
+          "calls": 43,
+          "self_seconds": 0.2145783,
+          "cumulative_seconds": 0.2278261
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:288(subsolv)",
+          "calls": 22,
+          "self_seconds": 0.16735070000000002,
+          "cumulative_seconds": 0.2616595
+        },
+        {
+          "function": "~:0(<built-in method numpy._core._multiarray_umath.c_einsum>)",
+          "calls": 43,
+          "self_seconds": 0.0116155,
+          "cumulative_seconds": 0.0116155
+        },
+        {
+          "function": "site-packages/scipy/linalg/_basic.py:57(solve)",
+          "calls": 490,
+          "self_seconds": 0.009542700000000001,
+          "cumulative_seconds": 0.056635000000000005
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:447(_broadcast_to)",
+          "calls": 980,
+          "self_seconds": 0.008427,
+          "cumulative_seconds": 0.0108687
+        },
+        {
+          "function": "~:0(<method 'reduce' of 'numpy.ufunc' objects>)",
+          "calls": 3437,
+          "self_seconds": 0.007617400000000001,
+          "cumulative_seconds": 0.007617400000000001
+        },
+        {
+          "function": "src/ml_opt/problem.py:48(evaluate)",
+          "calls": 43,
+          "self_seconds": 0.007094400000000001,
+          "cumulative_seconds": 0.26626130000000003
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:26(__add__)",
+          "calls": 490,
+          "self_seconds": 0.0055323,
+          "cumulative_seconds": 0.0072091
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:23(__init__)",
+          "calls": 1,
+          "self_seconds": 0.005354,
+          "cumulative_seconds": 0.0079632
+        },
+        {
+          "function": "~:0(<method 'copy' of 'numpy.ndarray' objects>)",
+          "calls": 5330,
+          "self_seconds": 0.0048477,
+          "cumulative_seconds": 0.0048477
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:66(_wrapreduction)",
+          "calls": 2158,
+          "self_seconds": 0.0044178,
+          "cumulative_seconds": 0.0106309
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:22(dot)",
+          "calls": 1558,
+          "self_seconds": 0.0042891000000000006,
+          "cumulative_seconds": 0.005774700000000001
+        },
+        {
+          "function": "~:0(<method 'run_backward' of 'torch._C._EngineBase' objects>)",
+          "calls": 42,
+          "self_seconds": 0.0042792,
+          "cumulative_seconds": 0.0060736
+        },
+        {
+          "function": "~:0(<method 'flatten' of 'numpy.ndarray' objects>)",
+          "calls": 2138,
+          "self_seconds": 0.0041532,
+          "cumulative_seconds": 0.0041532
+        },
+        {
+          "function": "~:0(<built-in method torch.tensor>)",
+          "calls": 43,
+          "self_seconds": 0.0035618000000000004,
+          "cumulative_seconds": 0.0035618000000000004
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:167(gcmmasub)",
+          "calls": 22,
+          "self_seconds": 0.0035332000000000002,
+          "cumulative_seconds": 0.2661895
+        },
+        {
+          "function": "~:0(<method 'mean' of 'torch._C.TensorBase' objects>)",
+          "calls": 43,
+          "self_seconds": 0.0034115,
+          "cumulative_seconds": 0.0034115
+        },
+        {
+          "function": "site-packages/scipy/linalg/lapack.py:1161(_ensure_dtype_cdsz)",
+          "calls": 490,
+          "self_seconds": 0.0029141,
+          "cumulative_seconds": 0.007249
+        },
+        {
+          "function": "site-packages/numpy/lib/_function_base_impl.py:615(asarray_chkfinite)",
+          "calls": 980,
+          "self_seconds": 0.002784,
+          "cumulative_seconds": 0.0060707
+        },
+        {
+          "function": "site-packages/scipy/_lib/_util.py:364(_asarray_validated)",
+          "calls": 980,
+          "self_seconds": 0.0027727000000000003,
+          "cumulative_seconds": 0.0120417
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:3049(max)",
+          "calls": 2157,
+          "self_seconds": 0.0025888,
+          "cumulative_seconds": 0.0130285
+        },
+        {
+          "function": "site-packages/scipy/linalg/blas.py:289(find_best_blas_type)",
+          "calls": 490,
+          "self_seconds": 0.0025733,
+          "cumulative_seconds": 0.0031225000000000003
+        },
+        {
+          "function": "~:0(<method 'new_tensor' of 'torch._C.TensorBase' objects>)",
+          "calls": 43,
+          "self_seconds": 0.0022779000000000002,
+          "cumulative_seconds": 0.0022779000000000002
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:118(forward)",
+          "calls": 43,
+          "self_seconds": 0.002264,
+          "cumulative_seconds": 0.2348619
+        },
+        {
+          "function": "src/ml_opt/optimizers/moving_asymptotes.py:50(step)",
+          "calls": 20,
+          "self_seconds": 0.0022366,
+          "cumulative_seconds": 0.402058
+        }
+      ],
+      "top_cumulative_functions": [
+        {
+          "function": "src/ml_opt/runner.py:40(optimise)",
+          "calls": 1,
+          "self_seconds": 2.22e-05,
+          "cumulative_seconds": 0.5504403
+        },
+        {
+          "function": "src/ml_opt/runner.py:48(_optimise_problem)",
+          "calls": 1,
+          "self_seconds": 0.0014098000000000001,
+          "cumulative_seconds": 0.542242
+        },
+        {
+          "function": "src/ml_opt/optimizers/moving_asymptotes.py:50(step)",
+          "calls": 20,
+          "self_seconds": 0.0022366,
+          "cumulative_seconds": 0.402058
+        },
+        {
+          "function": "src/ml_opt/problem.py:48(evaluate)",
+          "calls": 43,
+          "self_seconds": 0.007094400000000001,
+          "cumulative_seconds": 0.26626130000000003
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:167(gcmmasub)",
+          "calls": 22,
+          "self_seconds": 0.0035332000000000002,
+          "cumulative_seconds": 0.2661895
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:288(subsolv)",
+          "calls": 22,
+          "self_seconds": 0.16735070000000002,
+          "cumulative_seconds": 0.2616595
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:134(compliance)",
+          "calls": 43,
+          "self_seconds": 0.000212,
+          "cumulative_seconds": 0.23729920000000002
+        },
+        {
+          "function": "~:0(<built-in method apply>)",
+          "calls": 43,
+          "self_seconds": 0.0022253,
+          "cumulative_seconds": 0.23708720000000003
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:118(forward)",
+          "calls": 43,
+          "self_seconds": 0.002264,
+          "cumulative_seconds": 0.2348619
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:87(solve)",
+          "calls": 43,
+          "self_seconds": 0.2145783,
+          "cumulative_seconds": 0.2278261
+        },
+        {
+          "function": "site-packages/scipy/linalg/_basic.py:57(solve)",
+          "calls": 490,
+          "self_seconds": 0.009542700000000001,
+          "cumulative_seconds": 0.056635000000000005
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:3049(max)",
+          "calls": 2157,
+          "self_seconds": 0.0025888,
+          "cumulative_seconds": 0.0130285
+        },
+        {
+          "function": "site-packages/scipy/_lib/_util.py:364(_asarray_validated)",
+          "calls": 980,
+          "self_seconds": 0.0027727000000000003,
+          "cumulative_seconds": 0.0120417
+        },
+        {
+          "function": "site-packages/numpy/_core/einsumfunc.py:1242(einsum)",
+          "calls": 43,
+          "self_seconds": 0.0001009,
+          "cumulative_seconds": 0.0117164
+        },
+        {
+          "function": "~:0(<built-in method numpy._core._multiarray_umath.c_einsum>)",
+          "calls": 43,
+          "self_seconds": 0.0116155,
+          "cumulative_seconds": 0.0116155
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:474(broadcast_to)",
+          "calls": 980,
+          "self_seconds": 0.00072,
+          "cumulative_seconds": 0.0115887
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:447(_broadcast_to)",
+          "calls": 980,
+          "self_seconds": 0.008427,
+          "cumulative_seconds": 0.0108687
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:66(_wrapreduction)",
+          "calls": 2158,
+          "self_seconds": 0.0044178,
+          "cumulative_seconds": 0.0106309
+        },
+        {
+          "function": "site-packages/torch/autograd/__init__.py:434(grad)",
+          "calls": 42,
+          "self_seconds": 0.00136,
+          "cumulative_seconds": 0.0101957
+        },
+        {
+          "function": "src/ml_opt/problem.py:27(__init__)",
+          "calls": 1,
+          "self_seconds": 2.6600000000000003e-05,
+          "cumulative_seconds": 0.0079991
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:23(__init__)",
+          "calls": 1,
+          "self_seconds": 0.005354,
+          "cumulative_seconds": 0.0079632
+        },
+        {
+          "function": "~:0(<method 'reduce' of 'numpy.ufunc' objects>)",
+          "calls": 3437,
+          "self_seconds": 0.007617400000000001,
+          "cumulative_seconds": 0.007617400000000001
+        },
+        {
+          "function": "site-packages/scipy/linalg/lapack.py:1161(_ensure_dtype_cdsz)",
+          "calls": 490,
+          "self_seconds": 0.0029141,
+          "cumulative_seconds": 0.007249
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:26(__add__)",
+          "calls": 490,
+          "self_seconds": 0.0055323,
+          "cumulative_seconds": 0.0072091
+        },
+        {
+          "function": "site-packages/torch/autograd/graph.py:1100(_engine_run_backward)",
+          "calls": 42,
+          "self_seconds": 0.0004801,
+          "cumulative_seconds": 0.006978300000000001
+        }
+      ],
+      "payload": {
+        "bytes": 26128,
+        "snapshot_seconds": {
+          "samples": [
+            7.919999188743532e-05,
+            4.509999416768551e-05,
+            2.5599991204217076e-05,
+            1.6999983927235007e-05,
+            2.7400004910305142e-05,
+            1.6499980119988322e-05,
+            2.6699999580159783e-05,
+            2.1000014385208488e-05,
+            2.190002123825252e-05,
+            1.8699996871873736e-05,
+            2.5300018023699522e-05,
+            1.759998849593103e-05,
+            1.610000617802143e-05,
+            2.300000051036477e-05,
+            2.0700012100860476e-05,
+            2.3900007363408804e-05,
+            3.0199997127056122e-05,
+            1.6700010746717453e-05,
+            1.6399979358538985e-05,
+            1.580000389367342e-05,
+            1.6900012269616127e-05,
+            1.6900012269616127e-05,
+            1.7499987734481692e-05,
+            1.789999078027904e-05,
+            7.500001811422408e-05,
+            2.850001328624785e-05,
+            2.099998528137803e-05,
+            3.500000457279384e-05,
+            1.7099984688684344e-05,
+            1.8799997633323073e-05,
+            1.71000137925148e-05,
+            2.6900001103058457e-05,
+            1.659998088143766e-05,
+            1.819999306462705e-05,
+            3.209998249076307e-05,
+            3.649998689070344e-05,
+            1.829999382607639e-05,
+            1.619997783564031e-05,
+            1.7299986211583018e-05,
+            1.610000617802143e-05,
+            2.400000812485814e-05,
+            3.359999391250312e-05,
+            0.0001571000029798597,
+            5.1799986977130175e-05,
+            3.199998172931373e-05,
+            1.8499995348975062e-05,
+            3.259998629800975e-05,
+            2.549999044276774e-05,
+            3.479997394606471e-05,
+            1.9500002963468432e-05,
+            1.7299986211583018e-05,
+            1.8499995348975062e-05,
+            1.920000067912042e-05,
+            1.4399993233382702e-05,
+            1.4600023860111833e-05,
+            2.6299996534362435e-05,
+            2.340000355616212e-05,
+            2.0400009816512465e-05,
+            1.479999627918005e-05,
+            1.4899997040629387e-05,
+            1.4400022337213159e-05,
+            1.5300000086426735e-05,
+            1.479999627918005e-05,
+            1.4399993233382702e-05,
+            1.6200006939470768e-05,
+            5.6599994422867894e-05,
+            1.9400002202019095e-05,
+            1.4699995517730713e-05,
+            1.5199999324977398e-05,
+            1.5099998563528061e-05,
+            1.4599994756281376e-05,
+            1.4099990949034691e-05,
+            1.3899989426136017e-05,
+            1.4199991710484028e-05,
+            7.85999873187393e-05,
+            2.2899999748915434e-05,
+            2.1299987565726042e-05,
+            2.1299987565726042e-05,
+            1.7600017599761486e-05,
+            1.580000389367342e-05,
+            1.7300015315413475e-05,
+            1.500002690590918e-05,
+            5.219999002292752e-05,
+            1.889999839477241e-05,
+            1.9099999917671084e-05,
+            2.5199988158419728e-05,
+            2.060001133941114e-05,
+            1.7200014553964138e-05,
+            1.7399986973032355e-05,
+            1.610000617802143e-05,
+            2.9699993319809437e-05,
+            2.0499981474131346e-05,
+            2.4200009647756815e-05,
+            3.2100011594593525e-05,
+            3.819999983534217e-05,
+            2.6900001103058457e-05,
+            1.7900019884109497e-05,
+            1.479999627918005e-05,
+            2.9799994081258774e-05,
+            1.920000067912042e-05
+          ],
+          "median": 1.8999999156221747e-05,
+          "min": 1.3899989426136017e-05,
+          "max": 0.0001571000029798597
+        },
+        "json_seconds": {
+          "samples": [
+            0.0004600000102072954,
+            0.0007070999999996275,
+            0.0004101000085938722,
+            0.00043710001045838,
+            0.00041649999911896884,
+            0.0005333000153768808,
+            0.00048779998905956745,
+            0.0004254999803379178,
+            0.00042199998279102147,
+            0.0004665000014938414,
+            0.00040679998346604407,
+            0.00040190000436268747,
+            0.00047679999261163175,
+            0.00041280000004917383,
+            0.0004375999851617962,
+            0.0004312999953981489,
+            0.0004143000114709139,
+            0.00039939998532645404,
+            0.0003931000246666372,
+            0.0003960999893024564,
+            0.0003843999875243753,
+            0.000387999985832721,
+            0.00038380001205950975,
+            0.000503500021295622,
+            0.0005327999824658036,
+            0.0004249999765306711,
+            0.0004766999918501824,
+            0.0004230999911669642,
+            0.0005475000070873648,
+            0.0004169000021647662,
+            0.0004681999853346497,
+            0.0004073000163771212,
+            0.00040839999564923346,
+            0.0004174000059720129,
+            0.0005031000182498246,
+            0.0004124999977648258,
+            0.000423500023316592,
+            0.0004062000080011785,
+            0.0003960000176448375,
+            0.00039790000300854445,
+            0.0004349999944679439,
+            0.00047560001257807016,
+            0.0005842999962624162,
+            0.0005113000224810094,
+            0.000458099995739758,
+            0.0005000999954063445,
+            0.000526399991940707,
+            0.0006914999976288527,
+            0.0005090000049676746,
+            0.00041799998143687844,
+            0.00045449999743141234,
+            0.00047450000420212746,
+            0.0003853000234812498,
+            0.0003863000019919127,
+            0.0003961999900639057,
+            0.00042799999937415123,
+            0.000455000001238659,
+            0.0003924999909941107,
+            0.0003859999997075647,
+            0.00038399998447857797,
+            0.0003910000086762011,
+            0.0003856000257655978,
+            0.000378400000045076,
+            0.00037930000689812005,
+            0.0004506000259425491,
+            0.00042380002560094,
+            0.00039709999691694975,
+            0.0003738999948836863,
+            0.0003895999980159104,
+            0.0003806000167969614,
+            0.0003803999861702323,
+            0.00038090001908130944,
+            0.0003816999960690737,
+            0.00042740002390928566,
+            0.0004938000056426972,
+            0.0004925999965053052,
+            0.00046129999100230634,
+            0.0004219000111334026,
+            0.00040749998879618943,
+            0.0004192999913357198,
+            0.00041379997855983675,
+            0.0004359999729786068,
+            0.0004394999996293336,
+            0.0004896000027656555,
+            0.000464299984741956,
+            0.0004160999960731715,
+            0.00040389999048784375,
+            0.0003991000121459365,
+            0.00041500001680105925,
+            0.00042139997822232544,
+            0.0004222000134177506,
+            0.0004200999974273145,
+            0.0004428999964147806,
+            0.00048650000826455653,
+            0.0004180999821983278,
+            0.00040499999886378646,
+            0.000388599990401417,
+            0.000427500024670735,
+            0.00043730001198127866,
+            0.00039659999310970306
+          ],
+          "median": 0.00042074998782482,
+          "min": 0.0003738999948836863,
+          "max": 0.0007070999999996275
+        },
+        "pickle_seconds": {
+          "samples": [
+            5.9200014220550656e-05,
+            4.569999873638153e-05,
+            3.0399998649954796e-05,
+            3.919997834600508e-05,
+            2.8400012524798512e-05,
+            4.049998824484646e-05,
+            3.819999983534217e-05,
+            3.399999695830047e-05,
+            2.9199989512562752e-05,
+            3.809999907389283e-05,
+            2.720000338740647e-05,
+            2.649999805726111e-05,
+            3.7999998312443495e-05,
+            3.060000017285347e-05,
+            4.089999129064381e-05,
+            3.749999450519681e-05,
+            2.9399991035461426e-05,
+            2.81000102404505e-05,
+            2.5900022592395544e-05,
+            2.5599991204217076e-05,
+            2.7000001864507794e-05,
+            2.7400004910305142e-05,
+            2.509998739697039e-05,
+            9.90999978967011e-05,
+            5.3099996875971556e-05,
+            3.330002073198557e-05,
+            5.800000508315861e-05,
+            2.989999484270811e-05,
+            3.1400006264448166e-05,
+            2.609999501146376e-05,
+            5.0300004659220576e-05,
+            2.7600006433203816e-05,
+            2.989999484270811e-05,
+            3.429999924264848e-05,
+            5.4800009820610285e-05,
+            2.7300004148855805e-05,
+            2.6699999580159783e-05,
+            2.81000102404505e-05,
+            2.8000009479001164e-05,
+            4.0399987483397126e-05,
+            5.949998740106821e-05,
+            0.0001674000232014805,
+            6.059999577701092e-05,
+            4.9200025387108326e-05,
+            3.170000854879618e-05,
+            5.8600009651854634e-05,
+            5.1700015319511294e-05,
+            5.840000812895596e-05,
+            3.15000070258975e-05,
+            2.540001878514886e-05,
+            3.090000245720148e-05,
+            2.8999987989664078e-05,
+            2.2099993657320738e-05,
+            2.4399982066825032e-05,
+            4.449998959898949e-05,
+            4.089999129064381e-05,
+            3.4199998481199145e-05,
+            2.720000338740647e-05,
+            2.3100001271814108e-05,
+            2.340000355616212e-05,
+            2.5300018023699522e-05,
+            2.2899999748915434e-05,
+            2.2599997464567423e-05,
+            2.5299988919869065e-05,
+            7.720000576227903e-05,
+            2.950002090074122e-05,
+            2.3200002033263445e-05,
+            2.2799998987466097e-05,
+            2.5699991965666413e-05,
+            2.2799998987466097e-05,
+            2.3100001271814108e-05,
+            2.3200002033263445e-05,
+            2.2599997464567423e-05,
+            6.290001329034567e-05,
+            4.320000880397856e-05,
+            3.3199990866705775e-05,
+            2.8000009479001164e-05,
+            2.6699999580159783e-05,
+            2.370000584051013e-05,
+            2.6599998818710446e-05,
+            2.5899993488565087e-05,
+            5.140001303516328e-05,
+            3.37999954354018e-05,
+            5.01000031363219e-05,
+            4.2400002712383866e-05,
+            2.649999805726111e-05,
+            2.5599991204217076e-05,
+            2.5199988158419728e-05,
+            2.649999805726111e-05,
+            5.299999611452222e-05,
+            3.4900003811344504e-05,
+            3.090000245720148e-05,
+            5.5100012104958296e-05,
+            6.3000014051795e-05,
+            4.4899992644786835e-05,
+            3.060000017285347e-05,
+            2.5399989681318402e-05,
+            4.390001413412392e-05,
+            2.9799994081258774e-05,
+            2.95999925583601e-05
+          ],
+          "median": 3.0149996746331453e-05,
+          "min": 2.2099993657320738e-05,
+          "max": 0.0001674000232014805
+        }
+      }
+    },
+    {
+      "case": {
+        "nx": 120,
+        "ny": 40,
+        "method": "mma",
+        "iterations": 20
+      },
+      "profiled_seconds": 1.272230300004594,
+      "diagnostic_seconds": 1.3868009999860078,
+      "phase_times": {
+        "elasticity_total": 0.7338799000135623,
+        "torch_grad": 0.008005499956198037,
+        "evaluation_total": 0.7565377000137232,
+        "mmasub": 0.6013328999979421
+      },
+      "phase_calls": {
+        "elasticity_total": 21,
+        "torch_grad": 42,
+        "evaluation_total": 21,
+        "mmasub": 20
+      },
+      "iterations": 20,
+      "state_solves": 21,
+      "inner_retries": 0,
+      "consecutive_duplicate_solves": 0,
+      "duplicate_solve_seconds": 0.0,
+      "functions": {
+        "elasticity_total": {
+          "calls": 21,
+          "seconds": 0.6630065
+        },
+        "evaluation_total": {
+          "calls": 21,
+          "seconds": 0.6861369
+        },
+        "optimizer_inclusive": {
+          "calls": 20,
+          "seconds": 0.5632728
+        },
+        "mma_subproblems": {
+          "calls": 20,
+          "seconds": 0.5610792
+        },
+        "gcmma_subproblems": {
+          "calls": 0,
+          "seconds": 0
+        },
+        "primal_dual_subsolver": {
+          "calls": 20,
+          "seconds": 0.5543545000000001
+        },
+        "torch_grad": {
+          "calls": 42,
+          "seconds": 0.0074554
+        },
+        "coo_to_csr": {
+          "calls": 0,
+          "seconds": 0
+        }
+      },
+      "petsc_events": {
+        "MatLUFactorSym": {
+          "count": 1,
+          "time": 0.012170999999999932,
+          "flops": 0.0
+        },
+        "MatLUFactorNum": {
+          "count": 21,
+          "time": 0.5993532000000008,
+          "flops": 2060392112.0
+        },
+        "MatSolve": {
+          "count": 21,
+          "time": 0.033729000000001896,
+          "flops": 44131584.0
+        },
+        "PCSetUp": {
+          "count": 21,
+          "time": 0.6135954000000003,
+          "flops": 2060392112.0
+        },
+        "KSPSetUp": {
+          "count": 21,
+          "time": 4.300000001400406e-06,
+          "flops": 0.0
+        },
+        "KSPSolve": {
+          "count": 21,
+          "time": 0.03391449999999896,
+          "flops": 44131584.0
+        },
+        "MatAssemblyBegin": {
+          "count": 21,
+          "time": 1.0099999999457765e-05,
+          "flops": 0.0
+        },
+        "MatAssemblyEnd": {
+          "count": 21,
+          "time": 0.00019749999999829626,
+          "flops": 0.0
+        }
+      },
+      "top_self_functions": [
+        {
+          "function": "src/ml_opt/fem/elasticity.py:87(solve)",
+          "calls": 21,
+          "self_seconds": 0.6468737,
+          "cumulative_seconds": 0.6630065
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:288(subsolv)",
+          "calls": 20,
+          "self_seconds": 0.4344715,
+          "cumulative_seconds": 0.5543545000000001
+        },
+        {
+          "function": "~:0(<built-in method numpy._core._multiarray_umath.c_einsum>)",
+          "calls": 21,
+          "self_seconds": 0.015487800000000001,
+          "cumulative_seconds": 0.015487800000000001
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:23(__init__)",
+          "calls": 1,
+          "self_seconds": 0.014542000000000001,
+          "cumulative_seconds": 0.0188761
+        },
+        {
+          "function": "~:0(<method 'reduce' of 'numpy.ufunc' objects>)",
+          "calls": 3293,
+          "self_seconds": 0.012903300000000001,
+          "cumulative_seconds": 0.012903300000000001
+        },
+        {
+          "function": "site-packages/scipy/linalg/_basic.py:57(solve)",
+          "calls": 491,
+          "self_seconds": 0.010651800000000001,
+          "cumulative_seconds": 0.0635358
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:447(_broadcast_to)",
+          "calls": 982,
+          "self_seconds": 0.009798300000000001,
+          "cumulative_seconds": 0.0123782
+        },
+        {
+          "function": "~:0(<method 'copy' of 'numpy.ndarray' objects>)",
+          "calls": 5258,
+          "self_seconds": 0.008247,
+          "cumulative_seconds": 0.008247
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:26(__add__)",
+          "calls": 491,
+          "self_seconds": 0.007038600000000001,
+          "cumulative_seconds": 0.0090647
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:22(dot)",
+          "calls": 1513,
+          "self_seconds": 0.0068065,
+          "cumulative_seconds": 0.008617300000000001
+        },
+        {
+          "function": "~:0(<method 'flatten' of 'numpy.ndarray' objects>)",
+          "calls": 2006,
+          "self_seconds": 0.0062274,
+          "cumulative_seconds": 0.0062274
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:66(_wrapreduction)",
+          "calls": 2146,
+          "self_seconds": 0.0057099,
+          "cumulative_seconds": 0.0172999
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:32(mmasub)",
+          "calls": 20,
+          "self_seconds": 0.0056762,
+          "cumulative_seconds": 0.5610792
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:118(forward)",
+          "calls": 21,
+          "self_seconds": 0.0037491000000000004,
+          "cumulative_seconds": 0.6688779
+        },
+        {
+          "function": "site-packages/scipy/linalg/lapack.py:1161(_ensure_dtype_cdsz)",
+          "calls": 491,
+          "self_seconds": 0.0036075,
+          "cumulative_seconds": 0.008321700000000001
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:3049(max)",
+          "calls": 2145,
+          "self_seconds": 0.0034011,
+          "cumulative_seconds": 0.0206747
+        },
+        {
+          "function": "~:0(<method 'run_backward' of 'torch._C._EngineBase' objects>)",
+          "calls": 42,
+          "self_seconds": 0.0032856,
+          "cumulative_seconds": 0.0045526
+        },
+        {
+          "function": "site-packages/scipy/_lib/_util.py:364(_asarray_validated)",
+          "calls": 982,
+          "self_seconds": 0.0032585,
+          "cumulative_seconds": 0.013508800000000001
+        },
+        {
+          "function": "site-packages/numpy/lib/_function_base_impl.py:615(asarray_chkfinite)",
+          "calls": 982,
+          "self_seconds": 0.0030911000000000003,
+          "cumulative_seconds": 0.0067754
+        },
+        {
+          "function": "src/ml_opt/problem.py:48(evaluate)",
+          "calls": 21,
+          "self_seconds": 0.0030316,
+          "cumulative_seconds": 0.6861369
+        },
+        {
+          "function": "site-packages/scipy/linalg/blas.py:289(find_best_blas_type)",
+          "calls": 491,
+          "self_seconds": 0.0028547000000000004,
+          "cumulative_seconds": 0.0033715000000000004
+        },
+        {
+          "function": "~:0(<built-in method scipy.linalg._batched_linalg._solve>)",
+          "calls": 491,
+          "self_seconds": 0.0026307,
+          "cumulative_seconds": 0.0026307
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:520(_broadcast_shape)",
+          "calls": 491,
+          "self_seconds": 0.0020393,
+          "cumulative_seconds": 0.0021265
+        },
+        {
+          "function": "site-packages/numpy/_core/numerictypes.py:418(issubdtype)",
+          "calls": 1473,
+          "self_seconds": 0.0019612,
+          "cumulative_seconds": 0.0050403
+        },
+        {
+          "function": "~:0(<built-in method torch.tensor>)",
+          "calls": 21,
+          "self_seconds": 0.0018515,
+          "cumulative_seconds": 0.0018515
+        }
+      ],
+      "top_cumulative_functions": [
+        {
+          "function": "src/ml_opt/runner.py:40(optimise)",
+          "calls": 1,
+          "self_seconds": 2.7700000000000002e-05,
+          "cumulative_seconds": 1.2718614000000001
+        },
+        {
+          "function": "src/ml_opt/runner.py:48(_optimise_problem)",
+          "calls": 1,
+          "self_seconds": 0.001296,
+          "cumulative_seconds": 1.251176
+        },
+        {
+          "function": "src/ml_opt/problem.py:48(evaluate)",
+          "calls": 21,
+          "self_seconds": 0.0030316,
+          "cumulative_seconds": 0.6861369
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:134(compliance)",
+          "calls": 21,
+          "self_seconds": 5.53e-05,
+          "cumulative_seconds": 0.6698237
+        },
+        {
+          "function": "~:0(<built-in method apply>)",
+          "calls": 21,
+          "self_seconds": 0.0008905,
+          "cumulative_seconds": 0.6697684
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:118(forward)",
+          "calls": 21,
+          "self_seconds": 0.0037491000000000004,
+          "cumulative_seconds": 0.6688779
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:87(solve)",
+          "calls": 21,
+          "self_seconds": 0.6468737,
+          "cumulative_seconds": 0.6630065
+        },
+        {
+          "function": "src/ml_opt/optimizers/moving_asymptotes.py:50(step)",
+          "calls": 20,
+          "self_seconds": 0.0012238000000000001,
+          "cumulative_seconds": 0.5632728
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:32(mmasub)",
+          "calls": 20,
+          "self_seconds": 0.0056762,
+          "cumulative_seconds": 0.5610792
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:288(subsolv)",
+          "calls": 20,
+          "self_seconds": 0.4344715,
+          "cumulative_seconds": 0.5543545000000001
+        },
+        {
+          "function": "site-packages/scipy/linalg/_basic.py:57(solve)",
+          "calls": 491,
+          "self_seconds": 0.010651800000000001,
+          "cumulative_seconds": 0.0635358
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:3049(max)",
+          "calls": 2145,
+          "self_seconds": 0.0034011,
+          "cumulative_seconds": 0.0206747
+        },
+        {
+          "function": "src/ml_opt/problem.py:27(__init__)",
+          "calls": 1,
+          "self_seconds": 0.00026680000000000003,
+          "cumulative_seconds": 0.0191581
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:23(__init__)",
+          "calls": 1,
+          "self_seconds": 0.014542000000000001,
+          "cumulative_seconds": 0.0188761
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:66(_wrapreduction)",
+          "calls": 2146,
+          "self_seconds": 0.0057099,
+          "cumulative_seconds": 0.0172999
+        },
+        {
+          "function": "site-packages/numpy/_core/einsumfunc.py:1242(einsum)",
+          "calls": 21,
+          "self_seconds": 5.1500000000000005e-05,
+          "cumulative_seconds": 0.0155393
+        },
+        {
+          "function": "~:0(<built-in method numpy._core._multiarray_umath.c_einsum>)",
+          "calls": 21,
+          "self_seconds": 0.015487800000000001,
+          "cumulative_seconds": 0.015487800000000001
+        },
+        {
+          "function": "site-packages/scipy/_lib/_util.py:364(_asarray_validated)",
+          "calls": 982,
+          "self_seconds": 0.0032585,
+          "cumulative_seconds": 0.013508800000000001
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:474(broadcast_to)",
+          "calls": 982,
+          "self_seconds": 0.0007577,
+          "cumulative_seconds": 0.0131359
+        },
+        {
+          "function": "~:0(<method 'reduce' of 'numpy.ufunc' objects>)",
+          "calls": 3293,
+          "self_seconds": 0.012903300000000001,
+          "cumulative_seconds": 0.012903300000000001
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:447(_broadcast_to)",
+          "calls": 982,
+          "self_seconds": 0.009798300000000001,
+          "cumulative_seconds": 0.0123782
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:26(__add__)",
+          "calls": 491,
+          "self_seconds": 0.007038600000000001,
+          "cumulative_seconds": 0.0090647
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:22(dot)",
+          "calls": 1513,
+          "self_seconds": 0.0068065,
+          "cumulative_seconds": 0.008617300000000001
+        },
+        {
+          "function": "site-packages/scipy/linalg/lapack.py:1161(_ensure_dtype_cdsz)",
+          "calls": 491,
+          "self_seconds": 0.0036075,
+          "cumulative_seconds": 0.008321700000000001
+        },
+        {
+          "function": "~:0(<method 'copy' of 'numpy.ndarray' objects>)",
+          "calls": 5258,
+          "self_seconds": 0.008247,
+          "cumulative_seconds": 0.008247
+        }
+      ],
+      "payload": {
+        "bytes": 102474,
+        "snapshot_seconds": {
+          "samples": [
+            0.00027340001543052495,
+            0.0001160999818239361,
+            8.3099992480129e-05,
+            0.00011180000728927553,
+            0.00016379999578930438,
+            6.890000076964498e-05,
+            7.239999831654131e-05,
+            8.420000085607171e-05,
+            9.469999349676073e-05,
+            6.249998114071786e-05,
+            5.0700007705017924e-05,
+            6.920000305399299e-05,
+            7.51999905332923e-05,
+            7.569999434053898e-05,
+            6.310001481324434e-05,
+            7.650000043213367e-05,
+            5.549998604692519e-05,
+            5.6899996707215905e-05,
+            7.270000060088933e-05,
+            5.699999746866524e-05,
+            0.00011890000314451754,
+            0.00019210000755265355,
+            6.220000796020031e-05,
+            7.2900002123788e-05,
+            5.3499999921768904e-05,
+            0.00014540000120177865,
+            6.959997699595988e-05,
+            8.720002369955182e-05,
+            5.609999061562121e-05,
+            6.510000093840063e-05,
+            6.709998706355691e-05,
+            5.870001041330397e-05,
+            7.759997970424592e-05,
+            5.0399976316839457e-05,
+            8.3099992480129e-05,
+            5.529998452402651e-05,
+            5.5100012104958296e-05,
+            6.639998173341155e-05,
+            5.2099989261478186e-05,
+            4.75000124424696e-05,
+            7.959999493323267e-05,
+            0.00017069999012164772,
+            6.769999163225293e-05,
+            8.6499989265576e-05,
+            5.7900004321709275e-05,
+            9.240000508725643e-05,
+            7.559999357908964e-05,
+            7.040001219138503e-05,
+            6.089999806135893e-05,
+            5.679999594576657e-05,
+            5.440000677481294e-05,
+            5.390000296756625e-05,
+            5.080000846646726e-05,
+            4.630000330507755e-05,
+            5.139998393133283e-05,
+            7.219999679364264e-05,
+            5.299999611452222e-05,
+            6.940000457689166e-05,
+            5.210001836530864e-05,
+            0.00010229999315924942,
+            5.729999975301325e-05,
+            5.570001667365432e-05,
+            0.00014849999570287764,
+            4.919999628327787e-05,
+            6.59999786876142e-05,
+            5.059997783973813e-05,
+            5.479998071677983e-05,
+            5.970001802779734e-05,
+            9.730001329444349e-05,
+            5.4899981478229165e-05,
+            5.3800002206116915e-05,
+            7.43999844416976e-05,
+            4.859999171458185e-05,
+            8.690002141520381e-05,
+            7.139999070204794e-05,
+            6.389999180100858e-05,
+            6.200000643730164e-05,
+            5.1099981646984816e-05,
+            5.269999383017421e-05,
+            5.780000356025994e-05,
+            9.960000170394778e-05,
+            5.319999763742089e-05,
+            7.949999417178333e-05,
+            4.939999780617654e-05,
+            6.719998782500625e-05,
+            6.640001083724201e-05,
+            9.349998435936868e-05,
+            5.490001058205962e-05,
+            5.959998816251755e-05,
+            8.449997403658926e-05,
+            5.600001895800233e-05,
+            6.150000263005495e-05,
+            4.679997800849378e-05,
+            6.500000017695129e-05,
+            5.7900004321709275e-05,
+            4.600000102072954e-05,
+            6.310001481324434e-05,
+            4.689997876994312e-05,
+            5.0000002374872565e-05,
+            5.139998393133283e-05
+          ],
+          "median": 6.310001481324434e-05,
+          "min": 4.600000102072954e-05,
+          "max": 0.00027340001543052495
+        },
+        "json_seconds": {
+          "samples": [
+            0.0018894000095315278,
+            0.0016716000100132078,
+            0.0019323999877087772,
+            0.0017642999882809818,
+            0.0017027999856509268,
+            0.0016441000043414533,
+            0.0018480999860912561,
+            0.0016553999739699066,
+            0.0016646000149194151,
+            0.0015962000179570168,
+            0.0019229000026825815,
+            0.0016913999861571938,
+            0.0017642999882809818,
+            0.0016299999842885882,
+            0.0016478999750688672,
+            0.0016542999946977943,
+            0.0015790000034030527,
+            0.001719600026262924,
+            0.0017675999843049794,
+            0.0019322999869473279,
+            0.002584700006991625,
+            0.002442900004098192,
+            0.0016768999921623617,
+            0.001657299988437444,
+            0.0017044999985955656,
+            0.0022612999891862273,
+            0.001729200012050569,
+            0.0017002999957185239,
+            0.0016531999863218516,
+            0.0017074000206775963,
+            0.0016699999978300184,
+            0.0017105999868363142,
+            0.001587700011441484,
+            0.004727300023660064,
+            0.0016613999905530363,
+            0.0016135000041685998,
+            0.0016511000285390764,
+            0.001615900022443384,
+            0.0015622999926563352,
+            0.0016466999950353056,
+            0.0018088999786414206,
+            0.0017322000057902187,
+            0.0021330000017769635,
+            0.001662499998928979,
+            0.0017126999737229198,
+            0.001671499980147928,
+            0.0017644999898038805,
+            0.001592999993590638,
+            0.0016416999860666692,
+            0.001596999994944781,
+            0.001583100005518645,
+            0.0015272999880835414,
+            0.0015325999993365258,
+            0.0015284999972209334,
+            0.0017291000112891197,
+            0.0016248000029008836,
+            0.001651099999435246,
+            0.0016107000119518489,
+            0.0015697999915573746,
+            0.0017093000060413033,
+            0.0016124999965541065,
+            0.0017583000008016825,
+            0.0016076000174507499,
+            0.001575100002810359,
+            0.0015440999995917082,
+            0.0016089999990072101,
+            0.002004500012844801,
+            0.0016163999971468002,
+            0.00183269998524338,
+            0.0015463000163435936,
+            0.001632300001801923,
+            0.0015620999911334366,
+            0.0016627000004518777,
+            0.002119800017680973,
+            0.0017594000091776252,
+            0.0015977000002749264,
+            0.0015580000181216747,
+            0.0016368000069633126,
+            0.0015257999766618013,
+            0.0016450000111944973,
+            0.0016057000029832125,
+            0.0016188000154215842,
+            0.0016117999912239611,
+            0.0016868000093381852,
+            0.0017945000145118684,
+            0.0017703000048641115,
+            0.0016003000200726092,
+            0.0016293000080622733,
+            0.0016348000208381563,
+            0.0016017000016290694,
+            0.0015970999957062304,
+            0.0015607000095769763,
+            0.00157789999502711,
+            0.0015796999796293676,
+            0.0015631999995093793,
+            0.0015260000072885305,
+            0.0015327000000979751,
+            0.0015842000138945878,
+            0.0016097000043373555,
+            0.0015940000012051314
+          ],
+          "median": 0.0016472999850520864,
+          "min": 0.0015257999766618013,
+          "max": 0.004727300023660064
+        },
+        "pickle_seconds": {
+          "samples": [
+            0.00014269998064264655,
+            0.00010629999451339245,
+            0.000146100006531924,
+            0.0005778999766334891,
+            0.00010570001904852688,
+            0.00010740000288933516,
+            0.00016150000737980008,
+            0.00013100000796839595,
+            0.0001052000152412802,
+            9.669997962191701e-05,
+            0.000152299995534122,
+            0.00010760000441223383,
+            0.0001241000136360526,
+            8.870000601746142e-05,
+            0.0001218999968841672,
+            9.460002183914185e-05,
+            8.569998317398131e-05,
+            0.00010850001126527786,
+            0.00010190001921728253,
+            0.00017339998157694936,
+            0.00016920000780373812,
+            9.459999273531139e-05,
+            0.00010189999011345208,
+            8.970001363195479e-05,
+            0.00023750000400468707,
+            0.00010060000931844115,
+            0.00011910000466741621,
+            9.139999747276306e-05,
+            0.00010540001676417887,
+            0.00013950001448392868,
+            9.929999941959977e-05,
+            0.0001230000052601099,
+            8.090000483207405e-05,
+            0.00015480001457035542,
+            8.620001608505845e-05,
+            8.369999704882503e-05,
+            9.060002048499882e-05,
+            8.329999400302768e-05,
+            8.359999628737569e-05,
+            0.00010040000779554248,
+            0.0001951000012923032,
+            0.00010309999925084412,
+            0.00013499998021870852,
+            0.00010920001659542322,
+            0.00013380000018514693,
+            0.00011250001261942089,
+            0.00011600001016631722,
+            9.220000356435776e-05,
+            8.220001473091543e-05,
+            8.779999916441739e-05,
+            7.77999812271446e-05,
+            8.460000390186906e-05,
+            7.489998824894428e-05,
+            7.259999983943999e-05,
+            0.00013139998191036284,
+            8.47000046633184e-05,
+            0.00014220000593923032,
+            8.149998029693961e-05,
+            0.00015269999857991934,
+            9.599997429177165e-05,
+            0.0001500000071246177,
+            0.0001619999820832163,
+            8.11999780125916e-05,
+            0.00011220001033507288,
+            8.13000078778714e-05,
+            7.860001642256975e-05,
+            0.00012779998360201716,
+            0.00011130000348202884,
+            9.600000339560211e-05,
+            8.349999552592635e-05,
+            0.00012670000432990491,
+            8.630001684650779e-05,
+            0.00012359998072497547,
+            9.389998740516603e-05,
+            0.00012139999307692051,
+            8.530000923201442e-05,
+            7.650000043213367e-05,
+            8.570001227781177e-05,
+            8.880000677891076e-05,
+            0.0001238000113517046,
+            9.669997962191701e-05,
+            0.00011829999857582152,
+            8.850000449456275e-05,
+            0.00015860001440159976,
+            0.00010870001278817654,
+            0.00011510000331327319,
+            8.840000373311341e-05,
+            9.349998435936868e-05,
+            0.00013270002091303468,
+            8.350002462975681e-05,
+            8.709999383427203e-05,
+            7.619999814778566e-05,
+            9.310001041740179e-05,
+            8.370002615265548e-05,
+            7.40000104997307e-05,
+            7.71000050008297e-05,
+            7.210002513602376e-05,
+            8.19999841041863e-05,
+            8.540000999346375e-05,
+            7.380000897683203e-05
+          ],
+          "median": 9.985000360757113e-05,
+          "min": 7.210002513602376e-05,
+          "max": 0.0005778999766334891
+        }
+      }
+    },
+    {
+      "case": {
+        "nx": 120,
+        "ny": 40,
+        "method": "gcmma",
+        "iterations": 20
+      },
+      "profiled_seconds": 2.3209655999962706,
+      "diagnostic_seconds": 2.13334300002316,
+      "phase_times": {
+        "elasticity_total": 1.4254603000590578,
+        "torch_grad": 0.008335199963767081,
+        "evaluation_total": 1.4602962000644766,
+        "asymp": 0.004117800068343058,
+        "gcmmasub": 0.643599799979711,
+        "concheck": 0.0013655000657308847,
+        "raaupdate": 0.0004949000140186399
+      },
+      "phase_calls": {
+        "elasticity_total": 45,
+        "torch_grad": 42,
+        "evaluation_total": 45,
+        "asymp": 20,
+        "gcmmasub": 24,
+        "concheck": 24,
+        "raaupdate": 4
+      },
+      "iterations": 20,
+      "state_solves": 45,
+      "inner_retries": 4,
+      "consecutive_duplicate_solves": 20,
+      "duplicate_solve_seconds": 0.6113399000023492,
+      "functions": {
+        "elasticity_total": {
+          "calls": 45,
+          "seconds": 1.5104110000000002
+        },
+        "evaluation_total": {
+          "calls": 45,
+          "seconds": 1.5536020000000001
+        },
+        "optimizer_inclusive": {
+          "calls": 20,
+          "seconds": 1.5741999000000002
+        },
+        "mma_subproblems": {
+          "calls": 0,
+          "seconds": 0
+        },
+        "gcmma_subproblems": {
+          "calls": 24,
+          "seconds": 0.7363007
+        },
+        "primal_dual_subsolver": {
+          "calls": 24,
+          "seconds": 0.7294980000000001
+        },
+        "torch_grad": {
+          "calls": 42,
+          "seconds": 0.0099028
+        },
+        "coo_to_csr": {
+          "calls": 0,
+          "seconds": 0
+        }
+      },
+      "petsc_events": {
+        "MatLUFactorSym": {
+          "count": 1,
+          "time": 0.010166200000000014,
+          "flops": 0.0
+        },
+        "MatLUFactorNum": {
+          "count": 45,
+          "time": 1.1775589999999978,
+          "flops": 4415150846.0
+        },
+        "MatSolve": {
+          "count": 45,
+          "time": 0.06382190000000154,
+          "flops": 94567680.0
+        },
+        "PCSetUp": {
+          "count": 45,
+          "time": 1.1896654999999994,
+          "flops": 4415150846.0
+        },
+        "KSPSetUp": {
+          "count": 45,
+          "time": 1.0300000000018628e-05,
+          "flops": 0.0
+        },
+        "KSPSolve": {
+          "count": 45,
+          "time": 0.06423359999999967,
+          "flops": 94567680.0
+        },
+        "MatAssemblyBegin": {
+          "count": 45,
+          "time": 2.6800000002324964e-05,
+          "flops": 0.0
+        },
+        "MatAssemblyEnd": {
+          "count": 45,
+          "time": 0.00031270000000072073,
+          "flops": 0.0
+        }
+      },
+      "top_self_functions": [
+        {
+          "function": "src/ml_opt/fem/elasticity.py:87(solve)",
+          "calls": 45,
+          "self_seconds": 1.4720154,
+          "cumulative_seconds": 1.5104110000000002
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:288(subsolv)",
+          "calls": 24,
+          "self_seconds": 0.5707188000000001,
+          "cumulative_seconds": 0.7294980000000001
+        },
+        {
+          "function": "~:0(<built-in method numpy._core._multiarray_umath.c_einsum>)",
+          "calls": 45,
+          "self_seconds": 0.036620900000000005,
+          "cumulative_seconds": 0.036620900000000005
+        },
+        {
+          "function": "~:0(<method 'reduce' of 'numpy.ufunc' objects>)",
+          "calls": 4103,
+          "self_seconds": 0.016401600000000002,
+          "cumulative_seconds": 0.016401600000000002
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:23(__init__)",
+          "calls": 1,
+          "self_seconds": 0.015314200000000002,
+          "cumulative_seconds": 0.019788800000000002
+        },
+        {
+          "function": "site-packages/scipy/linalg/_basic.py:57(solve)",
+          "calls": 596,
+          "self_seconds": 0.014394500000000001,
+          "cumulative_seconds": 0.08447210000000001
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:447(_broadcast_to)",
+          "calls": 1192,
+          "self_seconds": 0.012232300000000002,
+          "cumulative_seconds": 0.0154418
+        },
+        {
+          "function": "~:0(<method 'copy' of 'numpy.ndarray' objects>)",
+          "calls": 6412,
+          "self_seconds": 0.0108237,
+          "cumulative_seconds": 0.0108237
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:26(__add__)",
+          "calls": 596,
+          "self_seconds": 0.009851200000000001,
+          "cumulative_seconds": 0.0127839
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:118(forward)",
+          "calls": 45,
+          "self_seconds": 0.009361900000000001,
+          "cumulative_seconds": 1.5242756000000002
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:22(dot)",
+          "calls": 1884,
+          "self_seconds": 0.009113000000000001,
+          "cumulative_seconds": 0.0116745
+        },
+        {
+          "function": "~:0(<method 'flatten' of 'numpy.ndarray' objects>)",
+          "calls": 2578,
+          "self_seconds": 0.0084588,
+          "cumulative_seconds": 0.0084588
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:66(_wrapreduction)",
+          "calls": 2598,
+          "self_seconds": 0.0072134,
+          "cumulative_seconds": 0.0216818
+        },
+        {
+          "function": "src/ml_opt/problem.py:48(evaluate)",
+          "calls": 45,
+          "self_seconds": 0.0061270000000000005,
+          "cumulative_seconds": 1.5536020000000001
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:167(gcmmasub)",
+          "calls": 24,
+          "self_seconds": 0.005555200000000001,
+          "cumulative_seconds": 0.7363007
+        },
+        {
+          "function": "~:0(<method 'run_backward' of 'torch._C._EngineBase' objects>)",
+          "calls": 42,
+          "self_seconds": 0.0045335,
+          "cumulative_seconds": 0.0062848
+        },
+        {
+          "function": "site-packages/scipy/_lib/_util.py:364(_asarray_validated)",
+          "calls": 1192,
+          "self_seconds": 0.004497500000000001,
+          "cumulative_seconds": 0.0184145
+        },
+        {
+          "function": "site-packages/scipy/linalg/lapack.py:1161(_ensure_dtype_cdsz)",
+          "calls": 596,
+          "self_seconds": 0.0044488,
+          "cumulative_seconds": 0.010555100000000001
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:3049(max)",
+          "calls": 2597,
+          "self_seconds": 0.004388,
+          "cumulative_seconds": 0.0260586
+        },
+        {
+          "function": "site-packages/numpy/lib/_function_base_impl.py:615(asarray_chkfinite)",
+          "calls": 1192,
+          "self_seconds": 0.0041868,
+          "cumulative_seconds": 0.009126200000000001
+        },
+        {
+          "function": "site-packages/scipy/linalg/blas.py:289(find_best_blas_type)",
+          "calls": 596,
+          "self_seconds": 0.003664,
+          "cumulative_seconds": 0.004335100000000001
+        },
+        {
+          "function": "~:0(<built-in method scipy.linalg._batched_linalg._solve>)",
+          "calls": 596,
+          "self_seconds": 0.0035645000000000004,
+          "cumulative_seconds": 0.0035645000000000004
+        },
+        {
+          "function": "~:0(<method 'mean' of 'torch._C.TensorBase' objects>)",
+          "calls": 45,
+          "self_seconds": 0.0033524,
+          "cumulative_seconds": 0.0033524
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:520(_broadcast_shape)",
+          "calls": 596,
+          "self_seconds": 0.0032246,
+          "cumulative_seconds": 0.0033389
+        },
+        {
+          "function": "~:0(<built-in method torch.tensor>)",
+          "calls": 45,
+          "self_seconds": 0.0031955,
+          "cumulative_seconds": 0.0031955
+        }
+      ],
+      "top_cumulative_functions": [
+        {
+          "function": "src/ml_opt/runner.py:40(optimise)",
+          "calls": 1,
+          "self_seconds": 1.87e-05,
+          "cumulative_seconds": 2.3206693
+        },
+        {
+          "function": "src/ml_opt/runner.py:48(_optimise_problem)",
+          "calls": 1,
+          "self_seconds": 0.0012892000000000001,
+          "cumulative_seconds": 2.2996919
+        },
+        {
+          "function": "src/ml_opt/optimizers/moving_asymptotes.py:50(step)",
+          "calls": 20,
+          "self_seconds": 0.0019071000000000001,
+          "cumulative_seconds": 1.5741999000000002
+        },
+        {
+          "function": "src/ml_opt/problem.py:48(evaluate)",
+          "calls": 45,
+          "self_seconds": 0.0061270000000000005,
+          "cumulative_seconds": 1.5536020000000001
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:134(compliance)",
+          "calls": 45,
+          "self_seconds": 0.0001516,
+          "cumulative_seconds": 1.5263912000000002
+        },
+        {
+          "function": "~:0(<built-in method apply>)",
+          "calls": 45,
+          "self_seconds": 0.001964,
+          "cumulative_seconds": 1.5262396
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:118(forward)",
+          "calls": 45,
+          "self_seconds": 0.009361900000000001,
+          "cumulative_seconds": 1.5242756000000002
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:87(solve)",
+          "calls": 45,
+          "self_seconds": 1.4720154,
+          "cumulative_seconds": 1.5104110000000002
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:167(gcmmasub)",
+          "calls": 24,
+          "self_seconds": 0.005555200000000001,
+          "cumulative_seconds": 0.7363007
+        },
+        {
+          "function": "site-packages/mmapy/mma.py:288(subsolv)",
+          "calls": 24,
+          "self_seconds": 0.5707188000000001,
+          "cumulative_seconds": 0.7294980000000001
+        },
+        {
+          "function": "site-packages/scipy/linalg/_basic.py:57(solve)",
+          "calls": 596,
+          "self_seconds": 0.014394500000000001,
+          "cumulative_seconds": 0.08447210000000001
+        },
+        {
+          "function": "site-packages/numpy/_core/einsumfunc.py:1242(einsum)",
+          "calls": 45,
+          "self_seconds": 0.00012770000000000001,
+          "cumulative_seconds": 0.0367486
+        },
+        {
+          "function": "~:0(<built-in method numpy._core._multiarray_umath.c_einsum>)",
+          "calls": 45,
+          "self_seconds": 0.036620900000000005,
+          "cumulative_seconds": 0.036620900000000005
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:3049(max)",
+          "calls": 2597,
+          "self_seconds": 0.004388,
+          "cumulative_seconds": 0.0260586
+        },
+        {
+          "function": "site-packages/numpy/_core/fromnumeric.py:66(_wrapreduction)",
+          "calls": 2598,
+          "self_seconds": 0.0072134,
+          "cumulative_seconds": 0.0216818
+        },
+        {
+          "function": "src/ml_opt/problem.py:27(__init__)",
+          "calls": 1,
+          "self_seconds": 0.00022510000000000002,
+          "cumulative_seconds": 0.0200186
+        },
+        {
+          "function": "src/ml_opt/fem/elasticity.py:23(__init__)",
+          "calls": 1,
+          "self_seconds": 0.015314200000000002,
+          "cumulative_seconds": 0.019788800000000002
+        },
+        {
+          "function": "site-packages/scipy/_lib/_util.py:364(_asarray_validated)",
+          "calls": 1192,
+          "self_seconds": 0.004497500000000001,
+          "cumulative_seconds": 0.0184145
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:474(broadcast_to)",
+          "calls": 1192,
+          "self_seconds": 0.0009704000000000001,
+          "cumulative_seconds": 0.016412200000000002
+        },
+        {
+          "function": "~:0(<method 'reduce' of 'numpy.ufunc' objects>)",
+          "calls": 4103,
+          "self_seconds": 0.016401600000000002,
+          "cumulative_seconds": 0.016401600000000002
+        },
+        {
+          "function": "site-packages/numpy/lib/_stride_tricks_impl.py:447(_broadcast_to)",
+          "calls": 1192,
+          "self_seconds": 0.012232300000000002,
+          "cumulative_seconds": 0.0154418
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:26(__add__)",
+          "calls": 596,
+          "self_seconds": 0.009851200000000001,
+          "cumulative_seconds": 0.0127839
+        },
+        {
+          "function": "src/ml_opt/optimizers/_mmapy.py:22(dot)",
+          "calls": 1884,
+          "self_seconds": 0.009113000000000001,
+          "cumulative_seconds": 0.0116745
+        },
+        {
+          "function": "~:0(<method 'copy' of 'numpy.ndarray' objects>)",
+          "calls": 6412,
+          "self_seconds": 0.0108237,
+          "cumulative_seconds": 0.0108237
+        },
+        {
+          "function": "site-packages/scipy/linalg/lapack.py:1161(_ensure_dtype_cdsz)",
+          "calls": 596,
+          "self_seconds": 0.0044488,
+          "cumulative_seconds": 0.010555100000000001
+        }
+      ],
+      "payload": {
+        "bytes": 102549,
+        "snapshot_seconds": {
+          "samples": [
+            0.0001480999926570803,
+            8.090000483207405e-05,
+            5.299999611452222e-05,
+            5.840000812895596e-05,
+            5.3099996875971556e-05,
+            6.289998418651521e-05,
+            5.500001134350896e-05,
+            0.00013540001236833632,
+            7.790001109242439e-05,
+            8.05000017862767e-05,
+            5.6599994422867894e-05,
+            5.1000009989365935e-05,
+            0.0001988999720197171,
+            5.2799994591623545e-05,
+            8.239998714998364e-05,
+            6.670001312159002e-05,
+            6.880000000819564e-05,
+            4.8699992476031184e-05,
+            5.639999289996922e-05,
+            5.01000031363219e-05,
+            4.840001929551363e-05,
+            6.560000474564731e-05,
+            6.079999729990959e-05,
+            7.410001126118004e-05,
+            5.49999822396785e-05,
+            4.980000085197389e-05,
+            8.3099992480129e-05,
+            5.740000051446259e-05,
+            8.779999916441739e-05,
+            6.329998723231256e-05,
+            9.620000491850078e-05,
+            5.460000829771161e-05,
+            6.719998782500625e-05,
+            5.840000812895596e-05,
+            7.54999928176403e-05,
+            7.540002116002142e-05,
+            5.6199991377070546e-05,
+            8.429997251369059e-05,
+            5.339999916031957e-05,
+            7.959999493323267e-05,
+            5.9699988923966885e-05,
+            8.6199986981228e-05,
+            8.16000101622194e-05,
+            5.490001058205962e-05,
+            0.00018129998352378607,
+            5.199998850002885e-05,
+            0.00013770000077784061,
+            6.170000415295362e-05,
+            9.200000204145908e-05,
+            5.7199998991563916e-05,
+            8.47000046633184e-05,
+            6.140000186860561e-05,
+            6.859999848529696e-05,
+            6.500000017695129e-05,
+            7.349997758865356e-05,
+            7.450001430697739e-05,
+            6.589997792616487e-05,
+            8.120000711642206e-05,
+            7.20999960321933e-05,
+            0.0001297999988310039,
+            7.40000104997307e-05,
+            0.00013190001482143998,
+            6.640001083724201e-05,
+            8.759999764151871e-05,
+            8.820000221021473e-05,
+            7.730000652372837e-05,
+            6.0200021835044026e-05,
+            0.00010409997776150703,
+            7.129998994059861e-05,
+            7.249999907799065e-05,
+            7.539999205619097e-05,
+            0.00011130000348202884,
+            7.679997361265123e-05,
+            0.0001477000187151134,
+            0.0001100999943446368,
+            7.989999721758068e-05,
+            7.479998748749495e-05,
+            0.000132200017105788,
+            0.0001753999968059361,
+            6.819999543949962e-05,
+            0.00010850001126527786,
+            0.00021800000104121864,
+            0.00011079999967478216,
+            8.559998241253197e-05,
+            6.489999941550195e-05,
+            6.120000034570694e-05,
+            7.660000119358301e-05,
+            6.419999408535659e-05,
+            6.150000263005495e-05,
+            0.0001638999965507537,
+            0.00017040001694113016,
+            0.00015219999477267265,
+            0.00023830001009628177,
+            0.00021250001736916602,
+            0.00031030000536702573,
+            0.00016760002472437918,
+            0.00032890000147745013,
+            9.029998909682035e-05,
+            0.0001914000022225082,
+            0.00019770002108998597
+          ],
+          "median": 7.54000066081062e-05,
+          "min": 4.840001929551363e-05,
+          "max": 0.00032890000147745013
+        },
+        "json_seconds": {
+          "samples": [
+            0.001716900005703792,
+            0.0016007999947760254,
+            0.0016165999986696988,
+            0.0015405000012833625,
+            0.0015913000097498298,
+            0.0015448000049218535,
+            0.0015433999942615628,
+            0.0021502999879885465,
+            0.0016821000026538968,
+            0.0016863000055309385,
+            0.0015982000040821731,
+            0.0017509000026620924,
+            0.0017164000018965453,
+            0.0016204999992623925,
+            0.0016151000163517892,
+            0.0016357999993488193,
+            0.001573800022015348,
+            0.001572600012877956,
+            0.0015978000010363758,
+            0.0015338000084739178,
+            0.0016146999842021614,
+            0.0016878999886102974,
+            0.001677299995208159,
+            0.0015867999754846096,
+            0.001587100006872788,
+            0.0016718000115361065,
+            0.001625800010515377,
+            0.0016476000018883497,
+            0.0017508000019006431,
+            0.0016782000020612031,
+            0.0016497999895364046,
+            0.0015805999864824116,
+            0.0018390000041108578,
+            0.0016381999885197729,
+            0.0017136000096797943,
+            0.001594899978954345,
+            0.0016223000129684806,
+            0.0017228000215254724,
+            0.0016833999834489077,
+            0.0015999999886844307,
+            0.0015853999939281493,
+            0.001864899997599423,
+            0.001626100012799725,
+            0.0016710000054445118,
+            0.0016571000160183758,
+            0.0017125000013038516,
+            0.0016669000033289194,
+            0.001718499988783151,
+            0.0016468999965582043,
+            0.0015983000048436224,
+            0.0017342999926768243,
+            0.0016095999744720757,
+            0.001855300011811778,
+            0.00163870002143085,
+            0.001781500002834946,
+            0.0016614999913144857,
+            0.0017234999977517873,
+            0.0021352999901864678,
+            0.0019204999844077975,
+            0.0019033999997191131,
+            0.0017510000034235418,
+            0.0019745999888982624,
+            0.0018464000022504479,
+            0.0016847999941091985,
+            0.0017414999892935157,
+            0.0016294999804813415,
+            0.0016703000001143664,
+            0.001795300020603463,
+            0.0016753000090830028,
+            0.0020970999903511256,
+            0.0018798999954015017,
+            0.0016856000002007931,
+            0.0017387000261805952,
+            0.0027215999725740403,
+            0.0022456999868154526,
+            0.0017145999881904572,
+            0.0021149000094737858,
+            0.0019343000021763146,
+            0.002682299993466586,
+            0.002367999986745417,
+            0.002840700006345287,
+            0.0027365999994799495,
+            0.0016325000033248216,
+            0.0016851999971549958,
+            0.001711900025838986,
+            0.001808000000892207,
+            0.0017145000165328383,
+            0.0018256000184919685,
+            0.003110799996647984,
+            0.0020723000052385032,
+            0.003939500020351261,
+            0.0032890000147745013,
+            0.0033276999893132597,
+            0.004394599993247539,
+            0.003833400027360767,
+            0.006484300014562905,
+            0.003942099981941283,
+            0.0030940000142436475,
+            0.0039403999981004745,
+            0.0017081000260077417
+          ],
+          "median": 0.0017100000259233639,
+          "min": 0.0015338000084739178,
+          "max": 0.006484300014562905
+        },
+        "pickle_seconds": {
+          "samples": [
+            0.00011060002725571394,
+            8.769999840296805e-05,
+            9.499999578110874e-05,
+            9.40999889280647e-05,
+            9.190000128000975e-05,
+            7.939999341033399e-05,
+            0.00010969999129883945,
+            0.00012710000737570226,
+            0.00011369999265298247,
+            9.709998266771436e-05,
+            7.88999896030873e-05,
+            0.0001857000170275569,
+            9.380001574754715e-05,
+            9.799998952075839e-05,
+            7.979999645613134e-05,
+            0.00010260002454742789,
+            7.579999510198832e-05,
+            7.88999896030873e-05,
+            7.839998579584062e-05,
+            7.51999905332923e-05,
+            0.00013359999866224825,
+            9.129999671131372e-05,
+            9.590000263415277e-05,
+            8.630001684650779e-05,
+            7.909999112598598e-05,
+            0.00012820001575164497,
+            8.53999808896333e-05,
+            0.00011319998884573579,
+            0.00012280000373721123,
+            0.00013010000111535192,
+            0.0001168999879155308,
+            0.00010510001447983086,
+            9.940000018104911e-05,
+            9.330001194030046e-05,
+            0.00013800000306218863,
+            8.490000618621707e-05,
+            9.950000094249845e-05,
+            8.430000161752105e-05,
+            0.00012589999823831022,
+            8.50000069476664e-05,
+            8.480000542476773e-05,
+            0.00010990002192556858,
+            8.150000940077007e-05,
+            0.00012740000966005027,
+            8.05000017862767e-05,
+            0.00011210000957362354,
+            9.139999747276306e-05,
+            0.00011160000576637685,
+            8.669999078847468e-05,
+            0.0001134999911300838,
+            9.99000039882958e-05,
+            0.00010320000001229346,
+            0.0001105000264942646,
+            8.399999933317304e-05,
+            0.00010219999239780009,
+            9.57000011112541e-05,
+            0.00016569998115301132,
+            0.00012320000678300858,
+            0.0001990000018849969,
+            0.00010199999087490141,
+            0.0001509999856352806,
+            0.00011210000957362354,
+            0.00015700000221841037,
+            0.0001066999975591898,
+            0.0001939999929163605,
+            9.860002319328487e-05,
+            0.00015020000864751637,
+            0.00011140000424347818,
+            0.00011819999781437218,
+            0.00012149999383836985,
+            0.0002175999979954213,
+            0.0001255999959539622,
+            0.00016739999409765005,
+            0.0001660000125411898,
+            0.00016739999409765005,
+            0.00010470001143403351,
+            0.00023219999275170267,
+            0.0001826000225264579,
+            0.00011650001397356391,
+            0.00015979999443516135,
+            0.0006567999953404069,
+            0.00015209999401122332,
+            0.00013280002167448401,
+            9.790001786313951e-05,
+            0.00010790000669658184,
+            0.00010430000838823617,
+            0.00011649998486973345,
+            9.629997657611966e-05,
+            0.0003460999869275838,
+            0.00020569999469444156,
+            0.00036959999124519527,
+            0.000295000005280599,
+            0.0004208000027574599,
+            0.00028310000197961926,
+            0.0003155000158585608,
+            0.0003014000249095261,
+            0.00020889998995698988,
+            0.00026489997981116176,
+            0.00020560002303682268,
+            0.00012240000069141388
+          ],
+          "median": 0.00011150000500492752,
+          "min": 7.51999905332923e-05,
+          "max": 0.0006567999953404069
+        }
+      }
+    }
+  ],
+  "web": {
+    "source_commit": "3872ab2b1514dadc068d92792719b0cdf46491a6",
+    "server_readiness_seconds": 2.950617099995725,
+    "worker_readiness_seconds": 5.380673700012267,
+    "runs": [
+      {
+        "method": "mma",
+        "repetition": 0,
+        "total_seconds": 0.2169958000013139,
+        "first_frame_seconds": 0.03880919999210164,
+        "after_first_frame_seconds": 0.17818660000921227,
+        "interframe_seconds": {
+          "samples": [
+            0.008708200010005385,
+            0.008122600003844127,
+            0.00857109998469241,
+            0.008337000006577,
+            0.00881110000773333,
+            0.008419599995249882,
+            0.008609200012870133,
+            0.008672399999340996,
+            0.00817409998853691,
+            0.00823490001494065,
+            0.009447299991734326,
+            0.009132300008786842,
+            0.0089103999780491,
+            0.009607400017557666,
+            0.008218799979658797,
+            0.010489100008271635,
+            0.008170499990228564,
+            0.009409999998752028,
+            0.009902000019792467,
+            0.010148500005016103
+          ],
+          "median": 0.00869030000467319,
+          "min": 0.008122600003844127,
+          "max": 0.010489100008271635
+        },
+        "frames": 21,
+        "bytes": 516459,
+        "memory_before": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1726115840,
+          "memory_load_percent": 89
+        },
+        "memory_after": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1750949888,
+          "memory_load_percent": 89
+        }
+      },
+      {
+        "method": "mma",
+        "repetition": 1,
+        "total_seconds": 0.20497970000724308,
+        "first_frame_seconds": 0.027807700011180714,
+        "after_first_frame_seconds": 0.17717199999606237,
+        "interframe_seconds": {
+          "samples": [
+            0.009783699992112815,
+            0.008294600003864616,
+            0.008752800000365824,
+            0.008376699988730252,
+            0.008713200018974021,
+            0.007665699988137931,
+            0.008940600004279986,
+            0.007484000001568347,
+            0.00803629998699762,
+            0.008665300003485754,
+            0.008882800000719726,
+            0.009898400021484122,
+            0.008610799995949492,
+            0.0093918000056874,
+            0.009600399993360043,
+            0.008944799978053197,
+            0.009355700021842495,
+            0.008716599986655638,
+            0.00911929999710992,
+            0.009861700003966689
+          ],
+          "median": 0.008817800000542775,
+          "min": 0.007484000001568347,
+          "max": 0.009898400021484122
+        },
+        "frames": 21,
+        "bytes": 516459,
+        "memory_before": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1750945792,
+          "memory_load_percent": 89
+        },
+        "memory_after": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1763221504,
+          "memory_load_percent": 89
+        }
+      },
+      {
+        "method": "mma",
+        "repetition": 2,
+        "total_seconds": 0.22668150000390597,
+        "first_frame_seconds": 0.029968999995617196,
+        "after_first_frame_seconds": 0.19671250000828877,
+        "interframe_seconds": {
+          "samples": [
+            0.010283200012054294,
+            0.009918900002958253,
+            0.00710279998020269,
+            0.008668700000271201,
+            0.007555100019089878,
+            0.009288500004913658,
+            0.007531099981861189,
+            0.008911700017051771,
+            0.007380900002317503,
+            0.018972299993038177,
+            0.008659799990709871,
+            0.009447699994780123,
+            0.009237200021743774,
+            0.010617799998726696,
+            0.009734699997352436,
+            0.010815999994520098,
+            0.009789400006411597,
+            0.010140600003069267,
+            0.012067999981809407,
+            0.01027339999563992
+          ],
+          "median": 0.00959119999606628,
+          "min": 0.00710279998020269,
+          "max": 0.018972299993038177
+        },
+        "frames": 21,
+        "bytes": 516459,
+        "memory_before": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1763221504,
+          "memory_load_percent": 89
+        },
+        "memory_after": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1759367168,
+          "memory_load_percent": 89
+        }
+      },
+      {
+        "method": "gcmma",
+        "repetition": 0,
+        "total_seconds": 0.3149954999971669,
+        "first_frame_seconds": 0.03532850000192411,
+        "after_first_frame_seconds": 0.2796669999952428,
+        "interframe_seconds": {
+          "samples": [
+            0.03620050000608899,
+            0.012364700000034645,
+            0.011368799983756617,
+            0.013688200007891282,
+            0.014090799988480285,
+            0.013306800014106557,
+            0.011835599987534806,
+            0.012686700007179752,
+            0.01246920000994578,
+            0.012519099982455373,
+            0.012720600003376603,
+            0.011819200008176267,
+            0.012023499992210418,
+            0.012983900000108406,
+            0.012539200019091368,
+            0.012726599990855902,
+            0.013344999984838068,
+            0.013509500015061349,
+            0.013602099992567673,
+            0.0136398000176996
+          ],
+          "median": 0.012723599997116253,
+          "min": 0.011368799983756617,
+          "max": 0.03620050000608899
+        },
+        "frames": 21,
+        "bytes": 514950,
+        "memory_before": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1759367168,
+          "memory_load_percent": 89
+        },
+        "memory_after": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1756618752,
+          "memory_load_percent": 89
+        }
+      },
+      {
+        "method": "gcmma",
+        "repetition": 1,
+        "total_seconds": 0.3130587000050582,
+        "first_frame_seconds": 0.024795700010145083,
+        "after_first_frame_seconds": 0.2882629999949131,
+        "interframe_seconds": {
+          "samples": [
+            0.037092899990966544,
+            0.012869800004409626,
+            0.01798949998919852,
+            0.014339500019559637,
+            0.013856799982022494,
+            0.013102900004014373,
+            0.011153200000990182,
+            0.011476799991214648,
+            0.01139510000939481,
+            0.013351900008274242,
+            0.012331100006122142,
+            0.012870099977590144,
+            0.013494800019543618,
+            0.01140389998909086,
+            0.011387000005925074,
+            0.011583299987250939,
+            0.012408600014168769,
+            0.014173200004734099,
+            0.011177799984579906,
+            0.020673799997894093
+          ],
+          "median": 0.012869949990999885,
+          "min": 0.011153200000990182,
+          "max": 0.037092899990966544
+        },
+        "frames": 21,
+        "bytes": 514950,
+        "memory_before": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1756618752,
+          "memory_load_percent": 89
+        },
+        "memory_after": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1760641024,
+          "memory_load_percent": 89
+        }
+      },
+      {
+        "method": "gcmma",
+        "repetition": 2,
+        "total_seconds": 0.31837310001719743,
+        "first_frame_seconds": 0.04157659999327734,
+        "after_first_frame_seconds": 0.2767965000239201,
+        "interframe_seconds": {
+          "samples": [
+            0.030377900024177507,
+            0.012291899998672307,
+            0.01214459998300299,
+            0.011628200008999556,
+            0.010821999981999397,
+            0.011350100015988573,
+            0.011588900000788271,
+            0.01168979998328723,
+            0.013591499999165535,
+            0.01497750001726672,
+            0.01144979998935014,
+            0.012947000010171905,
+            0.012283399992156774,
+            0.012194900016766042,
+            0.016485200001625344,
+            0.017268700001295656,
+            0.01436269999248907,
+            0.01335510000353679,
+            0.013373900001170114,
+            0.012373299978207797
+          ],
+          "median": 0.012332599988440052,
+          "min": 0.010821999981999397,
+          "max": 0.030377900024177507
+        },
+        "frames": 21,
+        "bytes": 514950,
+        "memory_before": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1760641024,
+          "memory_load_percent": 89
+        },
+        "memory_after": {
+          "total_ram_bytes": 16866312192,
+          "available_ram_bytes": 1760018432,
+          "memory_load_percent": 89
+        }
+      }
+    ]
+  },
+  "worker_import_probe": {
+    "trials": [
+      {
+        "import_seconds": 2.2608470999985,
+        "process_seconds": 2.905907100008335
+      },
+      {
+        "import_seconds": 2.5156726999848615,
+        "process_seconds": 2.9738511000177823
+      },
+      {
+        "import_seconds": 2.276557600009255,
+        "process_seconds": 2.736441699991701
+      }
+    ],
+    "import_seconds": {
+      "samples": [
+        2.2608470999985,
+        2.5156726999848615,
+        2.276557600009255
+      ],
+      "median": 2.276557600009255,
+      "min": 2.2608470999985,
+      "max": 2.5156726999848615
+    },
+    "process_seconds": {
+      "samples": [
+        2.905907100008335,
+        2.9738511000177823,
+        2.736441699991701
+      ],
+      "median": 2.905907100008335,
+      "min": 2.736441699991701,
+      "max": 2.9738511000177823
+    }
+  }
+}
