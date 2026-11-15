@@ -40,7 +40,7 @@ function updateSolverDescription() {
   byId("fom-method-hint").hidden = state.model?.state_solver === "rom";
 }
 
-const configTabs = Array.from(document.querySelectorAll('.config-tabs [role="tab"]'));
+const configTabs = Array.from(document.querySelectorAll('#workspace-cantilever .config-tabs [role="tab"]'));
 function selectPanel(panelId, focus = false) {
   state.activePanel = panelId;
   for (const tab of configTabs) {

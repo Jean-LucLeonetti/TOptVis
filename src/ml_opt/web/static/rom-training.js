@@ -11,6 +11,37 @@ const validationView = new ValidationView({run, getDataset: () => state.selected
 const number = value => new Intl.NumberFormat("en", {maximumFractionDigits: 2}).format(value);
 const percent = value => `${(100 * value).toLocaleString("en", {maximumSignificantDigits: 5})}%`;
 
+// Keep every field in one form so tab changes preserve the complete snapshot plan.
+const snapshotTabs = Array.from(document.querySelectorAll('.rom-config-tabs [role="tab"]'));
+function selectSnapshotPanel(panelId, focus = false) {
+  for (const tab of snapshotTabs) {
+    const selected = tab.dataset.panel === panelId;
+    tab.setAttribute("aria-selected", String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+    byId(tab.dataset.panel).hidden = !selected;
+    if (selected) {
+      byId("rom-config-title").textContent = tab.dataset.title;
+      if (focus) tab.focus();
+    }
+  }
+}
+for (const [index, tab] of snapshotTabs.entries()) {
+  tab.addEventListener("click", () => selectSnapshotPanel(tab.dataset.panel));
+  tab.addEventListener("keydown", event => {
+    let next;
+    if (event.key === "ArrowDown" || event.key === "ArrowRight") next = (index + 1) % snapshotTabs.length;
+    if (event.key === "ArrowUp" || event.key === "ArrowLeft") next = (index + snapshotTabs.length - 1) % snapshotTabs.length;
+    if (event.key === "Home") next = 0;
+    if (event.key === "End") next = snapshotTabs.length - 1;
+    if (next !== undefined) { event.preventDefault(); selectSnapshotPanel(snapshotTabs[next].dataset.panel, true); }
+  });
+}
+snapshotForm.addEventListener("invalid", event => {
+  const invalid = snapshotForm.querySelector("input:invalid") || event.target;
+  const panel = invalid.closest('[role="tabpanel"]');
+  if (panel) selectSnapshotPanel(panel.id);
+}, true);
+
 function error(message = "") {
   byId("rom-error").textContent = message;
   byId("rom-error").hidden = !message;

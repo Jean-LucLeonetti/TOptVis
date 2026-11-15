@@ -164,7 +164,8 @@ launcher window, reopen **Start TOptVis.bat**, and refresh the page.
 
 ## Offline ROM training
 
-Open **ML → ROM** and configure its independent mesh, right-edge load
+Open **ML → ROM** and use the left-side **Geometry**, **Loads**, **Material**,
+**Filters**, and **Sampling** tabs to configure its independent mesh, right-edge load
 heights (fractions of domain height), load angles, volume fractions, filter,
 projection, iteration limit, and snapshot spacing. Comma-separated lists form
 the Cartesian product of training cases. Click **Generate snapshots** to run
