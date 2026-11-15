@@ -76,21 +76,11 @@ The Windows setup script includes the interface dependencies. You can also
 launch it with `toptvis-ui` after activating the environment; use `--port 8001`
 if port 8000 is already occupied.
 
-The top tabs separate **Cantilever 2D**, **ROM Training**, and **ML Models**. Switching tabs
+The top tabs separate **Cantilever 2D** from **ROM Training**. Switching tabs
 preserves settings, results, and any active job. ROM Training generates
 full-order displacement snapshots and builds reusable POD reduced bases.
 The workspaces can be opened
-directly with `/#cantilever-2d`, `/#rom-training`, and `/#model-lab`.
-
-**ML Models** provides ten trainable families: POD Galerkin, energy-weighted,
-local and adaptive POD, POD + MLP, CNN, U-Net, FNO, DeepONet, and a compact mesh
-transformer. Reuse snapshots or generate a shared dataset, train with whole-case
-validation splits, compare raw and FEM-corrected predictions on unseen FOM
-trajectories, then try MMA/GCMMA optimisation with a final FOM accuracy check.
-Learning curves, checkpoints, errors, solver counts and reports are saved
-locally. These are experimental models; correction performs a full-order
-solve and does not establish raw-model accuracy or a speedup. See
-[Model Lab](docs/MODEL_LAB.md) for supported inputs, controls, limits and APIs.
+directly with `/#cantilever-2d` and `/#rom-training`.
 
 Within Cantilever 2D, the far-left tabs separate **Geometry**, **Load**, **Material**,
 **Filters**, **Optimise**, **Solver parameters**, and **Visualisation**.
