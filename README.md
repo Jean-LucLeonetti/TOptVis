@@ -93,6 +93,9 @@ ROM model, and sequential/parallel state execution for three-field robustness.
 The configuration panel shows the selected
 tab; the central workspace displays the mesh/topology or convergence graphs. Tab changes retain
 all values. Use arrow keys, Home, and End to navigate the tab rail.
+On desktop, the header and workspace stay fixed in the browser. The tab rail,
+configuration form, and mesh/topology or training-results column scroll
+independently. Starting a run scrolls its result into view within that column.
 
 1. In **Geometry**, set the domain length, height, and number of elements. The geometry and mesh
    preview updates immediately.

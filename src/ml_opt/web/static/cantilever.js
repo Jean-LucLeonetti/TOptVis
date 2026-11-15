@@ -347,8 +347,13 @@ async function start(event) {
   state.model = readModel(); state.runId = null;
   clearResult(); showError(); setRunning(true); status("Starting", "running");
   byId("topology-description").textContent = "Starting the solver…";
-  document.querySelector(state.activePanel === "panel-visualisation" ? "#convergence-view" : ".topology-panel")
-    .scrollIntoView({behavior: "smooth", block: "start"});
+  const resultView = document.querySelector(state.activePanel === "panel-visualisation" ? "#convergence-view" : ".topology-panel");
+  if (window.matchMedia("(min-width: 701px)").matches) {
+    const column = document.querySelector(".central-workspace");
+    column.scrollTo({top: column.scrollTop + resultView.getBoundingClientRect().top - column.getBoundingClientRect().top, behavior: "smooth"});
+  } else {
+    resultView.scrollIntoView({behavior: "smooth", block: "start"});
+  }
   let terminal = false;
   try {
     const payload = {...state.model};

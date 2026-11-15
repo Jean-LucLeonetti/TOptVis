@@ -172,3 +172,19 @@ input[type=range]:disabled {cursor:default}
 @media(max-width:1100px) {.convergence-heading{align-items:flex-start;flex-direction:column}.chart-heading{padding-left:15px;padding-right:15px}.chart-readout{padding-left:15px;padding-right:15px}}
 @media(max-width:900px) {.convergence-grid{grid-template-columns:1fr}.chart-wrap{height:230px}}
 @media(max-width:700px) {.config-tabs{flex-wrap:wrap;max-height:none;overflow:visible}.config-tab{min-width:54px}.convergence-heading{padding:18px}.convergence-view{scroll-margin-top:12px}.convergence-grid{gap:14px}.history-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.history-summary strong{font-size:18px}}
+
+/* Keep the desktop shell fixed; each workspace column owns its scrolling. */
+@media(min-width:701px) {
+  body {height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+  .app-header,.page-heading,.ml-method-tabs,.error-banner,.solver-run-description,#rom-availability,.page-footer,.rom-snapshot-summary {flex-shrink:0}
+  main {width:100%;flex:1;min-height:0;margin:0 auto;display:flex;flex-direction:column;overflow:hidden}
+  .workspace-page,.ml-method-panel {display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+  .page-heading {position:static}
+  .workspace-page > .workspace,.ml-method-panel > .rom-workspace {flex:1;min-height:0;grid-template-rows:minmax(0,1fr);align-items:stretch;overflow:hidden}
+  .workspace > .config-tabs,.rom-workspace > .config-tabs {position:static;min-height:0;max-height:100%;overscroll-behavior:contain;scrollbar-width:thin}
+  .workspace > .controls,.rom-workspace > .rom-configuration {position:static;display:flex;flex-direction:column;min-height:0;max-height:100%;overflow:hidden}
+  .controls > form,.rom-configuration > form {flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+  .workspace > .central-workspace,.rom-workspace > .rom-results {min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+  .rom-workspace > .rom-results > * {flex-shrink:0}
+  .topology-panel,.convergence-view {scroll-margin-top:0}
+}
