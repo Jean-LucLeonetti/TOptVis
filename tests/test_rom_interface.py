@@ -101,11 +101,12 @@ def test_large_training_requests_and_matching_run_geometry_are_accepted():
     assert RunRequest(nx=240,ny=120,length=2001,height=.001,load_node_x=240,load_node_y=60).configuration().nx==240
 
 
-def test_ml_workspace_and_routes_are_removed_but_rom_remains(tmp_path):
+def test_experimental_model_routes_are_removed_but_rom_remains(tmp_path):
     with TestClient(create_app(training_root=tmp_path)) as client:
         page=client.get('/').text
         assert 'id="tab-model-lab"' not in page
         assert 'id="tab-rom-training"' in page and 'id="tab-cantilever"' in page
+        assert 'id="tab-ml"' in page
         assert client.get('/api/ml/catalog').status_code==404
         assert client.get('/api/ml/models').status_code==404
         assert client.post('/api/ml/train',json={}).status_code==404

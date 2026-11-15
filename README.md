@@ -76,11 +76,11 @@ The Windows setup script includes the interface dependencies. You can also
 launch it with `toptvis-ui` after activating the environment; use `--port 8001`
 if port 8000 is already occupied.
 
-The top tabs separate **Cantilever 2D** from **ROM Training**. Switching tabs
-preserves settings, results, and any active job. ROM Training generates
-full-order displacement snapshots and builds reusable POD reduced bases.
-The workspaces can be opened
-directly with `/#cantilever-2d` and `/#rom-training`.
+The top tabs separate **Cantilever 2D** from the general **ML** workspace.
+Inside ML, the **ROM** tab contains snapshot generation, POD basis building,
+and held-out validation. Switching tabs preserves settings, results, and any
+active job. Open these workspaces directly with `/#cantilever-2d` and
+`/#ml/rom` (or `/#ml`). Existing `/#rom-training` links also open ML → ROM.
 
 Within Cantilever 2D, the far-left tabs separate **Geometry**, **Load**, **Material**,
 **Filters**, **Optimise**, **Solver parameters**, and **Visualisation**.
@@ -164,7 +164,7 @@ launcher window, reopen **Start TOptVis.bat**, and refresh the page.
 
 ## Offline ROM training
 
-Open **ROM Training** and configure its independent mesh, right-edge load
+Open **ML → ROM** and configure its independent mesh, right-edge load
 heights (fractions of domain height), load angles, volume fractions, filter,
 projection, iteration limit, and snapshot spacing. Comma-separated lists form
 the Cartesian product of training cases. Click **Generate snapshots** to run

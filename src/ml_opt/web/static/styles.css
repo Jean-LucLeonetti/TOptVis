@@ -17,6 +17,13 @@ a {color:inherit;text-decoration:none}
 .workspace-tab:hover {color:var(--teal)}
 .workspace-tab[aria-selected=true] {border-bottom-color:var(--teal);color:var(--teal)}
 .workspace-page:focus-visible {outline:2px solid var(--focus);outline-offset:4px}
+.ml-heading {position:static;margin-bottom:8px}
+.ml-method-tabs {display:flex;gap:8px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.ml-method-tab {border:0;border-bottom:3px solid transparent;background:transparent;color:var(--muted);padding:10px 20px;font-size:12px;font-weight:600}
+.ml-method-tab:hover {color:var(--teal)}
+.ml-method-tab[aria-selected=true] {border-bottom-color:var(--teal);color:var(--teal)}
+.ml-method-panel:focus-visible {outline:2px solid var(--focus);outline-offset:4px}
+.ml-method-panel .page-heading h2 {font-size:23px;letter-spacing:-.6px;line-height:1.2;margin:0;font-weight:650}
 .tag {font-size:10px;color:#697b83;background:#f0f4f5;border:1px solid #e8edef;border-radius:5px;padding:4px 6px;font-weight:600;white-space:nowrap}
 .connection {margin-left:auto;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
 .connection i,.mini-dot {height:6px;width:6px;display:inline-block;border-radius:50%;background:#aeb9c0}

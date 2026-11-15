@@ -17,7 +17,7 @@
     </a>
     <nav class="workspace-tabs" role="tablist" aria-label="Workspaces">
       <button id="tab-cantilever" class="workspace-tab" type="button" role="tab" aria-selected="true" aria-controls="workspace-cantilever" data-workspace="cantilever-2d" tabindex="0">Cantilever 2D</button>
-      <button id="tab-rom-training" class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="workspace-rom-training" data-workspace="rom-training" tabindex="-1">ROM Training</button>
+      <button id="tab-ml" class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="workspace-ml" data-workspace="ml" tabindex="-1">ML</button>
     </nav>
     <div class="connection" id="connection"><i></i><span>Connecting</span></div>
   </header>
@@ -162,7 +162,7 @@
               <div id="fom-linear-options"><label>Full-order method<select id="linear_solver" name="linear_solver"><option value="lu">LU · direct</option><option value="cholesky">Cholesky · direct</option><option value="cg-icc">CG + incomplete Cholesky</option><option value="cg-gamg">CG + algebraic multigrid</option></select></label></div>
               <div id="rom-solver-options" class="rom-solver-options" hidden>
                 <label>ROM model<select id="rom_training_id" name="rom_training_id" disabled><option value="">No trained ROMs</option></select></label>
-                <p id="rom-model-description" class="section-note" aria-live="polite">Build a basis in ROM Training first.</p>
+                <p id="rom-model-description" class="section-note" aria-live="polite">Build a basis in ML → ROM first.</p>
                 <div class="rom-model-actions"><button id="rom-use-mesh" class="button secondary" type="button" hidden>Use ROM mesh</button><button id="rom-refresh-models" class="button secondary" type="button">Refresh ROMs</button></div>
               </div>
               <p class="filter-hint" id="fom-method-hint">LU and Cholesky use direct factorisation. CG uses incomplete Cholesky or algebraic multigrid preconditioning.</p>
@@ -251,9 +251,16 @@
       </div>
     </div>
     </section>
-    <section id="workspace-rom-training" class="workspace-page" role="tabpanel" aria-labelledby="tab-rom-training" tabindex="0" hidden>
+    <section id="workspace-ml" class="workspace-page" role="tabpanel" aria-labelledby="tab-ml" tabindex="0" hidden>
+      <div class="page-heading ml-heading">
+        <div><div class="eyebrow">MODEL DEVELOPMENT</div><h1>ML</h1><p>Train and validate models for elasticity.</p></div>
+      </div>
+      <nav class="ml-method-tabs" role="tablist" aria-label="ML methods">
+        <button id="tab-rom-training" class="ml-method-tab" type="button" role="tab" aria-selected="true" aria-controls="workspace-rom-training" data-method="rom" tabindex="0">ROM</button>
+      </nav>
+      <section id="workspace-rom-training" class="ml-method-panel" role="tabpanel" aria-labelledby="tab-rom-training" tabindex="0">
       <div class="page-heading">
-        <div><div class="eyebrow">OFFLINE MODEL TRAINING</div><h1>ROM Training</h1><p>Build and validate a reusable reduced-order model for elasticity.</p></div>
+        <div><div class="eyebrow">OFFLINE MODEL TRAINING</div><h2>ROM Training</h2><p>Build and validate a reusable reduced-order model for elasticity.</p></div>
         <div class="run-actions">
           <button id="rom-stop" class="button secondary" type="button" disabled>Stop training</button>
           <button id="rom-generate" class="button primary" type="submit" form="rom-snapshot-form" disabled>Generate snapshots</button>
@@ -381,6 +388,7 @@
           <p class="rom-note rom-validation-note">Held-out results apply to the tested cases and designs, not arbitrary material layouts. Choose a saved ROM under Cantilever 2D → Solver parameters → Elasticity solver to use it for optimisation.</p>
         </div>
       </div>
+      </section>
     </section>
     <footer class="page-footer"><span id="workspace-label">TOptVis · Cantilever 2D</span><span>PyTorch + PETSc</span></footer>
   </main>

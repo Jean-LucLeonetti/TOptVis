@@ -41,7 +41,7 @@ export class RomChoice {
     byId("rom-use-mesh").disabled = this.isRunning();
     const record = this.selected;
     byId("rom-model-description").textContent = !this.supported ? "Restart TOptVis to enable ROM optimisation." :
-      !record ? "No saved basis is available. Build one in ROM Training, then refresh ROMs." :
+      !record ? "No saved basis is available. Build one in ML → ROM, then refresh ROMs." :
       !this.compatible ? `This ROM uses ${record.settings.nx} × ${record.settings.ny} elements on ${record.settings.length} × ${record.settings.height}. Use its mesh or choose a matching model.` :
       `${record.basis.rank} modes · ${record.validation ? record.validation.status === "cancelled" ? "partial validation" : record.validation.meets_tolerances ? "within tested validation tolerances" : "outside tested validation tolerances" : "not validated"}. Reduced compliance and gradients are approximate; coverage depends on training cases.`;
     this.onStateChange();

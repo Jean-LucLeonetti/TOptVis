@@ -306,8 +306,8 @@ document.addEventListener("solveractivity", event => {
     updateButtons();
   }
 });
-document.addEventListener("workspacechange", event => {
-  if (event.detail === "rom-training") { redraw(); if (!state.busy) checkAvailability(); }
+document.addEventListener("mlmethodchange", event => {
+  if (event.detail === "rom") { redraw(); if (!state.busy) checkAvailability(); }
 });
 new ResizeObserver(redraw).observe(canvas.parentElement);
 estimate(); checkAvailability();
