@@ -1,12 +1,12 @@
-"""mmapy 0.3.1 algorithms without sparse diagonal scaling allocations.
+"""Pinned mmapy algorithms with broadcast scaling and a compiled Newton loop.
 
-Bind the upstream routines to a private globals dictionary: only ``diags``
-changes. This keeps mmapy's equations, stopping tests, and return values intact
-without mutating the installed package or its process-wide module globals.
+Bind the upstream routines to a private globals dictionary. ``diags`` uses
+broadcasting; multi-constraint subproblems use the compiled primal-dual loop.
+Equations and stopping tests are retained without mutating the installed package.
 The mmapy dependency is pinned because this adapter uses its internal subsolv.
 """
 
-from functools import update_wrapper
+from functools import cache, update_wrapper
 from types import FunctionType
 
 import mmapy.mma as upstream
@@ -30,7 +30,31 @@ class _Diagonal:
         return result
 
 
-def _bind_functions():
+@cache
+def _compiled_kernel():
+    try:
+        from ._subproblem import subsolv
+    except ImportError:
+        # Existing environments remain usable until dependencies are updated.
+        return None
+    return subsolv
+
+
+def warmup_optimizer():
+    """Compile/load one float64 signature before the browser enables Run."""
+    kernel = _compiled_kernel()
+    if kernel is None:
+        return False
+    n, m = 3, 2
+    column = np.ones((n, 1))
+    rows = np.ones((m, 1))
+    kernel(m, n, 1e-7, 0*column, column, .1*column, .9*column,
+           .1*column, .1*column, np.full((m, n), .1), np.full((m, n), .1),
+           1.0, 0*rows, 10*rows, 1000*rows, rows)
+    return True
+
+
+def _bind_functions(*, compiled=True):
     namespace = dict(upstream.mmasub.__globals__)
     namespace["diags"] = _Diagonal
     for name in ("subsolv", "mmasub", "gcmmasub"):
@@ -39,6 +63,16 @@ def _bind_functions():
                              function.__defaults__, function.__closure__)
         clone.__kwdefaults__ = function.__kwdefaults__
         namespace[name] = update_wrapper(clone, function)
+    if compiled:
+        reference = namespace["subsolv"]
+        def subsolv(m, *args, **kwargs):
+            kernel = _compiled_kernel() if m > 1 else None
+            if kernel is None:
+                return reference(m, *args, **kwargs)
+            contiguous = tuple(np.ascontiguousarray(value) if isinstance(value, np.ndarray) else value
+                               for value in args)
+            return kernel(m, *contiguous, **kwargs)
+        namespace["subsolv"] = subsolv
     return namespace["mmasub"], namespace["gcmmasub"]
 
 

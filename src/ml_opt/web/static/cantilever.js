@@ -443,7 +443,7 @@ async function connectSolver() {
   try {
     const response = await fetch("/api/health");
     if (!response.ok) throw new Error("Local solver unavailable");
-    const health = await response.json();
+    let health = await response.json();
     state.romSupported = !!health.rom_optimisation_supported;
     await romChoice.refresh(state.romSupported);
     if (!health.projection_supported || !health.robust_supported || !health.material_schedule_supported || !health.max_size_supported || !health.max_void_supported || !health.linear_solver_supported || !health.volume_modes_supported) {
@@ -451,6 +451,15 @@ async function connectSolver() {
       showError("Open Start TOptVis.bat again to launch the updated server with the current solver and size controls. Use the browser page it opens.");
       setRunning(false);
     } else {
+      while (!health.worker_ready) {
+        byId("connection").lastElementChild.textContent = "Preparing solver…";
+        state.ready = false;
+        setRunning(false);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const readyResponse = await fetch("/api/health", {cache: "no-store"});
+        if (!readyResponse.ok) throw new Error("Solver warm-up unavailable");
+        health = await readyResponse.json();
+      }
       state.ready = true;
       byId("connection").dataset.ready = "true";
       byId("connection").lastElementChild.textContent = "Local solver connected";

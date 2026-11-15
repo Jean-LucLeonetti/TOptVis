@@ -41,6 +41,19 @@ For the browser's actual canvas drawing functions, run
 
 ## Visual interface
 
+Constrained MMA/GCMMA subproblems use a cached Numba-compiled version of the
+existing primal-dual Newton loop. The equations, constraints and tolerances are
+unchanged. A single-constraint run retains the existing NumPy kernel.
+The first solver preparation after installation, interpreter/CPU changes, or a
+kernel source update can take several minutes to compile; later processes reuse
+the cache. The interface shows **Preparing solver…** and enables Run when ready.
+The existing Python kernel remains available if the acceleration runtime is
+missing; update the environment with `python -m pip install -e ".[dev]"` to
+install the declared Numba dependency.
+
+The compiled kernel is derived from GPL-licensed mmapy 0.3.1; attribution and
+the complete licence are included in `src/ml_opt/optimizers/`.
+
 Double-click **Start TOptVis.bat** in the project folder. It uses the existing
 `.venv`, starts the app, and opens the interface in your default browser once
 the server is ready. Keep the launcher window open while using the app.

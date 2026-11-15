@@ -9,6 +9,7 @@ from pathlib import Path
 from ..config import CantileverConfig
 from ..runner import optimise
 from ..fem.worker_pool import FieldWorkerPool
+from ..optimizers._mmapy import warmup_optimizer
 
 
 class _RunMessages:
@@ -21,8 +22,9 @@ class _RunMessages:
 
 def worker_loop(commands, messages, cancel, ready) -> None:
     field_pool = FieldWorkerPool()
-    ready.set()
     try:
+        warmup_optimizer()
+        ready.set()
         while not _parent_gone():
             try:
                 command = commands.get(timeout=0.25)
