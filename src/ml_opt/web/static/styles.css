@@ -43,7 +43,8 @@ h1 {font-size:27px;letter-spacing:-.8px;line-height:1.2;margin:0;font-weight:650
 .button:disabled {opacity:.45}
 button:focus-visible,input:focus-visible,select:focus-visible,canvas:focus-visible {outline:2px solid var(--focus);outline-offset:3px}
 .workspace {display:grid;grid-template-columns:72px 268px minmax(0,1fr);gap:16px;align-items:start}
-.config-tabs {position:sticky;top:116px;display:flex;flex-direction:column;gap:8px;padding:4px 0}
+.config-tabs {position:sticky;top:116px;display:flex;flex-direction:column;gap:8px;padding:4px 0;max-height:calc(100dvh - 140px);overflow-y:auto}
+.config-tabs > .config-tab {flex-shrink:0}
 .config-tab {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:73px;width:100%;border:1px solid transparent;border-radius:9px;background:transparent;color:#7e8f97;font-size:10px;font-weight:550;padding:11px 5px;transition:background .15s}
 .config-tab svg {width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .config-tab:hover {background:#eaf0f1}
@@ -170,4 +171,4 @@ input[type=range]:disabled {cursor:default}
 .convergence-note {font-size:10px;color:#82949b;line-height:1.8;margin:15px 3px 0}
 @media(max-width:1100px) {.convergence-heading{align-items:flex-start;flex-direction:column}.chart-heading{padding-left:15px;padding-right:15px}.chart-readout{padding-left:15px;padding-right:15px}}
 @media(max-width:900px) {.convergence-grid{grid-template-columns:1fr}.chart-wrap{height:230px}}
-@media(max-width:700px) {.config-tabs{flex-wrap:wrap}.config-tab{min-width:54px}.convergence-heading{padding:18px}.convergence-view{scroll-margin-top:12px}.convergence-grid{gap:14px}.history-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.history-summary strong{font-size:18px}}
+@media(max-width:700px) {.config-tabs{flex-wrap:wrap;max-height:none;overflow:visible}.config-tab{min-width:54px}.convergence-heading{padding:18px}.convergence-view{scroll-margin-top:12px}.convergence-grid{gap:14px}.history-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.history-summary strong{font-size:18px}}

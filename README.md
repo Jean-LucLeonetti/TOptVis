@@ -7,7 +7,7 @@ A Python project for topology optimisation with PyTorch and PETSc through
 
 Exact state caching and persistent three-field workers are described in
 [`benchmarks/SOLVER_RESULTS.md`](benchmarks/SOLVER_RESULTS.md), including
-comparisons of LU, Cholesky, CG/ICC, and CG/GAMG. In **Solver parameters → Full-order
+comparisons of LU, Cholesky, CG/ICC, and CG/GAMG. In **Solver → Full-order
 method**, choose the PETSc solver; LU remains the default. Cholesky was fastest
 for the larger measured optimisation case. The iterative choices were accurate
 but slower on these meshes. The CLI accepts `--linear-solver cholesky` (or
@@ -83,8 +83,12 @@ active job. Open these workspaces directly with `/#cantilever-2d` and
 `/#ml/rom` (or `/#ml`). Existing `/#rom-training` links also open ML → ROM.
 
 Within Cantilever 2D, the far-left tabs separate **Geometry**, **Load**, **Material**,
-**Filters**, **Optimise**, **Solver parameters**, and **Visualisation**.
-**Solver parameters** contains the FOM/ROM selection, full-order method, saved
+**Filters**, **Objective**, **Constraints**, **Optimiser**, **Solver**, and **Visualisation**.
+**Objective** describes compliance minimisation, including the worst of three
+material fields when robustness is enabled. **Constraints** contains the volume
+relation and target, maximum solid size, and maximum void size. **Optimiser**
+contains MMA/GCMMA, the outer iteration limit, and GCMMA's inner retry limit.
+**Solver** contains the FOM/ROM selection, full-order method, saved
 ROM model, and sequential/parallel state execution for three-field robustness.
 The configuration panel shows the selected
 tab; the central workspace displays the mesh/topology or convergence graphs. Tab changes retain
@@ -101,7 +105,11 @@ all values. Use arrow keys, Home, and End to navigate the tab rail.
    sharpness β and threshold η. Larger β sharpens the solid/void transition;
    fixed β = 0 disables projection. Use **β schedule** for optional capped
    increases during the run; length and threshold remain fixed.
-5. In **Optimisation**, choose MMA or GCMMA, the material volume, and the iteration limit. Click
+5. In **Objective**, review the compliance objective for the selected material fields.
+6. In **Constraints**, choose the material volume relation and target, and optional
+   maximum solid/void diameters.
+7. In **Optimiser**, choose MMA or GCMMA and the iteration limits. In **Solver**,
+   choose the state equation solver. Click
    **Run optimisation** to see the topology, compliance, volume, and iteration
    values update as the actual solver runs. **Stop** retains the last evaluated
    design.
@@ -272,7 +280,7 @@ The API adds `POST /api/rom/<id>/validate` (streamed),
 
 ### Optimise with a saved ROM
 
-In **Cantilever 2D → Solver parameters**, choose **Elasticity solver → ROM** and select
+In **Cantilever 2D → Solver**, choose **Elasticity solver → ROM** and select
 a saved model. **Refresh ROMs** reloads the training library. A model requires
 a completed basis, but an absent or failed validation does not block explicit
 selection; its validation status is displayed alongside the model. **Use ROM
@@ -362,7 +370,7 @@ benchmark; the visual interface initially uses `filter_radius=0.1`,
 
 ### Volume constraint modes
 
-**Optimise → Volume constraint** selects `<`, `>`, or `=` for the physical
+**Constraints → Volume constraint** selects `<`, `>`, or `=` for the physical
 material volume target. `<` remains the default upper bound; `>` is a lower
 bound and allows more material, including a fully solid solution in compliance
 minimisation. Equality constrains the normalised error
@@ -381,7 +389,7 @@ CLI: `--volume-constraint lt|gt|eq`.
 
 ### Morphological maximum solid size
 
-In **Optimise → Maximum solid size**, enter the maximum disk **diameter** in
+In **Constraints → Maximum solid size**, enter the maximum disk **diameter** in
 model units; `0` disables this optional constraint. The blue reference circle
 updates on the mesh and topology. The purple Helmholtz-length reference keeps
 its existing meaning. The diameter must exceed two element spacings in both
@@ -420,7 +428,7 @@ python -m ml_opt --filter-radius 0.04 --projection-beta 8 --max-solid-size 0.35
 
 ### Morphological maximum void size
 
-**Optimise → Maximum void size** adds the matching void-phase option from
+**Constraints → Maximum void size** adds the matching void-phase option from
 [Lazarov and Wang (2017), section 5](https://doi.org/10.1016/j.cma.2017.02.018).
 Choose a disk diameter in model units; `0` disables it. Its green circle is
 independent of the blue solid-size circle, and either or both constraints may
@@ -677,7 +685,7 @@ which is distributed under **GPL-3.0-or-later**; its implementation remains an
 external dependency. The backend credits Krister Svanberg's original MMA/GCMMA
 methods and Arjen Deetman's Python implementation. GCMMA raises an error if it
 cannot obtain a conservative trial within the configured inner iteration limit.
-In the interface, select GCMMA in **Optimise** to set its **inner iteration
+In the interface, select GCMMA in **Optimiser** to set its **inner iteration
 limit** (default 30). This counts retries after the initial trial, so a limit
 of 30 permits up to 31 trial solves per outer iteration. The minimum is 1;
 MMA does not use this setting.
