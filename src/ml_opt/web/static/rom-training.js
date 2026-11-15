@@ -59,7 +59,11 @@ function estimate() {
     const config = readSettings();
     const cases = config.load_heights.length * config.load_angles.length * config.volume_fractions.length;
     const snapshots = cases * (1 + Math.ceil(config.iterations_per_case / config.snapshot_stride));
-    byId("rom-estimate").textContent = `${number(cases)} cases · up to ${number(snapshots)} snapshots. Limits: 24 cases, 512 snapshots, 128 MiB.`;
+    const bytes = 8 * (2*config.nx*(config.ny+1) + config.nx*config.ny) * snapshots;
+    const power = bytes >= 2**40 ? 40 : bytes >= 2**30 ? 30 : bytes >= 2**20 ? 20 : bytes >= 2**10 ? 10 : 0;
+    const unit = {0:"B",10:"KiB",20:"MiB",30:"GiB",40:"TiB"}[power];
+    const storage = Number.isFinite(bytes) ? `${number(bytes/2**power)} ${unit}` : "estimate unavailable";
+    byId("rom-estimate").textContent = `${number(cases)} case${cases === 1 ? "" : "s"} · up to ${number(snapshots)} snapshots · ${storage} of displacement/density arrays. No fixed size caps. Saving and POD require additional RAM.`;
   } catch (e) { byId("rom-estimate").textContent = e.message; }
 }
 

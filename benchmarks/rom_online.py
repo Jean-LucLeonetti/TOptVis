@@ -4,8 +4,8 @@ Run serially with the checkout's src on PYTHONPATH and the project Python:
 python benchmarks/rom_online.py --repeats 3
 
 Defaults: 120x40 and 240x80, nine FOM training trajectories, 99 snapshots,
-20 online iterations. Benchmark-only training uses CantileverConfig directly
-so the interactive SnapshotConfig mesh limits remain unchanged. Core wall
+20 online iterations. Benchmark-only training uses CantileverConfig directly;
+interactive snapshot generation also accepts these mesh sizes. Core wall
 times include per-run basis loading/setup/teardown, exclude app startup and
 rendering. Training, POD/operator preparation, and disk writes are timed too.
 The basis is never enriched from any benchmark/test trajectory.

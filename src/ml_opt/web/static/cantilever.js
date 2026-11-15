@@ -260,7 +260,7 @@ function updateModel(event) {
   syncControls();
   if (event?.target.id === "nx" || event?.target.id === "ny") {
     const nx = Number(byId("nx").value), ny = Number(byId("ny").value);
-    if (nx >= 2 && nx <= 160 && ny >= 2 && ny <= 100) {
+    if (Number.isInteger(nx) && nx >= 1 && Number.isInteger(ny) && ny >= 1) {
       byId("load_node_x").max = nx;
       byId("load_node_y").max = ny;
       byId("load_node_x").value = Math.max(1, Math.round(state.model.load_node_x / state.model.nx * nx));

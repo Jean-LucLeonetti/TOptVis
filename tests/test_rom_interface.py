@@ -10,7 +10,8 @@ import numpy as np
 import pytest
 
 from ml_opt.config import CantileverConfig
-from ml_opt.web.app import create_app
+from ml_opt.web.app import create_app,RunRequest
+from ml_opt.web.rom import SnapshotRequest
 from ml_opt.web.jobs import RunManager
 
 
@@ -63,7 +64,8 @@ def test_api_generate_build_download_rebuild_and_reload(tmp_path):
 def test_api_rejects_invalid_and_unknown_training_inputs(tmp_path):
     with TestClient(create_app(training_root=tmp_path)) as client:
         for extra in ({"load_heights": [1.2]}, {"volume_fractions": []}, {"snapshot_stride": 0},
-                      {"load_angles": [0, 0]}, {"iterations_per_case": 300, "snapshot_stride": 1},
+                      {"load_angles": [0, 0]}, {"nx": True}, {"ny": 1.5},
+                      {"iterations_per_case": 0},
                       {"root": "elsewhere"}):
             assert client.post("/api/rom/snapshots", json={**SETTINGS, **extra}).status_code == 422
         assert client.post("/api/rom/invalid/basis", json={}).status_code == 404
@@ -73,6 +75,45 @@ def test_api_rejects_invalid_and_unknown_training_inputs(tmp_path):
         assert client.post(f"/api/rom/{training_id}/basis", json={"energy_target": 0}).status_code == 422
         assert client.post(f"/api/rom/{training_id}/basis", json={"max_modes": 0}).status_code == 422
         assert client.get(f"/api/rom/{training_id}/artifacts/basis").status_code == 404
+
+
+def test_api_generates_more_than_24_cases_and_512_snapshots(tmp_path):
+    settings=dict(nx=3,ny=2,load_heights=[.5],load_angles=list(range(-90,91,7))[:25],
+        volume_fractions=[.4],iterations_per_case=20,snapshot_stride=1)
+    with TestClient(create_app(training_root=tmp_path)) as client:
+        generated=events(client.post('/api/rom/snapshots',json=settings))
+        metadata=generated[-1]['training']
+        assert metadata['case_count']==25 and metadata['snapshot_count']==525
+        assert metadata['estimated_snapshot_bytes']==8*(18+6)*525
+        archive=client.get(f'/api/rom/{metadata["id"]}/artifacts/snapshots')
+        with np.load(io.BytesIO(archive.content),allow_pickle=False) as arrays:
+            assert arrays['displacements'].shape==(18,525)
+            assert np.max(arrays['residuals'])<1e-7
+        built=events(client.post(f'/api/rom/{metadata["id"]}/basis',json={'max_modes':4}))
+        assert built[-1]['training']['basis']['rank']>0
+
+
+def test_large_training_requests_and_matching_run_geometry_are_accepted():
+    request=SnapshotRequest(nx=240,ny=120,length=2001,height=.001,filter_radius=2000,
+        projection_beta=100,load_angles=list(range(25)),iterations_per_case=1000,snapshot_stride=1)
+    config=request.configuration()
+    assert config.estimated_snapshot_bytes>128*1024**2
+    assert RunRequest(nx=240,ny=120,length=2001,height=.001,load_node_x=240,load_node_y=60).configuration().nx==240
+
+
+def test_ml_workspace_and_routes_are_removed_but_rom_remains(tmp_path):
+    with TestClient(create_app(training_root=tmp_path)) as client:
+        page=client.get('/').text
+        assert 'id="tab-model-lab"' not in page
+        assert 'id="tab-rom-training"' in page and 'id="tab-cantilever"' in page
+        assert client.get('/api/ml/catalog').status_code==404
+        assert client.get('/api/ml/models').status_code==404
+        assert client.post('/api/ml/train',json={}).status_code==404
+        assert client.get('/static/model-lab.js').status_code==404
+        assert 'model_lab_supported' not in client.get('/api/health').json()
+    manager=RunManager()
+    with pytest.raises(ValueError,match='Unknown training task'):
+        manager.start_task('ml_train',{})
 
 
 def test_training_shares_worker_lock_and_stops_without_poisoning_next_job(tmp_path):

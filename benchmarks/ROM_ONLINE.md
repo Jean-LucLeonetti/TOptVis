@@ -99,7 +99,8 @@ ignored output directory. `--reuse-training` reuses the generated training
 artifacts and preserves their originally measured offline costs. `--meshes`,
 `--iterations`, `--training-iterations`, `--energy`, and `--modes` allow other
 budgets. Benchmark-only training uses the same POD/operator builder with
-explicit `CantileverConfig` cases, leaving the interactive mesh limits intact.
+explicit `CantileverConfig` cases. Interactive snapshot generation now also
+accepts these meshes without fixed case, snapshot, storage or iteration caps.
 
 New training artifacts contain the operators. Older bases work by preparing
 them once at solver construction; rebuild them in the Training tab to save

@@ -50,10 +50,10 @@
             <section id="panel-geometry" class="control-section" role="tabpanel" aria-labelledby="tab-geometry">
               <p class="control-hint">Set the domain and the number of quadrilateral elements.</p>
               <div class="input-grid">
-                <label>Length<input id="length" name="length" type="number" min="0.01" max="1000" step="any" value="3" required></label>
-                <label>Height<input id="height" name="height" type="number" min="0.01" max="1000" step="any" value="1" required></label>
-                <label>Elements · x<input id="nx" name="nx" type="number" min="2" max="160" step="1" value="60" required></label>
-                <label>Elements · y<input id="ny" name="ny" type="number" min="2" max="100" step="1" value="20" required></label>
+                <label>Length<input id="length" name="length" type="number" min="0" step="any" value="3" required></label>
+                <label>Height<input id="height" name="height" type="number" min="0" step="any" value="1" required></label>
+                <label>Elements · x<input id="nx" name="nx" type="number" min="1" step="1" value="60" required></label>
+                <label>Elements · y<input id="ny" name="ny" type="number" min="1" step="1" value="20" required></label>
               </div>
               <div class="section-note" id="mesh-description">1,200 elements · 1,281 nodes</div>
               <div class="config-info">Plane stress · fixed left edge<br>Lengths use the same model units throughout.</div>
@@ -269,10 +269,10 @@
               <section class="control-section">
                 <h3>Fixed mesh</h3>
                 <div class="input-grid">
-                  <label>Training length<input name="length" type="number" min="0.01" max="1000" step="any" value="3" required></label>
-                  <label>Training height<input name="height" type="number" min="0.01" max="1000" step="any" value="1" required></label>
-                  <label>Training elements · x<input name="nx" type="number" min="2" max="160" step="1" value="30" required></label>
-                  <label>Training elements · y<input name="ny" type="number" min="2" max="100" step="1" value="10" required></label>
+                  <label>Training length<input name="length" type="number" min="0" step="any" value="3" required></label>
+                  <label>Training height<input name="height" type="number" min="0" step="any" value="1" required></label>
+                  <label>Training elements · x<input name="nx" type="number" min="1" step="1" value="30" required></label>
+                  <label>Training elements · y<input name="ny" type="number" min="1" step="1" value="10" required></label>
                 </div>
                 <p class="rom-note">Plane stress · fixed left edge · unit load and solid modulus. A basis belongs to this mesh.</p>
               </section>
@@ -283,17 +283,17 @@
                 <label>Volume fractions<input name="volume_fractions" type="text" value="0.3, 0.4, 0.5" required></label>
                 <p class="rom-note">Comma-separated values. Every combination is a case; loads act on the right edge at the nearest mesh node.</p>
                 <div class="input-grid">
-                  <label>Iterations per case<input name="iterations_per_case" type="number" min="1" max="300" step="1" value="20" required></label>
-                  <label>Snapshot spacing<input name="snapshot_stride" type="number" min="1" max="300" step="1" value="2" required></label>
+                  <label>Iterations per case<input name="iterations_per_case" type="number" min="1" step="1" value="20" required></label>
+                  <label>Snapshot spacing<input name="snapshot_stride" type="number" min="1" step="1" value="2" required></label>
                 </div>
                 <p id="rom-estimate" class="rom-estimate" aria-live="polite"></p>
               </section>
               <section class="control-section">
                 <h3>Material filtering</h3>
-                <label>Training Helmholtz length · ℓ<input name="filter_radius" type="number" min="0" max="1000" step="any" value="0.1" required></label>
+                <label>Training Helmholtz length · ℓ<input name="filter_radius" type="number" min="0" step="any" value="0.1" required></label>
                 <div class="input-grid">
-                  <label>Training sharpness · β<input name="projection_beta" type="number" min="0" max="64" step="any" value="2" required></label>
-                  <label>Training threshold · η<input name="projection_eta" type="number" min="0.01" max="0.99" step="any" value="0.5" required></label>
+                  <label>Training sharpness · β<input name="projection_beta" type="number" min="0" step="any" value="2" required></label>
+                  <label>Training threshold · η<input name="projection_eta" type="number" min="0" max="1" step="any" value="0.5" required></label>
                 </div>
                 <p class="rom-note">MMA generates initial, intermediate, and final material layouts using the full PETSc solve.</p>
               </section>

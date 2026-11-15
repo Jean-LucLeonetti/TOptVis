@@ -36,38 +36,41 @@ class SnapshotConfig:
     projection_eta: float = 0.5
 
     def __post_init__(self):
-        for name, lower, upper in (("nx", 2, 160), ("ny", 2, 100),
-                                    ("iterations_per_case", 1, 300), ("snapshot_stride", 1, 300)):
+        for name in ("nx", "ny", "iterations_per_case", "snapshot_stride"):
             value = getattr(self, name)
-            if type(value) is not int or not lower <= value <= upper:
-                raise ValueError(f"{name} must be an integer between {lower} and {upper}")
-        for name, lower, upper, exclusive in (("load_heights", 0, 1, False),
-                    ("load_angles", -180, 180, False), ("volume_fractions", 0, 1, True)):
+            if type(value) is not int or value < 1:
+                raise ValueError(f"{name} must be a positive integer")
+        for name in ("load_heights", "load_angles", "volume_fractions"):
             values = getattr(self, name)
-            if not values or len(values) > 24:
-                raise ValueError(f"{name} needs between 1 and 24 values")
-            if any(not np.isfinite(x) or (not lower < x < upper if exclusive else
-                                         not lower <= x <= upper) for x in values):
+            if not values:
+                raise ValueError(f"{name} must not be empty")
+            if any(not np.isfinite(x) or (name == "load_heights" and not 0 <= x <= 1)
+                    or (name == "volume_fractions" and not 0 < x < 1) for x in values):
                 raise ValueError(f"{name} contains an invalid value")
             if len(set(values)) != len(values):
                 raise ValueError(f"{name} must contain distinct values")
-        # Every case uses the same geometry, supports, material, and filter law.
-        if len(self.load_heights) * len(self.load_angles) * len(self.volume_fractions) > 24:
-            raise ValueError("Choose at most 24 combinations of load height, angle, and volume")
-        cases = self.cases()
-        if len({case.load_node_y for case in cases}) != len(self.load_heights):
+        # Validate common physics once without materialising the Cartesian product.
+        CantileverConfig(nx=self.nx, ny=self.ny, length=self.length, height=self.height,
+            max_iterations=self.iterations_per_case, filter_radius=self.filter_radius,
+            projection_beta=self.projection_beta, projection_eta=self.projection_eta)
+        if len({int(np.floor(height*self.ny + .5)) for height in self.load_heights}) != len(self.load_heights):
             raise ValueError("Load heights must map to distinct mesh rows; use fewer heights or more y elements")
-        if self.maximum_snapshots > 512:
-            raise ValueError("Choose at most 512 snapshots; increase spacing or reduce cases/iterations")
-        free_count = 2 * self.nx * (self.ny + 1)
-        if 8 * (free_count + self.nx * self.ny) * self.maximum_snapshots > 128 * 1024**2:
-            raise ValueError("Snapshot storage exceeds 128 MiB; reduce mesh size or snapshot count")
+
+    @property
+    def case_count(self):
+        return len(self.load_heights) * len(self.load_angles) * len(self.volume_fractions)
 
     @property
     def maximum_snapshots(self):
         # Initial state, every stride, and the final state (also on early stop).
         per_case = 1 + (self.iterations_per_case + self.snapshot_stride - 1) // self.snapshot_stride
-        return len(self.load_heights) * len(self.load_angles) * len(self.volume_fractions) * per_case
+        return self.case_count * per_case
+
+    @property
+    def estimated_snapshot_bytes(self):
+        """Displacement/density arrays only; saving and POD need additional RAM."""
+        free_count = 2 * self.nx * (self.ny + 1)
+        return 8 * (free_count + self.nx*self.ny) * self.maximum_snapshots
 
     def cases(self):
         return [CantileverConfig(nx=self.nx, ny=self.ny, length=self.length, height=self.height,
@@ -117,7 +120,8 @@ def generate_snapshots(config: SnapshotConfig, directory: Path, *, emit=lambda e
     metadata = {"schema_version": 1, "id": directory.name, "created_at": _now(),
                 "status": "generating", "settings": json.loads(json.dumps(asdict(config))),
                 "case_count": len(cases), "completed_cases": 0, "snapshot_count": 0,
-                "maximum_snapshots": config.maximum_snapshots, "free_dof_count": len(mesh.free_dofs),
+                "maximum_snapshots": config.maximum_snapshots,
+                "estimated_snapshot_bytes": config.estimated_snapshot_bytes, "free_dof_count": len(mesh.free_dofs),
                 "snapshot_layout": "columns; free displacement DOFs; zero clamped displacement",
                 "cases": [asdict(case) for case in cases], "case_results": []}
     save_metadata(directory, metadata)

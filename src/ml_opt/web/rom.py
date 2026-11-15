@@ -17,21 +17,21 @@ from .streams import stream_job
 
 class SnapshotRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-    nx: int = Field(default=30, ge=2, le=160)
-    ny: int = Field(default=10, ge=2, le=100)
-    length: float = Field(default=3, gt=0, le=1000)
-    height: float = Field(default=1, gt=0, le=1000)
-    load_heights: list[float] = Field(default_factory=lambda: [.25, .5, .75], min_length=1, max_length=24)
-    load_angles: list[float] = Field(default_factory=lambda: [-90], min_length=1, max_length=24)
-    volume_fractions: list[float] = Field(default_factory=lambda: [.3, .4, .5], min_length=1, max_length=24)
-    iterations_per_case: int = Field(default=20, ge=1, le=300)
-    snapshot_stride: int = Field(default=2, ge=1, le=300)
-    filter_radius: float = Field(default=.1, ge=0, le=1000)
-    projection_beta: float = Field(default=2, ge=0, le=64)
+    nx: int = Field(default=30, ge=1, strict=True)
+    ny: int = Field(default=10, ge=1, strict=True)
+    length: float = Field(default=3, gt=0)
+    height: float = Field(default=1, gt=0)
+    load_heights: list[float] = Field(default_factory=lambda: [.25, .5, .75], min_length=1)
+    load_angles: list[float] = Field(default_factory=lambda: [-90], min_length=1)
+    volume_fractions: list[float] = Field(default_factory=lambda: [.3, .4, .5], min_length=1)
+    iterations_per_case: int = Field(default=20, ge=1, strict=True)
+    snapshot_stride: int = Field(default=2, ge=1, strict=True)
+    filter_radius: float = Field(default=.1, ge=0)
+    projection_beta: float = Field(default=2, ge=0)
     projection_eta: float = Field(default=.5, gt=0, lt=1)
 
     @model_validator(mode="after")
-    def validate_training_size(self):
+    def validate_training_parameters(self):
         self.configuration()
         return self
 

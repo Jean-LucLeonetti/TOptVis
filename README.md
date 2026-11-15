@@ -177,9 +177,15 @@ Progress shows actual full-order compliance, equilibrium residuals, and the
 latest physical density. **Stop training** preserves collected snapshots as
 a partial dataset. Training and cantilever optimisation share one worker and
 cannot run simultaneously. Switching workspaces keeps a job running;
-disconnecting its live stream cancels it. The server supports up to 24 cases,
-512 snapshots, and 128 MiB of uncompressed displacement/density arrays per
-dataset, rejecting larger requests before starting work.
+disconnecting its live stream cancels it. Snapshot generation has no fixed
+mesh, case-count, snapshot-count, array-size or iteration ceiling. The form
+estimates displacement/density storage before starting; the estimate is also
+saved as `estimated_snapshot_bytes` in dataset metadata. Snapshots are still
+held in memory, and saving/POD require additional working memory. Actual RAM,
+disk space and runtime determine feasible job sizes. Numerical checks remain:
+positive integer mesh sizes/iteration counts, finite parameters, valid load
+heights and volume fractions, and distinct load positions after node snapping.
+Cantilever mesh/domain inputs also accept larger saved ROM geometries.
 
 Choose a saved dataset under **Build the reduced basis**, set the target POD
 energy and maximum mode count, then click **Build reduced basis**. This is

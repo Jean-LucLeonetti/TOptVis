@@ -21,10 +21,10 @@ from .runtime import source_revision
 
 class RunRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-    nx: int = Field(default=60, ge=2, le=160)
-    ny: int = Field(default=20, ge=2, le=100)
-    length: float = Field(default=3.0, gt=0, le=1000)
-    height: float = Field(default=1.0, gt=0, le=1000)
+    nx: int = Field(default=60, ge=1, strict=True)
+    ny: int = Field(default=20, ge=1, strict=True)
+    length: float = Field(default=3.0, gt=0)
+    height: float = Field(default=1.0, gt=0)
     load: float = Field(default=1.0, gt=0, le=1e6)
     load_angle: float = Field(default=-90.0, ge=-180, le=180)
     load_node_x: int = Field(default=60, ge=1)

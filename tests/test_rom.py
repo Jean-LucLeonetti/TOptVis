@@ -146,12 +146,32 @@ def test_stop_during_basis_save_does_not_publish_a_partial_rebuild(tmp_path, mon
 
 @pytest.mark.parametrize("options", [dict(load_heights=()), dict(load_heights=(.1, .11)),
     dict(load_angles=(float("nan"),)), dict(volume_fractions=(0,)),
-    dict(load_angles=(0, 0)), dict(iterations_per_case=300, snapshot_stride=1),
-    dict(nx=160, ny=100, iterations_per_case=50, snapshot_stride=1),
-    dict(load_angles=tuple(range(25))), dict(snapshot_stride=0)])
+    dict(load_angles=(0, 0)), dict(snapshot_stride=0), dict(iterations_per_case=0),
+    dict(nx=0), dict(ny=True), dict(nx=2.5), dict(length=0), dict(height=float('inf')),
+    dict(filter_radius=-.1), dict(projection_beta=-1), dict(projection_eta=1)])
 def test_invalid_snapshot_requests(options):
     with pytest.raises(ValueError):
         replace(SnapshotConfig(), **options)
+
+
+def test_snapshot_workload_has_no_fixed_resource_caps(monkeypatch):
+    # This intentionally exceeds all former ceilings, without allocating the
+    # estimated arrays or enumerating every case just to validate its settings.
+    monkeypatch.setattr(SnapshotConfig,'cases',lambda *_: pytest.fail('Validation must not enumerate cases'))
+    config=SnapshotConfig(nx=240,ny=120,load_angles=tuple(range(25)),
+        iterations_per_case=1000,snapshot_stride=1)
+    assert config.case_count==225
+    assert config.maximum_snapshots==225225
+    assert config.estimated_snapshot_bytes==8*(2*240*121+240*120)*225225
+    assert config.estimated_snapshot_bytes>128*1024**2
+    assert replace(config,snapshot_stride=1001).maximum_snapshots==450
+
+
+def test_minimal_mesh_and_periodic_load_angles_are_valid():
+    config=SnapshotConfig(nx=1,ny=1,load_heights=(.5,),load_angles=(270.,),
+        volume_fractions=(.4,),length=.001,height=2001.,filter_radius=2000.,projection_beta=100.)
+    assert config.cases()[0].load_angle==270.
+    assert config.cases()[0].load_node_y==1
 
 
 @pytest.mark.parametrize("snapshots", [np.zeros((3, 2)), np.ones((0, 2)),
