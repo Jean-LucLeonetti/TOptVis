@@ -65,6 +65,7 @@ def test_local_page_and_validation():
         assert health["status"] == "ready" and not health["running"]
         assert isinstance(health["worker_ready"], bool)
         assert health["projection_supported"] is True
+        assert health["gcmma_inner_limit_supported"] is True
         invalid = {"nx": 6, "ny": 2, "load_node_x": 0, "load_node_y": 1}
         assert client.post("/api/run", json=invalid).status_code == 422
         invalid["load_node_x"] = 7
@@ -73,6 +74,8 @@ def test_local_page_and_validation():
         assert client.post("/api/run", json={"filter_radius": -.1}).status_code == 422
         assert client.post("/api/run", json={"projection_beta": -1}).status_code == 422
         assert client.post("/api/run", json={"projection_eta": 1}).status_code == 422
+        for invalid_limit in (0, -1, 1.5, True):
+            assert client.post("/api/run", json={"max_inner_iterations": invalid_limit}).status_code == 422
 
 
 @pytest.mark.parametrize("method", ["mma", "gcmma"])
@@ -82,7 +85,7 @@ def test_api_streams_real_topology_frames(method, radius):
         response = client.post("/api/run", json={"nx": 8, "ny": 3,
             "load_node_x": 5, "load_node_y": 1, "load_angle": -60,
             "max_iterations": 4, "optimizer": method, "filter_radius": radius,
-            "projection_beta": 4, "projection_eta": .4})
+            "projection_beta": 4, "projection_eta": .4, "max_inner_iterations": 5})
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("application/x-ndjson")
         events = [json.loads(line) for line in response.text.splitlines()]
@@ -90,6 +93,7 @@ def test_api_streams_real_topology_frames(method, radius):
         assert events[0]["config"]["filter_radius"] == radius
         assert events[0]["config"]["projection_beta"] == 4
         assert events[0]["config"]["projection_eta"] == .4
+        assert events[0]["config"]["max_inner_iterations"] == 5
         assert events[-1]["event"] == "complete"
         frames = [event for event in events if event["event"] == "iteration"]
         assert [frame["history"]["iteration"] for frame in frames] == [0, 1, 2, 3, 4]
@@ -101,7 +105,7 @@ def test_api_streams_real_topology_frames(method, radius):
         assert frames[-1]["density"] != frames[0]["density"]
         expected = optimise(CantileverConfig(nx=8, ny=3, load_node_x=5, load_node_y=1,
                             load_angle=-60, max_iterations=4, optimizer=method, filter_radius=radius,
-                            projection_beta=4, projection_eta=.4))
+                            projection_beta=4, projection_eta=.4, max_inner_iterations=5))
         np.testing.assert_allclose(frames[-1]["density"], expected.evaluation.density, rtol=1e-9, atol=1e-10)
         assert not client.get("/api/health").json()["running"]
 

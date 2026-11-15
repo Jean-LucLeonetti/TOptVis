@@ -121,6 +121,10 @@
 
             <section id="panel-optimisation" class="control-section" role="tabpanel" aria-labelledby="tab-optimisation" hidden>
               <label>Optimiser<select id="optimizer" name="optimizer"><option value="mma">MMA</option><option value="gcmma">GCMMA</option></select></label>
+              <div id="gcmma-options" hidden>
+                <label>GCMMA inner iteration limit<input id="max_inner_iterations" name="max_inner_iterations" type="number" min="1" step="1" value="30" required disabled aria-describedby="gcmma-inner-hint"></label>
+                <p class="filter-hint" id="gcmma-inner-hint">Maximum retries per outer iteration, after the initial trial. Stops with an error if no conservative trial is found.</p>
+              </div>
               <div class="label-row"><label for="volume_fraction">Material volume</label><output id="volume-label">40%</output></div>
               <label>Volume constraint<select id="volume_constraint" name="volume_constraint"><option value="lt">&lt; target · upper bound</option><option value="gt">&gt; target · lower bound</option><option value="eq">= target · equality</option></select></label>
               <input id="volume_fraction" name="volume_fraction" type="range" min="0.05" max="0.95" step="0.01" value="0.4">

@@ -680,6 +680,10 @@ which is distributed under **GPL-3.0-or-later**; its implementation remains an
 external dependency. The backend credits Krister Svanberg's original MMA/GCMMA
 methods and Arjen Deetman's Python implementation. GCMMA raises an error if it
 cannot obtain a conservative trial within the configured inner iteration limit.
+In the interface, select GCMMA in **Optimise** to set its **inner iteration
+limit** (default 30). This counts retries after the initial trial, so a limit
+of 30 permits up to 31 trial solves per outer iteration. The minimum is 1;
+MMA does not use this setting.
 
 For the default 60 x 20 mesh, a local run gave the following results. Both
 met the documented stability criteria and retained a physical volume fraction

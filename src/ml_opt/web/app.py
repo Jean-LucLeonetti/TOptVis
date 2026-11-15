@@ -52,6 +52,7 @@ class RunRequest(BaseModel):
     field_execution: Literal["sequential", "parallel"] = "sequential"
     optimizer: Literal["mma", "gcmma"] = "mma"
     max_iterations: int = Field(default=100, ge=1, le=1000)
+    max_inner_iterations: int = Field(default=30, ge=1, strict=True)
     state_solver: Literal["fom", "rom"] = "fom"
     linear_solver: Literal["lu", "cholesky", "cg-icc", "cg-gamg"] = "lu"
     rom_training_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{32}$")
@@ -105,6 +106,7 @@ def create_app(*, training_root: Path | None = None, model_root: Path | None = N
                 "max_size_supported": True,
                 "max_void_supported": True,
                 "volume_modes_supported": True,
+                "gcmma_inner_limit_supported": True,
                 "rom_training_supported": True,
                 "rom_validation_supported": True,
                 "rom_optimisation_supported": True,
