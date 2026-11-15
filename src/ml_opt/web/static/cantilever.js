@@ -205,6 +205,9 @@ function updateLabels(resizeFilterRange = true) {
   byId("robust-description").hidden = !m.robust;
   byId("field-view").hidden = !m.robust;
   byId("compliance-label").textContent = `${m.state_solver === "rom" ? "ROM " : ""}${m.robust ? "WORST COMPLIANCE" : "COMPLIANCE"}`;
+  byId("objective-description").textContent = m.robust ?
+    "Minimise the worst compliance across the eroded, nominal and dilated material fields for the applied load." :
+    "Minimise compliance for the applied load using the physical material after filtering and projection.";
   byId("material-volume-label").textContent = m.robust ? "DILATED VOLUME" : "MATERIAL VOLUME";
   byId("volume-description").textContent =
     `${m.robust ? "Dilated-field" : "Physical material"} volume ${volumeRelation(m.volume_constraint)} ${filterFormat(100*m.volume_fraction)}%. Applied after filtering and projection, within the solver's feasibility tolerance.` +

@@ -38,8 +38,10 @@
         <button id="tab-load" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-load" data-panel="panel-load" data-title="Applied load" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 19 5M9 5h10v10"/></svg><span>Load</span></button>
         <button id="tab-material" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-material" data-panel="panel-material" data-title="Material" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5"/></svg><span>Material</span></button>
         <button id="tab-filters" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-filters" data-panel="panel-filters" data-title="Density filters" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/><circle cx="12" cy="6" r="2"/><circle cx="10" cy="12" r="2"/></svg><span>Filters</span></button>
-        <button id="tab-optimisation" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-optimisation" data-panel="panel-optimisation" data-title="Optimisation" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 17 5-6 5 3 6-9M16 5h4v4"/></svg><span>Optimise</span></button>
-        <button id="tab-solver" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-solver" data-panel="panel-solver" data-title="Solver parameters" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="10" cy="18" r="2"/></svg><span>Solver parameters</span></button>
+        <button id="tab-objective" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-objective" data-panel="panel-objective" data-title="Objective" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 10v4M10 12h4"/></svg><span>Objective</span></button>
+        <button id="tab-constraints" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-constraints" data-panel="panel-constraints" data-title="Constraints" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14M5 19h14M8 8v8M16 8v8M5 12h14"/></svg><span>Constraints</span></button>
+        <button id="tab-optimiser" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-optimiser" data-panel="panel-optimiser" data-title="Optimiser" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 17 5-6 5 3 6-9M16 5h4v4"/></svg><span>Optimiser</span></button>
+        <button id="tab-solver" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-solver" data-panel="panel-solver" data-title="Solver" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="10" cy="18" r="2"/></svg><span>Solver</span></button>
         <button id="tab-visualisation" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-visualisation" data-panel="panel-visualisation" data-title="Visualisation" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16h16M7 15l4-6 4 3 5-7"/><circle cx="11" cy="9" r="1"/><circle cx="15" cy="12" r="1"/></svg><span>Visualisation</span></button>
       </nav>
 
@@ -117,17 +119,17 @@
               <p class="filter-hint" id="robust-description" hidden>Worst compliance over eroded, nominal and dilated material. The volume limit applies to dilated material. Requires β &gt; 0.</p>
             </section>
 
-            <section id="panel-optimisation" class="control-section" role="tabpanel" aria-labelledby="tab-optimisation" hidden>
-              <label>Optimiser<select id="optimizer" name="optimizer"><option value="mma">MMA</option><option value="gcmma">GCMMA</option></select></label>
-              <div id="gcmma-options" hidden>
-                <label>GCMMA inner iteration limit<input id="max_inner_iterations" name="max_inner_iterations" type="number" min="1" step="1" value="30" required disabled aria-describedby="gcmma-inner-hint"></label>
-                <p class="filter-hint" id="gcmma-inner-hint">Maximum retries per outer iteration, after the initial trial. Stops with an error if no conservative trial is found.</p>
-              </div>
+            <section id="panel-objective" class="control-section" role="tabpanel" aria-labelledby="tab-objective" hidden>
+              <h3>Minimise compliance</h3>
+              <div class="config-info">C = fᵀu · lower is stiffer</div>
+              <p class="control-hint" id="objective-description">Minimise compliance for the applied load using the physical material after filtering and projection.</p>
+            </section>
+
+            <section id="panel-constraints" class="control-section" role="tabpanel" aria-labelledby="tab-constraints" hidden>
               <div class="label-row"><label for="volume_fraction">Material volume</label><output id="volume-label">40%</output></div>
               <label>Volume constraint<select id="volume_constraint" name="volume_constraint"><option value="lt">&lt; target · upper bound</option><option value="gt">&gt; target · lower bound</option><option value="eq">= target · equality</option></select></label>
               <input id="volume_fraction" name="volume_fraction" type="range" min="0.05" max="0.95" step="0.01" value="0.4">
               <div class="range-labels"><span>5%</span><span>95%</span></div>
-              <label class="iteration-limit">Maximum iterations<input id="max_iterations" name="max_iterations" type="number" min="1" max="1000" step="1" value="100" required></label>
               <div class="filter-divider"></div>
               <h3>Maximum solid size</h3>
               <p class="filter-hint">Morphological constraint on solid-member thickness. The blue circle shows the chosen diameter in model units. Set 0 to disable.</p>
@@ -156,6 +158,16 @@
               <div class="filter-description" id="max-void-status" aria-live="polite"></div>
               <div class="config-info" id="volume-description">The volume limit is applied to the physical material after filtering and projection.</div>
             </section>
+
+            <section id="panel-optimiser" class="control-section" role="tabpanel" aria-labelledby="tab-optimiser" hidden>
+              <label>Optimiser<select id="optimizer" name="optimizer"><option value="mma">MMA</option><option value="gcmma">GCMMA</option></select></label>
+              <label class="iteration-limit">Maximum iterations<input id="max_iterations" name="max_iterations" type="number" min="1" max="1000" step="1" value="100" required></label>
+              <div id="gcmma-options" hidden>
+                <label>GCMMA inner iteration limit<input id="max_inner_iterations" name="max_inner_iterations" type="number" min="1" step="1" value="30" required disabled aria-describedby="gcmma-inner-hint"></label>
+                <p class="filter-hint" id="gcmma-inner-hint">Maximum retries per outer iteration, after the initial trial. Stops with an error if no conservative trial is found.</p>
+              </div>
+            </section>
+
             <section id="panel-solver" class="control-section" role="tabpanel" aria-labelledby="tab-solver" hidden>
               <p class="control-hint">Choose how the elasticity state equations are solved.</p>
               <label>Elasticity solver<select id="state_solver" name="state_solver"><option value="fom">FOM · full order</option><option id="rom-solver-option" value="rom" disabled>ROM · saved reduced basis</option></select></label>
@@ -385,7 +397,7 @@
             </div>
             <div id="rom-validation-downloads" class="viewer-footer" hidden><span id="rom-validation-provenance"></span><div class="rom-download-links"><a id="rom-download-validation">Download validation report</a><a id="rom-download-comparisons">Download comparison arrays</a></div></div>
           </section>
-          <p class="rom-note rom-validation-note">Held-out results apply to the tested cases and designs, not arbitrary material layouts. Choose a saved ROM under Cantilever 2D → Solver parameters → Elasticity solver to use it for optimisation.</p>
+          <p class="rom-note rom-validation-note">Held-out results apply to the tested cases and designs, not arbitrary material layouts. Choose a saved ROM under Cantilever 2D → Solver → Elasticity solver to use it for optimisation.</p>
         </div>
       </div>
       </section>
