@@ -34,6 +34,27 @@ def fitted(tmp_path_factory):
     return root,source,models
 
 
+@pytest.mark.parametrize('mode',['gt','eq'])
+def test_raw_neural_model_uses_selected_volume_mode(fitted,mode):
+    _,_,models=fitted; directory,_=models['pod_mlp']
+    settings=replace(config(),volume_constraint=mode)
+    with ModelProblem(settings,Predictor(directory,settings)) as problem:
+        design=np.full(18,.3)
+        value=problem.evaluate(design)
+        error=value.volume_fraction/settings.volume_fraction-1
+        assert error<0
+        np.testing.assert_allclose(value.constraint,-error)
+        np.testing.assert_allclose(value.volume_error,error)
+        for index in (1,9):
+            delta=np.zeros(18);delta[index]=1e-5
+            plus,minus=problem.evaluate(design+delta,False),problem.evaluate(design-delta,False)
+            np.testing.assert_allclose(value.constraint_gradient[index],
+                (plus.constraint-minus.constraint)/2e-5,rtol=1e-7)
+            if mode=='eq':
+                np.testing.assert_allclose(value.volume_gradient[index],
+                    (plus.volume_error-minus.volume_error)/2e-5,rtol=1e-7)
+
+
 def config():
     return CantileverConfig(nx=6,ny=3,load_node_x=6,load_node_y=2,load_angle=-65,
                             filter_radius=.1,projection_beta=2)

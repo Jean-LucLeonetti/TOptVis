@@ -187,11 +187,16 @@ class ModelProblem(CantileverProblem):
             moduli=elastic_modulus(density,self.config)
             displacement=self.solver.tensor(moduli[None])[0]
             objective=torch.as_tensor(self.solver.force,dtype=torch.float64)@displacement
-            volume=density.mean(); constraint=volume/self.config.volume_fraction-1
+            volume=density.mean(); volume_error=volume/self.config.volume_fraction-1
+            constraint=(-volume_error if self.config.volume_constraint=='gt' else
+                        volume_error.abs() if self.config.volume_constraint=='eq' else volume_error)
             if sensitivities:
                 gradient=torch.autograd.grad(objective,x,retain_graph=True)[0].numpy().copy()
-                volume_gradient=torch.autograd.grad(constraint,x)[0].numpy().copy()
-            else: gradient=volume_gradient=None
+                derivative=volume_error if self.config.volume_constraint=='eq' else constraint
+                volume_gradient=torch.autograd.grad(derivative,x)[0].numpy().copy()
+                constraint_gradient=(volume_gradient*np.sign(float(volume_error.detach()))
+                                     if self.config.volume_constraint=='eq' else volume_gradient)
+            else: gradient=volume_gradient=constraint_gradient=None
         state=state_from_displacement(displacement.detach().numpy(),moduli.detach().numpy(),
             self.mesh,self.solver.stiffness,self.solver.force)
         self.solver.last_state=state; self.solver.solve_count+=1; self.solver.predictions+=1
@@ -199,4 +204,6 @@ class ModelProblem(CantileverProblem):
             raise ValueError('The neural prediction or its design gradient is nonfinite')
         return Evaluation(state.compliance,float(volume.detach()),float(constraint.detach()),
             density.detach().numpy().copy(),state.displacement,state.relative_residual,0,
-            gradient,volume_gradient,projection_beta=self.projection_beta)
+            gradient,constraint_gradient,projection_beta=self.projection_beta,
+            volume_error=float(volume_error.detach()),
+            volume_gradient=volume_gradient if self.config.volume_constraint=='eq' else None)

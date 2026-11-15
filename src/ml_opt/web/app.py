@@ -31,6 +31,7 @@ class RunRequest(BaseModel):
     load_node_x: int = Field(default=60, ge=1)
     load_node_y: int = Field(default=10, ge=0)
     volume_fraction: float = Field(default=0.4, gt=0, lt=1)
+    volume_constraint: Literal["lt", "gt", "eq"] = "lt"
     max_solid_size: float = Field(default=0, ge=0, le=1000)
     max_size_beta: float = Field(default=16, gt=0, le=64)
     max_size_tolerance: float = Field(default=.001, gt=0, lt=1)
@@ -103,6 +104,7 @@ def create_app(*, training_root: Path | None = None, model_root: Path | None = N
                 "material_schedule_supported": True,
                 "max_size_supported": True,
                 "max_void_supported": True,
+                "volume_modes_supported": True,
                 "rom_training_supported": True,
                 "rom_validation_supported": True,
                 "rom_optimisation_supported": True,

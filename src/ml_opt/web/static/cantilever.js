@@ -13,11 +13,13 @@ const format = value => new Intl.NumberFormat("en", {maximumFractionDigits: 2}).
 const filterFormat = value => new Intl.NumberFormat("en", {maximumSignificantDigits: 4}).format(value);
 const signed = value => (Math.abs(value) < 1e-12 ? "0.00" : value.toFixed(2)).replace("-", "−");
 
+const volumeRelation = mode => ({lt: "<", gt: ">", eq: "="})[mode || "lt"];
+
 function readModel() {
   const model = {};
   for (const [key, value] of new FormData(form)) {
     model[key] = key === "robust" ? value === "true" :
-      ["optimizer", "field_execution", "state_solver", "linear_solver", "rom_training_id", "material_model", "projection_schedule"].includes(key) ? value : Number(value);
+      ["optimizer", "field_execution", "state_solver", "linear_solver", "rom_training_id", "material_model", "projection_schedule", "volume_constraint"].includes(key) ? value : Number(value);
   }
   if (model.state_solver !== "rom") delete model.rom_training_id;
   return model;
@@ -100,7 +102,7 @@ function updateConvergence() {
   byId("convergence-description").textContent = latest ?
     `${state.model.optimizer.toUpperCase()} · ${(config.state_solver || "fom").toUpperCase()} · ${state.history.length} evaluated history ${state.history.length === 1 ? "point" : "points"} · iterations 0–${latest.iteration}` :
     "Run an optimisation to build the convergence history.";
-  byId("volume-reference").textContent = `Target ${filterFormat(100*config.volume_fraction)}%`;
+  byId("volume-reference").textContent = `Volume ${volumeRelation(config.volume_constraint)} ${filterFormat(100*config.volume_fraction)}%`;
   byId("design-reference").textContent = Number.isFinite(config.design_tolerance) ?
     `Tolerance ${filterFormat(config.design_tolerance)}` : "Stopping tolerance";
   byId("objective-reference").textContent = Number.isFinite(config.objective_tolerance) ?
@@ -171,7 +173,7 @@ function updateLabels(resizeFilterRange = true) {
   byId("mesh-description").textContent = `${format(m.nx * m.ny)} elements · ${format((m.nx + 1) * (m.ny + 1))} nodes`;
   byId("selection-description").textContent = `Load at node (${m.load_node_x}, ${m.load_node_y}) · x = ${format(m.load_node_x / m.nx * m.length)}, y = ${format(m.load_node_y / m.ny * m.height)}`;
   byId("volume-label").textContent = `${Math.round(m.volume_fraction * 100)}%`;
-  byId("volume-target").textContent = `Target ${Math.round(m.volume_fraction * 100)}%`;
+  byId("volume-target").textContent = `Volume ${volumeRelation(m.volume_constraint)} ${Math.round(m.volume_fraction * 100)}%`;
   byId("angle-slider").value = m.load_angle;
   const radius = m.filter_radius;
   const slider = byId("filter-slider");
@@ -201,9 +203,10 @@ function updateLabels(resizeFilterRange = true) {
   byId("field-view").hidden = !m.robust;
   byId("compliance-label").textContent = `${m.state_solver === "rom" ? "ROM " : ""}${m.robust ? "WORST COMPLIANCE" : "COMPLIANCE"}`;
   byId("material-volume-label").textContent = m.robust ? "DILATED VOLUME" : "MATERIAL VOLUME";
-  byId("volume-description").textContent = m.robust ?
-    "The volume limit applies to the dilated field. Nominal and eroded material use less volume." :
-    "The volume limit is applied to the physical material after filtering and projection.";
+  byId("volume-description").textContent =
+    `${m.robust ? "Dilated-field" : "Physical material"} volume ${volumeRelation(m.volume_constraint)} ${filterFormat(100*m.volume_fraction)}%. Applied after filtering and projection, within the solver's feasibility tolerance.` +
+    (m.volume_constraint === "gt" ? " A lower bound allows the optimiser to use more material, up to a fully solid domain." : "") +
+    (m.robust ? " This target applies to the dilated field for all three modes." : "");
   if (m.robust) byId("robust-description").textContent =
     `Thresholds: eroded ${filterFormat(eta + m.robust_eta_offset)}, nominal ${filterFormat(eta)}, dilated ${filterFormat(eta - m.robust_eta_offset)}. Worst compliance and dilated-volume constraint. Requires β > 0 and all thresholds inside (0, 1).`;
   byId("filter-status").textContent = [radius > 0 ? "Helmholtz" : null, beta > 0 ? "Projection" : null].filter(Boolean).join(" + ") || "Filters off";
@@ -349,7 +352,7 @@ async function start(event) {
       const error = await response.json();
       const details = error.detail;
       if (Array.isArray(details) && details.some(item => item.type === "extra_forbidden" &&
-          ["linear_solver", "max_void_size", "max_void_beta", "max_void_tolerance", "max_solid_size", "max_size_beta", "max_size_tolerance", "projection_beta", "projection_eta", "robust", "robust_eta_offset", "field_execution", "material_model", "penalisation", "projection_schedule", "projection_beta_interval", "projection_beta_multiplier", "projection_beta_max"].includes(item.loc?.at(-1)))) {
+          ["volume_constraint", "linear_solver", "max_void_size", "max_void_beta", "max_void_tolerance", "max_solid_size", "max_size_beta", "max_size_tolerance", "projection_beta", "projection_eta", "robust", "robust_eta_offset", "field_execution", "material_model", "penalisation", "projection_schedule", "projection_beta_interval", "projection_beta_multiplier", "projection_beta_max"].includes(item.loc?.at(-1)))) {
         throw new Error("Open Start TOptVis.bat again to launch the updated server. Use the browser page it opens.");
       }
       throw new Error(typeof details === "string" ? details : details?.map(item => `${item.loc?.at(-1) || "Input"}: ${item.msg}`).join("; ") || "Could not start the solver.");
@@ -443,7 +446,7 @@ async function connectSolver() {
     const health = await response.json();
     state.romSupported = !!health.rom_optimisation_supported;
     await romChoice.refresh(state.romSupported);
-    if (!health.projection_supported || !health.robust_supported || !health.material_schedule_supported || !health.max_size_supported || !health.max_void_supported || !health.linear_solver_supported) {
+    if (!health.projection_supported || !health.robust_supported || !health.material_schedule_supported || !health.max_size_supported || !health.max_void_supported || !health.linear_solver_supported || !health.volume_modes_supported) {
       byId("connection").lastElementChild.textContent = "Server restart needed";
       showError("Open Start TOptVis.bat again to launch the updated server with the current solver and size controls. Use the browser page it opens.");
       setRunning(false);

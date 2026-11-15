@@ -49,6 +49,7 @@ def save_results(result: OptimizationResult, directory: str | Path) -> Path:
         "compliance_ratio": evaluation.compliance / result.history[0].compliance,
         "physical_volume_fraction": evaluation.volume_fraction,
         "normalised_volume_constraint": evaluation.constraint,
+        "normalised_volume_error": evaluation.volume_error,
         "feasible": evaluation.constraint <= config.feasibility_tolerance,
         "relative_equilibrium_residual": evaluation.residual,
         "state_solves": result.history[-1].state_solves,
@@ -134,7 +135,8 @@ def _save_figures(result: OptimizationResult, directory: Path) -> None:
     axes[0].set(xlabel="Iteration", ylabel="Compliance / initial compliance")
     axes[1].plot(iterations, [entry.volume_fraction for entry in result.history],
                  label="Dilated volume" if config.robust else "Physical volume")
-    axes[1].axhline(config.volume_fraction, color="tab:red", linestyle="--", label="Volume limit")
+    relation = {"lt": "≤", "gt": "≥", "eq": "="}[config.volume_constraint]
+    axes[1].axhline(config.volume_fraction, color="tab:red", linestyle="--", label=f"Volume {relation} target")
     axes[1].set(xlabel="Iteration", ylabel="Volume fraction")
     axes[1].legend()
     for axis in axes:

@@ -17,6 +17,8 @@ def main(argv: list[str] | None = None) -> int:
                  "minimum_modulus", "move_limit", "design_tolerance"):
         parser.add_argument("--" + name.replace("_", "-"), type=float, default=getattr(defaults, name))
     parser.add_argument("--optimizer", choices=("mma", "gcmma"), default=defaults.optimizer)
+    parser.add_argument("--volume-constraint", choices=("lt", "gt", "eq"), default=defaults.volume_constraint,
+                        help="Material volume below, above, or equal to the target, within feasibility tolerance")
     parser.add_argument("--max-solid-size", type=float, default=defaults.max_solid_size,
                         help="Maximum solid disk diameter in model units; 0 disables the morphological constraint")
     parser.add_argument("--max-size-beta", type=float, default=defaults.max_size_beta,

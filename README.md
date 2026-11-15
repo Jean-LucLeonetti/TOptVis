@@ -348,6 +348,25 @@ These are nondimensional benchmark parameters. The Python/CLI default
 benchmark; the visual interface initially uses `filter_radius=0.1`,
 `projection_beta=2`, and `projection_eta=0.5`.
 
+### Volume constraint modes
+
+**Optimise → Volume constraint** selects `<`, `>`, or `=` for the physical
+material volume target. `<` remains the default upper bound; `>` is a lower
+bound and allows more material, including a fully solid solution in compliance
+minimisation. Equality constrains the normalised error
+`abs(V / V_target - 1)` to the configured feasibility tolerance (default `1e-4`).
+The UI symbols use numerical upper/lower bounds with this tolerance, rather
+than mathematically strict inequalities.
+
+MMA/GCMMA receive signed upper/lower rows. Equality uses two smooth rows with
+opposite gradients; the absolute error is used only for reporting and stopping.
+The live volume target, convergence reference, history, and exported feasibility
+follow the selected mode. In robust mode all modes target the existing **dilated
+field's** volume; equality does not require all three fields to have equal volume.
+
+Python: `volume_constraint="lt"`, `"gt"`, or `"eq"`.
+CLI: `--volume-constraint lt|gt|eq`.
+
 ### Morphological maximum solid size
 
 In **Optimise → Maximum solid size**, enter the maximum disk **diameter** in

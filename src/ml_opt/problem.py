@@ -43,6 +43,8 @@ class Evaluation:
     max_void_constraint: float | None = None
     max_void_remaining_volume: float | None = None
     max_void_gradient: np.ndarray | None = None
+    volume_error: float | None = None
+    volume_gradient: np.ndarray | None = None
 
 
 class CantileverProblem:
@@ -143,7 +145,9 @@ class CantileverProblem:
                 volume = density.mean()
                 state = self._compliance_solver.last_state
                 residual, iterations = state.relative_residual, state.iterations
-            constraint = volume / self.config.volume_fraction - 1.0
+            volume_error = volume / self.config.volume_fraction - 1.0
+            constraint = (-volume_error if self.config.volume_constraint == "gt" else
+                          volume_error.abs() if self.config.volume_constraint == "eq" else volume_error)
             size_volume = size_constraint = None
             if self.max_size is not None:
                 size_density = densities[2] if self.config.robust else density
@@ -157,6 +161,7 @@ class CantileverProblem:
             objective_gradient = constraint_gradient = None
             max_size_gradient = None
             max_void_gradient = None
+            volume_gradient = None
             if sensitivities:
                 if self.config.robust:
                     field_gradients = {name: torch.autograd.grad(compliances[index], x, retain_graph=True)[0].numpy().copy()
@@ -164,8 +169,14 @@ class CantileverProblem:
                     objective_gradient = field_gradients[worst_field].copy()
                 else:
                     objective_gradient = torch.autograd.grad(objective, x, retain_graph=True)[0].numpy().copy()
-                constraint_gradient = torch.autograd.grad(constraint, x,
+                volume_derivative = volume_error if self.config.volume_constraint == "eq" else constraint
+                constraint_gradient = torch.autograd.grad(volume_derivative, x,
                     retain_graph=size_constraint is not None or void_constraint is not None)[0].numpy().copy()
+                if self.config.volume_constraint == "eq":
+                    # MMA receives the two smooth signed rows, never abs(g)'s
+                    # zero subgradient at an exactly satisfied equality.
+                    volume_gradient = constraint_gradient.copy()
+                    constraint_gradient *= np.sign(float(volume_error.detach()))
                 if size_constraint is not None:
                     max_size_gradient = torch.autograd.grad(size_constraint, x,
                         retain_graph=void_constraint is not None)[0].numpy().copy()
@@ -181,4 +192,5 @@ class CantileverProblem:
                           max_size_gradient=max_size_gradient,
                           max_void_constraint=None if void_constraint is None else float(void_constraint.detach()),
                           max_void_remaining_volume=None if void_volume is None else float(void_volume.detach()),
-                          max_void_gradient=max_void_gradient)
+                          max_void_gradient=max_void_gradient,
+                          volume_error=float(volume_error.detach()), volume_gradient=volume_gradient)

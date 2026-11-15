@@ -122,6 +122,7 @@
             <section id="panel-optimisation" class="control-section" role="tabpanel" aria-labelledby="tab-optimisation" hidden>
               <label>Optimiser<select id="optimizer" name="optimizer"><option value="mma">MMA</option><option value="gcmma">GCMMA</option></select></label>
               <div class="label-row"><label for="volume_fraction">Material volume</label><output id="volume-label">40%</output></div>
+              <label>Volume constraint<select id="volume_constraint" name="volume_constraint"><option value="lt">&lt; target · upper bound</option><option value="gt">&gt; target · lower bound</option><option value="eq">= target · equality</option></select></label>
               <input id="volume_fraction" name="volume_fraction" type="range" min="0.05" max="0.95" step="0.01" value="0.4">
               <div class="range-labels"><span>5%</span><span>95%</span></div>
               <label class="iteration-limit">Maximum iterations<input id="max_iterations" name="max_iterations" type="number" min="1" max="1000" step="1" value="100" required></label>

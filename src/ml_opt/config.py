@@ -20,6 +20,7 @@ class CantileverConfig:
     load_node_x: int | None = None
     load_node_y: int | None = None
     volume_fraction: float = 0.4
+    volume_constraint: str = "lt"
     max_solid_size: float = 0.0
     max_size_beta: float = 16.0
     max_size_tolerance: float = 1e-3
@@ -84,6 +85,8 @@ class CantileverConfig:
             raise ValueError("poisson_ratio must lie between -1 and 0.5")
         if not 0 < self.volume_fraction < 1:
             raise ValueError("volume_fraction must lie between 0 and 1")
+        if self.volume_constraint not in ("lt", "gt", "eq"):
+            raise ValueError("volume_constraint must be lt, gt, or eq")
         for size_name, beta_name, tolerance_name in (
                 ("max_solid_size", "max_size_beta", "max_size_tolerance"),
                 ("max_void_size", "max_void_beta", "max_void_tolerance")):

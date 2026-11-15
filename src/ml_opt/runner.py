@@ -38,6 +38,7 @@ class HistoryEntry:
     max_size_eroded_volume: float | None = None
     max_void_constraint: float | None = None
     max_void_remaining_volume: float | None = None
+    volume_error: float | None = None
 
 
 @dataclass
@@ -81,7 +82,8 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
         current.epigraph_constraint = 0.0
     optimizer = MovingAsymptotes(design, config.optimizer, config.move_limit,
                                  config.max_inner_iterations, robust=config.robust,
-                                 max_size=config.max_solid_size > 0, max_void=config.max_void_size > 0)
+                                 max_size=config.max_solid_size > 0, max_void=config.max_void_size > 0,
+                                 volume_mode=config.volume_constraint, volume_tolerance=config.feasibility_tolerance)
     history = [HistoryEntry(0, current.compliance, current.volume_fraction, current.constraint,
                             0.0, 0.0, 0, current.residual, current.linear_iterations,
                             problem.solve_count, elapsed_seconds=perf_counter()-started,
@@ -94,7 +96,8 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
                             max_size_constraint=current.max_size_constraint,
                             max_size_eroded_volume=current.max_size_eroded_volume,
                             max_void_constraint=current.max_void_constraint,
-                            max_void_remaining_volume=current.max_void_remaining_volume)]
+                            max_void_remaining_volume=current.max_void_remaining_volume,
+                            volume_error=current.volume_error)]
     if callback:
         callback(history[-1])
     if snapshot_callback:
@@ -124,7 +127,8 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
                 current.epigraph_constraint = 0.0
             optimizer = MovingAsymptotes(design, config.optimizer, config.move_limit,
                                          config.max_inner_iterations, robust=config.robust,
-                                         max_size=config.max_solid_size > 0, max_void=config.max_void_size > 0)
+                                         max_size=config.max_solid_size > 0, max_void=config.max_void_size > 0,
+                                         volume_mode=config.volume_constraint, volume_tolerance=config.feasibility_tolerance)
             stable_iterations = 0
         step = optimizer.step(design, current, problem.evaluate)
         # Rebuild the PyTorch graph for derivatives. Exact-modulus state caches
@@ -150,7 +154,8 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
                                      max_size_constraint=updated.max_size_constraint,
                                      max_size_eroded_volume=updated.max_size_eroded_volume,
                                      max_void_constraint=updated.max_void_constraint,
-                                     max_void_remaining_volume=updated.max_void_remaining_volume))
+                                     max_void_remaining_volume=updated.max_void_remaining_volume,
+                                     volume_error=updated.volume_error))
         if callback:
             callback(history[-1])
         if snapshot_callback:

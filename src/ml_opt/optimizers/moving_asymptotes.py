@@ -25,7 +25,8 @@ class OptimizerStep:
 class MovingAsymptotes:
     def __init__(self, initial_design: np.ndarray, method: str = "mma",
                  move_limit: float = 0.2, max_inner_iterations: int = 30, *, robust: bool = False,
-                 max_size: bool = False, max_void: bool = False):
+                 max_size: bool = False, max_void: bool = False,
+                 volume_mode: str = "lt", volume_tolerance: float = 1e-4):
         if method not in ("mma", "gcmma"):
             raise ValueError("Unknown moving-asymptote method")
         if not 0 < move_limit <= 1 or max_inner_iterations < 1:
@@ -34,7 +35,10 @@ class MovingAsymptotes:
         self.robust = robust
         self.max_size = max_size
         self.max_void = max_void
-        self.m = (4 if robust else 1) + int(max_size) + int(max_void)
+        if volume_mode not in ("lt", "gt", "eq") or not np.isfinite(volume_tolerance) or volume_tolerance <= 0:
+            raise ValueError("Invalid volume constraint mode or tolerance")
+        self.volume_mode, self.volume_tolerance = volume_mode, volume_tolerance
+        self.m = (4 if robust else 1) + int(volume_mode == "eq") + int(max_size) + int(max_void)
         self.move = move_limit
         self.max_inner_iterations = max_inner_iterations
         self.n = len(initial_design)
@@ -62,9 +66,16 @@ class MovingAsymptotes:
                 raise ValueError("Epigraph MMA requires all three field compliances")
             objective = 0.0
             values = [evaluation.field_compliances[name] / self.scale
-                      for name in ("eroded", "nominal", "dilated")] + [evaluation.constraint]
+                      for name in ("eroded", "nominal", "dilated")]
         else:
-            objective, values = evaluation.compliance / self.scale, [evaluation.constraint]
+            objective, values = evaluation.compliance / self.scale, []
+        if self.volume_mode == "eq":
+            if evaluation.volume_error is None:
+                raise ValueError("Equality-volume MMA requires its signed volume error")
+            values.extend([evaluation.volume_error - self.volume_tolerance,
+                           -evaluation.volume_error - self.volume_tolerance])
+        else:
+            values.append(evaluation.constraint)
         if self.max_size:
             if evaluation.max_size_constraint is None:
                 raise ValueError("Maximum-size MMA requires its evaluated constraint")
@@ -88,13 +99,19 @@ class MovingAsymptotes:
                 raise ValueError("Initial compliance must be finite and positive")
         self.iteration += 1
         objective, constraint = self._values(current)
+        if self.volume_mode == "eq":
+            if current.volume_gradient is None:
+                raise ValueError("Equality-volume MMA requires its signed volume gradient")
+            volume_rows = np.vstack([current.volume_gradient, -current.volume_gradient])
+        else:
+            volume_rows = current.constraint_gradient.reshape(1, -1)
         if self.robust:
             objective_gradient = np.zeros((self.n, 1))
             constraint_gradient = np.vstack([current.field_gradients[name] / self.scale
-                for name in ("eroded", "nominal", "dilated")] + [current.constraint_gradient])
+                for name in ("eroded", "nominal", "dilated")] + [volume_rows])
         else:
             objective_gradient = current.objective_gradient.reshape(-1, 1) / self.scale
-            constraint_gradient = current.constraint_gradient.reshape(1, -1)
+            constraint_gradient = volume_rows
         if self.max_size:
             if current.max_size_gradient is None:
                 raise ValueError("Maximum-size MMA requires its constraint gradient")
