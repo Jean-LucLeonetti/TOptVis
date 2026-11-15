@@ -66,8 +66,8 @@ from iteration timings.
 Validation covers all primal/dual outputs against the reference algorithm,
 KKT residuals, both Newton-system branches, complete optimisation trajectories,
 both volume bounds and equality, robust fields, solid/void gradients, and real
-streamed results. The compiled implementation passed the 349-test full suite;
-after residual fusion, all 86 focused numerical/interface tests passed.
+streamed results. The final fused implementation passed the complete 349-test
+suite, in addition to its focused reference and numerical checks.
 
 Reproduce from this checkout using its source:
 
