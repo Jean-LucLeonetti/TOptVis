@@ -121,13 +121,13 @@ independently. Starting a run scrolls its result into view within that column.
 
 Select **Visualisation** on the far-left rail to see five live graphs:
 compliance, physical material volume, maximum design change, relative
-objective change, and cumulative elapsed solver time versus outer iteration.
+objective change, and individual iteration times versus outer iteration.
 The graphs use the actual evaluated
 history rows received by the interface, including the projected physical volume.
 Dashed reference lines show the selected volume target and the design/objective
 stopping tolerances reported by the server when the run starts.
 
-Compliance and volume include iteration 0; change curves start at iteration 1
+Compliance and volume include iteration 0; change curves and time bars start at iteration 1
 because there is no previous design for the initial evaluation. Hover over a
 graph to inspect the nearest iteration across all plots, or focus a graph
 and use Left/Right, Home, and End. The sidebar always shows the latest iteration.
@@ -141,7 +141,13 @@ the solver's actual stopping reason.
 The plots are rendered locally with canvas and no additional dependencies.
 Only scalar history is retained; density images are not saved for every iteration.
 
-**Elapsed solver time** uses a monotonic wall clock started before problem
+**Iteration time** is shown as one bar per completed outer iteration, using the
+difference between its cumulative timestamp and the previous iteration's.
+Each bar includes all GCMMA trials and other work between those samples.
+Setup and the initial evaluation at iteration 0 are excluded from the bars.
+Hover or use the arrow keys to read an individual iteration's seconds.
+
+The sidebar's **Elapsed solver time** uses a monotonic wall clock started before problem
 creation. Each evaluated history row records cumulative `elapsed_seconds`,
 including setup, the initial solve, previous callbacks, and all optimisation
 work through that iteration. Process/import warm-up, browser/network delays,

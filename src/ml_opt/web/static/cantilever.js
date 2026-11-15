@@ -1,5 +1,5 @@
 import {drawModel, drawTopology, pickNode} from "/static/viewer.js";
-import {ConvergencePlots} from "/static/convergence.js";
+import {ConvergencePlots} from "/static/convergence.js?v=iteration-time-bars";
 import {RomChoice} from "/static/rom-choice.js";
 
 const byId = id => document.getElementById(id);

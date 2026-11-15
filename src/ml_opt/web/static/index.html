@@ -252,13 +252,13 @@
             <output class="chart-readout" id="convergence-objective-readout">Changes start at iteration 1</output>
           </section>
           <section class="panel convergence-card elapsed-card" aria-labelledby="elapsed-chart-title">
-            <div class="chart-heading"><h3 id="elapsed-chart-title">Elapsed solver time</h3><span>Cumulative seconds</span></div>
-            <div class="chart-wrap"><canvas id="convergence-elapsed" tabindex="0" role="img" aria-label="Elapsed solver time in seconds against outer iteration"></canvas></div>
+            <div class="chart-heading"><h3 id="elapsed-chart-title">Iteration time</h3><span>Seconds per iteration</span></div>
+            <div class="chart-wrap"><canvas id="convergence-elapsed" tabindex="0" role="img" aria-label="Bar chart of time in seconds for each outer iteration"></canvas></div>
             <output class="chart-readout" id="convergence-elapsed-readout">No evaluated iterations yet</output>
           </section>
         </div>
         <p class="convergence-note">Dashed lines show the volume target and stopping tolerances. Compliance and volume include the initial design at iteration 0; change curves start at iteration 1. A flat curve alone does not certify convergence.</p>
-        <p class="convergence-note">Elapsed time is wall-clock time from solver start through each evaluated iteration, including problem setup. Process warm-up, browser/network delay, and final cleanup are excluded.</p>
+        <p class="convergence-note">Each time bar shows the difference between consecutive solver timestamps, including all GCMMA trials in that outer iteration. Bars start at iteration 1; setup and the initial evaluation are excluded. Process warm-up, browser/network delay, and final cleanup are excluded.</p>
       </section>
       </div>
     </div>
