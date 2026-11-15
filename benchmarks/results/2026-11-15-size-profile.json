@@ -1,0 +1,215 @@
+{
+  "config": {
+    "nx": 120,
+    "ny": 40,
+    "length": 3.0,
+    "height": 1.0,
+    "young_modulus": 1.0,
+    "minimum_modulus": 1e-06,
+    "poisson_ratio": 0.3,
+    "thickness": 1.0,
+    "load": 1.0,
+    "load_angle": -90.0,
+    "load_node_x": null,
+    "load_node_y": null,
+    "volume_fraction": 0.4,
+    "volume_constraint": "lt",
+    "max_solid_size": 0.45,
+    "max_size_beta": 16.0,
+    "max_size_tolerance": 0.001,
+    "max_void_size": 0.8,
+    "max_void_beta": 16.0,
+    "max_void_tolerance": 0.001,
+    "material_model": "simp",
+    "penalisation": 3.0,
+    "filter_radius": 0.1,
+    "projection_beta": 8,
+    "projection_eta": 0.5,
+    "projection_schedule": "fixed",
+    "projection_beta_interval": 25,
+    "projection_beta_multiplier": 2.0,
+    "projection_beta_max": 16.0,
+    "robust": false,
+    "robust_eta_offset": 0.1,
+    "field_execution": "sequential",
+    "optimizer": "gcmma",
+    "move_limit": 0.2,
+    "max_iterations": 10,
+    "min_iterations": 11,
+    "design_tolerance": 0.005,
+    "objective_tolerance": 0.0001,
+    "feasibility_tolerance": 0.0001,
+    "convergence_patience": 5,
+    "max_inner_iterations": 30,
+    "linear_tolerance": 1e-10,
+    "linear_solver": "lu",
+    "state_solver": "fom",
+    "rom_basis_path": null,
+    "rom_basis_sha256": null
+  },
+  "profiled": true,
+  "top_cumulative": [
+    {
+      "file": "runner.py",
+      "line": 58,
+      "function": "optimise",
+      "calls": 1,
+      "self_seconds": 9e-05,
+      "cumulative_seconds": 9.1676774
+    },
+    {
+      "file": "runner.py",
+      "line": 74,
+      "function": "_optimise_problem",
+      "calls": 1,
+      "self_seconds": 0.002635,
+      "cumulative_seconds": 9.104065
+    },
+    {
+      "file": "moving_asymptotes.py",
+      "line": 89,
+      "function": "step",
+      "calls": 10,
+      "self_seconds": 0.0048735,
+      "cumulative_seconds": 8.7968738
+    },
+    {
+      "file": "mma.py",
+      "line": 167,
+      "function": "gcmmasub",
+      "calls": 37,
+      "self_seconds": 0.0361618,
+      "cumulative_seconds": 5.4576064
+    },
+    {
+      "file": "_mmapy.py",
+      "line": 68,
+      "function": "subsolv",
+      "calls": 37,
+      "self_seconds": 5.4097913,
+      "cumulative_seconds": 5.4115066
+    },
+    {
+      "file": "problem.py",
+      "line": 105,
+      "function": "evaluate",
+      "calls": 48,
+      "self_seconds": 0.0197033,
+      "cumulative_seconds": 3.6143645
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method apply>",
+      "calls": 192,
+      "self_seconds": 0.0092636,
+      "cumulative_seconds": 3.3934157000000003
+    },
+    {
+      "file": "elasticity.py",
+      "line": 156,
+      "function": "compliance",
+      "calls": 48,
+      "self_seconds": 0.00026700000000000004,
+      "cumulative_seconds": 3.2519414
+    },
+    {
+      "file": "elasticity.py",
+      "line": 140,
+      "function": "forward",
+      "calls": 48,
+      "self_seconds": 0.0025183000000000002,
+      "cumulative_seconds": 3.2489516000000003
+    },
+    {
+      "file": "cache.py",
+      "line": 40,
+      "function": "solve",
+      "calls": 48,
+      "self_seconds": 0.0118049,
+      "cumulative_seconds": 3.2397408000000003
+    },
+    {
+      "file": "elasticity.py",
+      "line": 109,
+      "function": "solve",
+      "calls": 38,
+      "self_seconds": 3.1301101,
+      "cumulative_seconds": 3.2207557
+    },
+    {
+      "file": "__init__.py",
+      "line": 434,
+      "function": "grad",
+      "calls": 44,
+      "self_seconds": 0.0018459000000000001,
+      "cumulative_seconds": 0.0965328
+    },
+    {
+      "file": "einsumfunc.py",
+      "line": 1242,
+      "function": "einsum",
+      "calls": 38,
+      "self_seconds": 0.00023040000000000002,
+      "cumulative_seconds": 0.0875326
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method numpy._core._multiarray_umath.c_einsum>",
+      "calls": 38,
+      "self_seconds": 0.08730220000000001,
+      "cumulative_seconds": 0.08730220000000001
+    },
+    {
+      "file": "morphology.py",
+      "line": 43,
+      "function": "average",
+      "calls": 118,
+      "self_seconds": 0.008035200000000001,
+      "cumulative_seconds": 0.08414450000000001
+    },
+    {
+      "file": "filter.py",
+      "line": 62,
+      "function": "solve",
+      "calls": 92,
+      "self_seconds": 0.0763125,
+      "cumulative_seconds": 0.0822249
+    },
+    {
+      "file": "_backend.py",
+      "line": 19,
+      "function": "__ua_function__",
+      "calls": 238,
+      "self_seconds": 0.0015485000000000002,
+      "cumulative_seconds": 0.0755962
+    },
+    {
+      "file": "graph.py",
+      "line": 1100,
+      "function": "_engine_run_backward",
+      "calls": 44,
+      "self_seconds": 0.0006099,
+      "cumulative_seconds": 0.0739583
+    },
+    {
+      "file": "morphology.py",
+      "line": 18,
+      "function": "forward",
+      "calls": 96,
+      "self_seconds": 0.0014418,
+      "cumulative_seconds": 0.0737839
+    },
+    {
+      "file": "_basic_backend.py",
+      "line": 52,
+      "function": "_execute_nD",
+      "calls": 238,
+      "self_seconds": 0.0028172,
+      "cumulative_seconds": 0.0730688
+    }
+  ],
+  "state_solves": 38,
+  "inner_retries": 27
+}

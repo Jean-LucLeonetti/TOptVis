@@ -53,6 +53,8 @@ install the declared Numba dependency.
 
 The compiled kernel is derived from GPL-licensed mmapy 0.3.1; attribution and
 the complete licence are included in `src/ml_opt/optimizers/`.
+Measured solid/void iteration speedups and remaining bottlenecks are documented
+in [the size-constraint performance report](benchmarks/SIZE_CONSTRAINTS.md).
 
 Double-click **Start TOptVis.bat** in the project folder. It uses the existing
 `.venv`, starts the app, and opens the interface in your default browser once

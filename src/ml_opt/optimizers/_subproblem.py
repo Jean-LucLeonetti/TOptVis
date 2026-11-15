@@ -12,6 +12,8 @@ NumPy's LAPACK-backed solve permit compilation. fastmath stays disabled.
 import numpy as np
 from numba import njit
 
+from ._residual import residual_norm
+
 
 @njit(cache=True, fastmath=False)
 def subsolv(m, n, epsimin, low, upp, alfa, beta, p0, q0, P, Q, a0, a, b, c, d):
@@ -35,30 +37,7 @@ def subsolv(m, n, epsimin, low, upp, alfa, beta, p0, q0, P, Q, a0, a, b, c, d):
     while epsi > epsimin:
         epsvecn = epsi * een
         epsvecm = epsi * eem
-        ux1 = upp - x
-        xl1 = x - low
-        ux2 = ux1 * ux1
-        xl2 = xl1 * xl1
-        uxinv1 = een / ux1
-        xlinv1 = een / xl1
-        plam = p0 + np.dot(P.T, lam)
-        qlam = q0 + np.dot(Q.T, lam)
-        gvec = np.dot(P, uxinv1) + np.dot(Q, xlinv1)
-        dpsidx = plam / ux2 - qlam / xl2
-        rex = dpsidx - xsi + eta
-        rey = c + d * y - mu - lam
-        rez = a0 - zet - np.dot(a.T, lam)
-        relam = gvec - a * z - y + s - b
-        rexsi = xsi * (x - alfa) - epsvecn
-        reeta = eta * (beta - x) - epsvecn
-        remu = mu * y - epsvecm
-        rezet = zet * z - epsi
-        res = lam * s - epsvecm
-        residu1 = np.concatenate((rex, rey, rez), axis=0)
-        residu2 = np.concatenate((relam, rexsi, reeta, remu, rezet, res), axis=0)
-        residu = np.concatenate((residu1, residu2), axis=0)
-        residunorm = np.sqrt(np.sum(residu * residu))
-        residumax = np.max(np.abs(residu))
+        residunorm, residumax = residual_norm(m, n, x, y, z, lam, xsi, eta, mu, zet, s, low, upp, alfa, beta, p0, q0, P, Q, a0, a, b, c, d, epsi)
         ittt = 0
         while residumax > 0.9 * epsi and ittt < 200:
             ittt += 1
@@ -156,32 +135,10 @@ def subsolv(m, n, epsimin, low, upp, alfa, beta, p0, q0, P, Q, a0, a, b, c, d):
                 mu = muold + steg * dmu
                 zet = zetold + steg * dzet
                 s = sold + steg * ds
-                ux1 = upp - x
-                xl1 = x - low
-                ux2 = ux1 * ux1
-                xl2 = xl1 * xl1
-                uxinv1 = een / ux1
-                xlinv1 = een / xl1
-                plam = p0 + np.dot(P.T, lam)
-                qlam = q0 + np.dot(Q.T, lam)
-                gvec = np.dot(P, uxinv1) + np.dot(Q, xlinv1)
-                dpsidx = plam / ux2 - qlam / xl2
-                rex = dpsidx - xsi + eta
-                rey = c + d * y - mu - lam
-                rez = a0 - zet - np.dot(a.T, lam)
-                relam = gvec - a * z - y + s - b
-                rexsi = xsi * (x - alfa) - epsvecn
-                reeta = eta * (beta - x) - epsvecn
-                remu = mu * y - epsvecm
-                rezet = zet * z - epsi
-                res = lam * s - epsvecm
-                residu1 = np.concatenate((rex, rey, rez), axis=0)
-                residu2 = np.concatenate((relam, rexsi, reeta, remu, rezet, res), axis=0)
-                residu = np.concatenate((residu1, residu2), axis=0)
-                resinew = np.sqrt(np.sum(residu * residu))
+                resinew, new_residual_max = residual_norm(m, n, x, y, z, lam, xsi, eta, mu, zet, s, low, upp, alfa, beta, p0, q0, P, Q, a0, a, b, c, d, epsi)
                 steg = steg / 2
             residunorm = resinew
-            residumax = np.max(np.abs(residu))
+            residumax = new_residual_max
             steg = 2 * steg
         epsi = 0.1 * epsi
     xmma = x.copy()
