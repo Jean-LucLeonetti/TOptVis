@@ -49,15 +49,20 @@ export function createTopologyRegression({run}) {
   }
   function preview() {
     const fitted=selectedModel(), item=reference(), v=volume();
-    const raw=fitted ? predictDensity(fitted,v,false) : null;
+    const values=fitted ? predictDensity(fitted,v,false) : null;
+    const invalid=values && !values.every(Number.isFinite);
+    const raw=invalid ? null : values;
     const predicted=raw?.map(value=>Math.min(1,Math.max(0,value)));
     const comparable=predicted && matches(item);
     el("top-volume-value").textContent=v.toFixed(3);
     el("top-predicted-empty").hidden=!!predicted;
+    el("top-predicted-empty").textContent=invalid ? "Prediction unavailable at this volume" : "No topology model trained";
     el("top-reference-empty").hidden=!!item?.density;
     el("top-difference-empty").hidden=!!comparable;
     let note="Train topology models to explore predictions.", warning=false;
-    if(fitted) {
+    if(invalid) {
+      note="Prediction exceeds numerical range; choose a volume closer to training or lower the order.";warning=true;
+    } else if(fitted) {
       const clipped=raw.filter(value=>value < -1e-10 || value > 1+1e-10).length;
       const outside=v<report.training_range[0] || v>report.training_range[1];
       note=`${outside ? "Extrapolation: outside the training range." : "Within the training range."}${clipped ? ` ${clipped} of ${raw.length} elements clipped to [0, 1].` : ""}`;
@@ -72,7 +77,7 @@ export function createTopologyRegression({run}) {
     el("top-model").disabled=locked || !report;
     el("top-volume").disabled=locked || !fitted;
     el("top-case").disabled=locked || !dataset?.cases.some(item=>item.density);
-    el("top-evaluate").disabled=locked || !ready || !fitted;
+    el("top-evaluate").disabled=locked || !ready || !predicted;
     structure();
   }
   function render() {

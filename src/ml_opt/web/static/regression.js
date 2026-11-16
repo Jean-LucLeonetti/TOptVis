@@ -10,7 +10,7 @@ const state = {ready:false, busy:false, externalBusy:false, jobId:null, dataset:
   importSupported:false, topologySupported:false, topologyModels:null, mode:"compliance", fitOptions:{}, fitIdentity:{}};
 const topologyPanel=createTopologyRegression({run});
 const activeReport=()=>state.mode==="topology" ? state.topologyModels : state.models;
-const number = value => Number(value).toLocaleString("en", {maximumFractionDigits:3});
+const number = value => Math.abs(value)>=1e6 ? Number(value).toExponential(3) : Number(value).toLocaleString("en", {maximumFractionDigits:3});
 const percent = value => `${(100*value).toFixed(2)}%`;
 const evaluate = (model, volume) => {
   const scaled = model.scaled_coefficients;
@@ -47,6 +47,7 @@ function buttons() {
   el("reg-fit").disabled = !state.ready || locked || !state.dataset?.cases.length || (state.mode==="topology" && !state.topologySupported);
   el("reg-generate-settings").disabled = state.busy || state.importing;
   el("reg-fit-settings").disabled = state.busy || state.importing;
+  ridgeControls();
   el("reg-dataset").disabled = state.busy || state.importing;
   el("reg-refresh").disabled = state.busy || state.importing;
   el("reg-stop").disabled = !state.busy || !state.jobId;
@@ -59,14 +60,21 @@ function buttons() {
     ready:state.ready && state.topologySupported});
 }
 
+function ridgeControls() {
+  const ridge=fitForm.elements.namedItem("method").value==="ridge";
+  el("reg-ridge-options").hidden=!ridge;
+  fitForm.elements.namedItem("ridge_alpha").disabled=!ridge;
+}
+
 function restoreFitOptions() {
   const report=activeReport(), options=state.fitOptions[state.mode] || {
-    test_percent:25, seed:42, include_unconverged:false, max_degree:2};
-  const identity=`${state.dataset?.id || ""}/${report?.trained_at || JSON.stringify(report && [report.degrees,report.seed,report.test_fraction])}`;
+    test_percent:25, seed:42, include_unconverged:false, max_degree:2, method:"ols", ridge_alpha:.01};
+  const identity=`${state.dataset?.id || ""}/${report?.trained_at || JSON.stringify(report && [report.degrees,report.seed,report.test_fraction,report.method,report.ridge_alpha])}`;
   if(report && identity!==state.fitIdentity[state.mode]) {
     options.test_percent=report.test_fraction*100;options.seed=report.seed;
     options.include_unconverged=report.include_unconverged;
     options.max_degree=Math.max(...(report.degrees || Object.values(report.models).map(degreeOf)));
+    options.method=report.method || "ols";options.ridge_alpha=report.method==="ridge" ? report.ridge_alpha ?? .01 : .01;
   }
   state.fitIdentity[state.mode]=identity;
   state.fitOptions[state.mode]={...options};
@@ -74,10 +82,11 @@ function restoreFitOptions() {
     const control=fitForm.elements.namedItem(name);
     if(name==="include_unconverged") control.checked=value;else control.value=value;
   }
+  ridgeControls();
 }
 
 function rememberFitOptions() {
-  state.fitOptions[state.mode]=Object.fromEntries(["test_percent","seed","max_degree","include_unconverged"].map(name=>{
+  state.fitOptions[state.mode]=Object.fromEntries(["test_percent","seed","max_degree","include_unconverged","method","ridge_alpha"].map(name=>{
     const control=fitForm.elements.namedItem(name);return [name,name==="include_unconverged" ? control.checked : control.value];
   }));
 }
@@ -146,6 +155,12 @@ function prediction() {
     return;
   }
   const value = evaluate(fitted, volume), [low, high] = state.models.training_range;
+  if(!Number.isFinite(value)) {
+    el("reg-prediction").textContent="Unavailable";
+    el("reg-prediction-note").textContent="Prediction exceeds numerical range at this volume.";
+    el("reg-prediction-note").dataset.warning="true";
+    return;
+  }
   const outside = volume < low || volume > high;
   el("reg-prediction").textContent = number(value);
   el("reg-prediction-note").textContent = value <= 0 ? `Nonphysical prediction: ${objectiveLabel().toLowerCase()} must be positive.` :
@@ -169,17 +184,20 @@ function plot() {
   chart.setAttribute("viewBox", `0 0 ${width} ${height}`);
   const volumes = Array.from({length:201}, (_, i) => low+(high-low)*i/200);
   const values = fitted ? volumes.map(volume => evaluate(fitted, volume)) : [];
-  const min = Math.min(0, ...values), max = Math.max(...cases.map(item => item.compliance), ...values, 1);
+  const finite=values.filter(Number.isFinite);
+  const magnitude=Math.max(1,...cases.map(item=>Math.abs(item.compliance)),...finite.map(Math.abs));
+  const min = Math.min(0, ...finite.map(value=>value/magnitude));
+  const max = Math.max(...cases.map(item => item.compliance/magnitude), ...finite.map(value=>value/magnitude), 1/magnitude);
   const span = max-min || 1, bottom = min-.04*span, top = max+.08*span;
   const x = volume => 85+(volume-low)/(high-low)*(right-85);
-  const y = value => base-(value-bottom)/(top-bottom)*(base-40);
+  const y = value => base-(value/magnitude-bottom)/(top-bottom)*(base-40);
   let svg = `<title>Reference ${objective.toLowerCase()} and regression prediction versus permitted volume</title>`;
   if (fitted) {
     const [start, end] = state.models.training_range;
     svg += `<rect x="85" y="30" width="${Math.max(0,x(start)-85)}" height="${base-30}" fill="#fff4e8"/><rect x="${x(end)}" y="30" width="${Math.max(0,right-x(end))}" height="${base-30}" fill="#fff4e8"/>`;
   }
   for (let i=0; i<=4; i++) {
-    const value = min+(max-min)*i/4, volume = low+(high-low)*i/4;
+    const value = (min+(max-min)*i/4)*magnitude, volume = low+(high-low)*i/4;
     svg += `<path d="M85 ${y(value)}H${right}" stroke="#e4e9ed"/><text x="73" y="${y(value)+5}" text-anchor="end" fill="#606e7b">${number(value)}</text><text x="${x(volume)}" y="${base+23}" text-anchor="middle" fill="#606e7b">${volume.toFixed(2)}</text>`;
   }
   svg += `<path d="M85 30V${base}H${right}" fill="none" stroke="#9cabb7"/><text x="${(85+right)/2}" y="${height-8}" text-anchor="middle" fill="#606e7b">Permitted volume fraction</text><text x="85" y="20" fill="#606e7b">${objective}</text>`;
@@ -188,7 +206,7 @@ function plot() {
     for (const inside of [false, true]) {
       let d = "", drawing = false;
       volumes.forEach((volume, i) => {
-        if ((volume >= start && volume <= end) === inside) {
+        if (Number.isFinite(values[i]) && (volume >= start && volume <= end) === inside) {
           d += `${drawing ? "L" : "M"}${x(volume)},${y(values[i])}`;
           drawing = true;
         } else drawing = false;
@@ -196,7 +214,7 @@ function plot() {
       svg += `<path d="${d}" fill="none" stroke="#7961b2" stroke-width="2.5" ${inside ? "" : 'stroke-dasharray="6 5"'}/>`;
     }
     const volume = Number(el("reg-volume").value), value = evaluate(fitted, volume);
-    svg += `<path d="M${x(volume)} 30V${base}" stroke="#7961b2" stroke-dasharray="3 4" opacity=".5"/><circle cx="${x(volume)}" cy="${y(value)}" r="4" fill="#7961b2"/>`;
+    if(Number.isFinite(value)) svg += `<path d="M${x(volume)} 30V${base}" stroke="#7961b2" stroke-dasharray="3 4" opacity=".5"/><circle cx="${x(volume)}" cy="${y(value)}" r="4" fill="#7961b2"/>`;
   }
   cases.forEach(item => {
     const use = useOf(item), test = use === "Test", excluded = use === "Excluded";
@@ -235,9 +253,10 @@ function renderModels() {
     el("reg-fit-note").textContent = `${report.train_indices.length} training / ${report.test_indices.length} test / ${report.excluded_indices.length} excluded. Split seed ${report.seed}.${count ? ` Includes ${count} feasible unfinished runs.` : ""}`;
     scores.append(scoreRow("Training mean", "-", percent(report.baseline.test.mean_relative_error)));
     for (const [name, item] of Object.entries(report.models)) scores.append(scoreRow(modelLabel(item), percent(item.train.mean_relative_error), percent(item.test.mean_relative_error), name === el("reg-model").value));
-    fitted.coefficients.forEach((value,index) => {
+    (fitted.coefficients || fitted.scaled_coefficients).forEach((value,index) => {
       const div=document.createElement("div"), dt=document.createElement("dt"), dd=document.createElement("dd");
-      dt.textContent=["Intercept (a)","Volume (b)","Volume squared (c)"][index] || `Volume power ${index}`; dd.textContent=number(value);
+      const variable=fitted.coefficients ? "Volume" : "Scaled volume";
+      dt.textContent=index===0 ? "Intercept (a)" : index===1 ? `${variable} (b)` : index===2 ? `${variable} squared (c)` : `${variable} power ${index}`; dd.textContent=number(value);
       div.append(dt,dd); el("reg-coefficients").append(div);
     });
   } else {
@@ -428,13 +447,17 @@ generateForm.addEventListener("invalid",event=>{const details=event.target.close
 fitForm.addEventListener("submit",event=>{
   event.preventDefault(); if(!state.dataset?.id) return;
   const maximum=Number(fitForm.elements.namedItem("max_degree").value);
-  if(!Number.isInteger(maximum) || maximum<1 || maximum>10) {error("Choose a polynomial order between 1 and 10.");return;}
+  if(!Number.isSafeInteger(maximum) || maximum<1) {error("Choose a positive integer polynomial order.");return;}
+  const method=fitForm.elements.namedItem("method").value;
+  const ridgeAlpha=Number(fitForm.elements.namedItem("ridge_alpha").value);
+  if(method==="ridge" && (!Number.isFinite(ridgeAlpha) || ridgeAlpha<0)) {error("Ridge penalty must be finite and nonnegative.");return;}
   run(`/api/regression/${state.dataset.id}/${state.mode==="topology" ? "topology/fit" : "fit"}`,{test_fraction:Number(fitForm.elements.namedItem("test_percent").value)/100,
     seed:Number(fitForm.elements.namedItem("seed").value),include_unconverged:fitForm.elements.namedItem("include_unconverged").checked,
+    method,ridge_alpha:method==="ridge" ? ridgeAlpha : .01,
     degrees:Array.from({length:maximum},(_,index)=>index+1)},"fit");
 });
 fitForm.addEventListener("input",rememberFitOptions);
-fitForm.addEventListener("change",rememberFitOptions);
+fitForm.addEventListener("change",()=>{rememberFitOptions();ridgeControls();});
 el("reg-model").addEventListener("change",()=>{renderModels(); renderCases();});
 el("reg-volume").addEventListener("input",()=>{prediction(); plot();});
 el("reg-case").addEventListener("change",event=>selectCase(event.target.value));

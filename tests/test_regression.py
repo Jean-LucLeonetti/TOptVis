@@ -78,7 +78,7 @@ def test_higher_orders_stable_predictions_shared_split_and_legacy_reload(tmp_pat
                                np.polynomial.polynomial.polyval([.3, .5], coefficients))
 
 
-@pytest.mark.parametrize("degrees", [[], [0], [11], [True], [2.5], ["3"], [1, 1], None])
+@pytest.mark.parametrize("degrees", [[], [0], [True], [2.5], ["3"], [1, 1], None])
 def test_invalid_polynomial_orders_preserve_existing_models(tmp_path, degrees):
     synthetic(tmp_path)
     before = fit_models(tmp_path)

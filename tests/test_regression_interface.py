@@ -92,6 +92,24 @@ def test_generate_fit_download_reload_and_existing_routes(tmp_path):
         assert client.get(endpoint).json()["dataset"]["settings"]["nx"] == 6
 
 
+def test_uncapped_ridge_fit_requests_and_high_order_structural_check(tmp_path):
+    with TestClient(create_app(regression_root=tmp_path / "regression")) as client:
+        generated = events(client.post("/api/regression/generate", json=SETTINGS))
+        endpoint = f"/api/regression/{generated[0]['dataset_id']}"
+        options = {"include_unconverged": True, "degrees": list(range(1, 13)),
+                   "method": "ridge", "ridge_alpha": .1}
+        for suffix, key in (("/fit", "models"), ("/topology/fit", "topology_models")):
+            for invalid in ({"method": "other"}, {"ridge_alpha": -1}, {"ridge_alpha": True}):
+                assert client.post(endpoint + suffix, json={**options, **invalid}).status_code == 422
+            events(client.post(endpoint + suffix, json=options))
+            report = client.get(endpoint).json()[key]
+            assert report["method"] == "ridge" and report["ridge_alpha"] == .1
+            assert report["degrees"] == list(range(1, 13)) and len(report["models"]) == 12
+        checked = events(client.post(endpoint + "/topology/evaluate", json={"degree": 12, "volume": .4}))
+        result = next(event["evaluation"] for event in checked if event["event"] == "topology_evaluation")
+        assert result["degree"] == 12 and result["prediction"]["residual"] < 1e-8
+
+
 def test_rejects_invalid_requests_and_unknown_files(tmp_path):
     # No worker is needed for request validation and missing-file checks.
     client = TestClient(create_app(regression_root=tmp_path))

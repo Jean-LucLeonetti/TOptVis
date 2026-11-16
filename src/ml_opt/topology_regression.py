@@ -9,7 +9,8 @@ from time import perf_counter
 import numpy as np
 
 from .config import CantileverConfig
-from .regression import _now, _save_json, read_dataset, split_cases, validate_degrees
+from .regression import (_now, _save_json, read_dataset, split_cases, validate_degrees,
+                         validate_regression, fit_polynomial)
 from .regions import region_densities
 
 
@@ -36,7 +37,10 @@ def predict_topology(model, volumes, *, bounded=True):
     if not np.all(np.isfinite(volumes)):
         raise ValueError("Prediction volumes must be finite")
     inputs = (np.atleast_1d(volumes) - model["input_offset"]) / model["input_scale"]
-    values = np.polynomial.polynomial.polyvander(inputs, model["degree"]) @ np.asarray(model["coefficients"])
+    with np.errstate(over="ignore", invalid="ignore"):
+        values = np.polynomial.polynomial.polyvander(inputs, model["degree"]) @ np.asarray(model["coefficients"])
+    if not np.all(np.isfinite(values)):
+        raise ValueError("Prediction exceeds numerical range; choose a volume closer to training or lower the polynomial order")
     if bounded:
         values = np.clip(values, 0, 1)
     return values[0] if volumes.ndim == 0 else values
@@ -50,14 +54,15 @@ def _density_errors(actual, predicted):
 
 
 def fit_topology_models(directory, *, test_fraction=.25, seed=42, include_unconverged=False,
-                        degrees=(1, 2), stop_requested=lambda: False, allow_interrupted=False):
+                        degrees=(1, 2), method="ols", ridge_alpha=.01,
+                        stop_requested=lambda: False, allow_interrupted=False):
     directory = Path(directory)
     data = read_dataset(directory)
     if data["status"] == "generating" and not allow_interrupted:
         raise ValueError("Wait for dataset generation to finish before training")
     cases, train, test, densities, fixed = topology_cases(data, test_fraction=test_fraction,
         seed=seed, include_unconverged=include_unconverged)
-    degrees = validate_degrees(degrees, len(train))
+    degrees = validate_degrees(degrees, len(train), method=method, ridge_alpha=ridge_alpha)
     volumes = np.array([case["volume_fraction"] for case in cases])
     low, high = float(volumes[train].min()), float(volumes[train].max())
     offset, scale = (low + high) / 2, (high - low) / 2
@@ -67,6 +72,7 @@ def fit_topology_models(directory, *, test_fraction=.25, seed=42, include_unconv
         "dataset_sha256": hashlib.sha256((directory / "dataset.json").read_bytes()).hexdigest(),
         "trained_at": _now(), "test_fraction": test_fraction, "seed": seed,
         "include_unconverged": include_unconverged, "degrees": degrees,
+        "method": method, "ridge_alpha": validate_regression(method, ridge_alpha),
         "train_indices": [cases[i]["index"] for i in train],
         "test_indices": [cases[i]["index"] for i in test],
         "excluded_indices": [case["index"] for case in data["cases"] if case not in cases],
@@ -80,13 +86,12 @@ def fit_topology_models(directory, *, test_fraction=.25, seed=42, include_unconv
         if stop_requested():
             return None
         started = perf_counter()
-        matrix = np.polynomial.polynomial.polyvander((volumes[train] - offset) / scale, degree)
-        coefficients, _, rank, _ = np.linalg.lstsq(matrix, densities[train], rcond=None)
-        if rank < degree + 1:
-            raise ValueError("Training volumes do not identify the requested polynomial")
+        coefficients = fit_polynomial((volumes[train] - offset) / scale, densities[train], degree,
+                                       method=method, ridge_alpha=ridge_alpha)
         coefficients[:, fixed_mask] = 0
         coefficients[0, fixed_mask] = fixed[fixed_mask]
         fitted = {"degree": degree, "input_offset": offset, "input_scale": scale,
+            "method": method, "ridge_alpha": report["ridge_alpha"],
             "coefficients": coefficients.tolist(), "training_seconds": perf_counter() - started}
         for name, indices in (("train", train), ("test", test)):
             raw = predict_topology(fitted, volumes[indices], bounded=False)

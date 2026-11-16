@@ -51,18 +51,20 @@ class FitRequest(BaseModel):
     test_fraction: float = Field(default=0.25, ge=0.1, le=0.5)
     seed: int = Field(default=42, ge=0, le=2**32-1, strict=True)
     include_unconverged: bool = Field(default=False, strict=True)
-    degrees: list[Annotated[int, Field(strict=True, ge=1, le=10)]] = Field(
-        default_factory=lambda: [1, 2], min_length=1, max_length=10)
+    degrees: list[Annotated[int, Field(strict=True, ge=1)]] = Field(
+        default_factory=lambda: [1, 2], min_length=1)
+    method: Literal["ols", "ridge"] = "ols"
+    ridge_alpha: float = Field(default=.01, ge=0, strict=True)
 
     @model_validator(mode="after")
     def valid_degrees(self):
-        validate_degrees(self.degrees, 11)
+        validate_degrees(self.degrees, method=self.method, ridge_alpha=self.ridge_alpha)
         return self
 
 
 class TopologyPredictionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-    degree: int = Field(ge=1, le=10, strict=True)
+    degree: int = Field(ge=1, strict=True)
     volume: float = Field(gt=0, lt=1)
 
 
@@ -138,8 +140,8 @@ def create_regression_router(manager, root: Path, *, resolve_problem):
         if manager.active is not None and manager.active.id == dataset_id:
             raise HTTPException(409, "Wait for dataset generation to finish before training")
         try:
-            _, train, _ = split_cases(data, **request.model_dump(exclude={"degrees"}))
-            validate_degrees(request.degrees, len(train))
+            _, train, _ = split_cases(data, **request.model_dump(exclude={"degrees", "method", "ridge_alpha"}))
+            validate_degrees(request.degrees, len(train), method=request.method, ridge_alpha=request.ridge_alpha)
         except ValueError as error:
             raise HTTPException(422, str(error)) from error
         return start("regression_fit", {"dataset_id": dataset_id, "options": request.model_dump()},
@@ -151,8 +153,8 @@ def create_regression_router(manager, root: Path, *, resolve_problem):
         if manager.active is not None and manager.active.id == dataset_id:
             raise HTTPException(409, "Wait for dataset generation to finish before training")
         try:
-            _, train, _, _, _ = topology_cases(data, **request.model_dump(exclude={"degrees"}))
-            validate_degrees(request.degrees, len(train))
+            _, train, _, _, _ = topology_cases(data, **request.model_dump(exclude={"degrees", "method", "ridge_alpha"}))
+            validate_degrees(request.degrees, len(train), method=request.method, ridge_alpha=request.ridge_alpha)
         except (ValueError, KeyError) as error:
             raise HTTPException(422, str(error)) from error
         return start("regression_topology_fit", {"dataset_id": dataset_id, "options": request.model_dump()},

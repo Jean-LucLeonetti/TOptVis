@@ -58,6 +58,13 @@ test("topology comparison selects held-out cases, checks the current prediction,
     node("top-volume").value=.8;node("top-volume").emit("input");assert.match(node("top-prediction-note").textContent,/Extrapolation/);
     panel.update({dataset,report,locked:true,ready:true});assert.equal(node("top-evaluate").disabled,true);
     assert.equal(node("top-case").disabled,true);
+    const overflowing={...report,trained_at:"overflow",models:{2048:{...fitted,degree:2048,input_scale:.01,
+      coefficients:Array.from({length:2049},()=>[1,1])}}};
+    panel.update({dataset,report:overflowing,locked:false,ready:true});
+    node("top-volume").value=.8;node("top-volume").emit("input");
+    assert.match(node("top-prediction-note").textContent,/numerical range/);
+    assert.equal(node("top-evaluate").disabled,true);
+    assert.equal(node("top-predicted-empty").hidden,false);
     panel.update({dataset:null,report:null,locked:false,ready:true});assert.equal(node("top-evaluate").disabled,true);
     assert.equal(node("top-download-models").hidden,true);
     assert.equal(node("top-reference-empty").hidden,false);

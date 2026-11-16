@@ -294,7 +294,9 @@
             <div class="controls-title"><h2>Training</h2></div>
             <form id="reg-fit-form" class="control-section">
               <fieldset id="reg-fit-settings">
-                <label class="reg-order">Maximum polynomial order<input name="max_degree" type="number" min="1" max="10" step="1" value="2" required></label>
+                <label class="reg-order">Maximum polynomial order<input name="max_degree" type="number" min="1" step="1" value="2" required></label>
+                <label class="reg-order">Fitting method<select name="method"><option value="ols">Ordinary least squares</option><option value="ridge">Ridge regression</option></select></label>
+                <label id="reg-ridge-options" class="reg-order" hidden>Ridge penalty (α)<input name="ridge_alpha" type="number" min="0" step="any" value="0.01" required disabled></label>
                 <div class="input-grid">
                   <label>Test share (%)<input name="test_percent" type="number" min="10" max="50" step="1" value="25" required></label>
                   <label>Split seed<input name="seed" type="number" min="0" max="4294967295" step="1" value="42" required></label>
@@ -307,7 +309,9 @@
               <summary>About this experiment</summary>
               <p>Input: permitted material volume. Target: final compliance achieved by the optimiser. Lower compliance means a stiffer structure for this load. With prescribed motion, the target is elastic work; minimising it can favour a softer structure.</p>
               <p>Load a problem saved from Optimisation to reuse its geometry, supports, load cases, constraints and solver settings. Only volume varies. Saved results are ignored; each case starts a fresh optimisation.</p>
-              <p>Training fits orders 1 through the maximum you choose, up to 10. Order 1 is linear, 2 is quadratic, and 3 is cubic. Order p needs at least p + 1 training cases after the split. Inputs are scaled internally for numerical stability; displayed coefficients use the original volume.</p>
+              <p>Training fits orders 1 through the maximum you choose, with no fixed order cap. Order 1 is linear, 2 is quadratic, and 3 is cubic. Ordinary least squares needs at least p + 1 training cases for order p and a numerically independent polynomial basis.</p>
+              <p>Ridge adds α times the squared nonconstant coefficients to the sum of squared training errors. The intercept is not penalised. A positive penalty permits orders above the training-case count; α = 0 gives ordinary least squares. Larger penalties shrink the nonconstant coefficients more strongly.</p>
+              <p>Volume is scaled to [-1, 1] using training cases only. Ridge penalises coefficients in this scaled basis. Displayed coefficients use original volume when representable; otherwise they are labelled as scaled-volume coefficients.</p>
               <p>Test cases are kept out of fitting; their errors measure interpolation on unseen volumes. The range endpoints stay in training. All orders use the same split. The baseline always predicts the training mean.</p>
               <p>Higher orders can fit the training data more closely while predicting unseen cases less accurately (overfitting). Compare training and test errors. Predictions do not guarantee physical validity or generate a topology.</p>
               <p>Convergence means the solver met its stopping criteria, not that a global optimum was certified. Feasibility checks every active constraint. Unfinished feasible runs are excluded unless explicitly included. Cancelled, failed and infeasible runs are always excluded.</p>
@@ -317,6 +321,7 @@
               <summary>About topology regression</summary>
               <p>Input: permitted material volume. Output: one physical density per element on this fixed mesh. Each element gets its own polynomial, fitted using the training cases only.</p>
               <p>The saved experiment is shared with compliance regression. Training and test cases use the same split settings; endpoints stay in training. Density error is the mean absolute difference on a scale from 0 to 1.</p>
+              <p>There is no fixed polynomial-order cap. Ordinary least squares requires enough independent training cases. Ridge penalises nonconstant coefficients in the scaled-volume basis, leaving the intercept free. A positive penalty allows more coefficients than training cases; α = 0 is ordinary least squares. Neither higher orders nor ridge guarantee better test accuracy.</p>
               <p>Predictions are clipped to [0, 1], with fixed solid and void regions preserved. Clipping does not enforce the volume target, connectivity or size constraints. The difference view compares matching volumes only.</p>
               <p>Check structure evaluates the predicted physical density directly, without filtering or projecting it again. For robust datasets, it checks nominal material only. It does not certify the original robust constraints. This experiment does not initialise or run optimisation.</p>
               <a href="https://arxiv.org/abs/2311.08473" target="_blank" rel="noopener noreferrer">Research: regression of topology representations</a>

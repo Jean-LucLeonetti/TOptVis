@@ -369,8 +369,9 @@ iteration count and elapsed time. **Stop** keeps evaluated cases, including the
 cancelled case for inspection. Failed cases keep their error message. A dataset
 can therefore finish with cases unsuitable for training; inspect **Reference cases**.
 
-Set **Maximum polynomial order** (1–10) and click **Train models** to fit ordinary
-least-squares polynomials from order 1 through that maximum. The default is 2,
+Set **Maximum polynomial order**, choose **Fitting method**, and click **Train
+models** to fit polynomials from order 1 through that maximum. There is no fixed
+order cap. The defaults are ordinary least squares and order 2,
 retaining the linear and quadratic comparison:
 
 \[
@@ -380,11 +381,18 @@ retaining the linear and quadratic comparison:
 All orders use the same deterministic whole-case split, controlled by **Test share** and
 **Split seed**. Range endpoints stay in training; random held-out interior cases
 measure interpolation. At least six eligible cases are required, and at least
-three remain in training. Order p requires at least p + 1 training cases after
-the split; insufficient data produces an error without replacing saved models.
+three remain in training. Ordinary least squares (including ridge with α = 0)
+requires at least p + 1 training cases for order p and a numerically independent
+polynomial basis. A positive ridge penalty permits more coefficients than
+training cases. Invalid or numerically unidentifiable fits produce an error
+without replacing saved models.
 Inputs are scaled to [-1, 1] using the training volume range for stable fitting
-and prediction. Displayed coefficients refer to the original volume variable;
-downloads also retain scaled coefficients and their input transformation.
+and prediction. Displayed coefficients refer to the original volume variable when
+representable. If expansion into original-volume coefficients overflows, the
+interface labels and displays the scaled-volume coefficients instead; predictions
+continue using the scaled basis. Downloads retain scaled coefficients and their
+input transformation, with `coefficients: null` when the original expansion
+cannot be represented. Nonfinite extrapolations are shown as unavailable.
 Higher orders can overfit: compare their training and test errors rather than
 assuming a higher order predicts better. Test targets never enter fitting or the training-mean
 baseline. By default, only converged cases satisfying every active constraint
@@ -425,8 +433,10 @@ last usable file if interrupted; a cancelled fit retains the previous model.
 API: `GET /api/regression/datasets`, `POST /api/regression/generate`,
 `GET /api/regression/<id>`, `POST /api/regression/<id>/fit`, and
 `GET /api/regression/<id>/artifacts/{dataset,models}`.
-The fit request accepts `degrees` (distinct integers from 1 to 10), defaulting to
-`[1, 2]`; the interface requests every order up to the chosen maximum.
+The fit request accepts `degrees` (distinct positive integers), defaulting to
+`[1, 2]`; there is no maximum list length or fixed order limit. The interface
+requests every order up to the chosen maximum. `method` is `"ols"` (default) or
+`"ridge"`; `ridge_alpha` is finite and nonnegative, defaulting to 0.01.
 Generation and fitting stream NDJSON; `POST /api/run/<job-id>/stop` cancels either task. Existing job exclusion and
 disconnect cancellation apply. Python entry points live in `ml_opt.regression`.
 
@@ -435,14 +445,47 @@ Checks: `python -m pytest -q tests/test_regression.py tests/test_regression_inte
 and `node --test tests/*.mjs`. Numerical and worker tests use native PETSc/PyTorch;
 the UI tests import the production modules without rewriting their source.
 
+### Ridge regression
+
+In either regression view, select **Fitting method → Ridge regression** and set
+**Ridge penalty (α)**. In the scaled-volume monomial basis, the fit minimises
+
+\[
+\sum_{i\in\mathrm{train}} \lVert y_i-\widehat y_i\rVert^2
++\alpha\sum_{j=1}^{p}\lVert b_j\rVert^2.
+\]
+
+The intercept is not penalised. For topology targets, each element's coefficients
+are penalised independently. Training uses only the training cases to set the
+input scaling, feature means and target mean. A centred economy SVD computes the
+ridge solution without forming normal equations or a square matrix whose size
+is the polynomial order. No additional numerical framework is required.
+
+A positive α shrinks nonconstant coefficients and supports underdetermined
+polynomial fits; α = 0 follows the ordinary least-squares path and its rank/data
+checks. The objective uses the **sum**, not the mean, of squared training errors.
+A larger α therefore has a stronger effect at a fixed case count. Ridge does not
+guarantee lower test error, bounded scalar predictions or feasible topologies.
+The penalty applies to the scaled coefficients, not the displayed original-volume
+coefficients. Very high orders are still subject to floating-point precision,
+available memory and computation time.
+
+The fitting method and effective penalty are saved with both scalar and topology
+model reports and restored independently in the two views. Reports written
+before this option are treated as ordinary least squares. The test split and
+mean-training baseline remain independent of the chosen method. Cancellation
+preserves the previous saved artifact.
+
+Method reference: [ridge regression](https://scikit-learn.org/stable/modules/linear_model.html#ridge-regression-and-classification).
+
 ### Topology regression
 
 Choose **Regression → Topology**, load an existing experiment (or generate one
 from a saved optimisation setup), set the polynomial order and split, then click
 **Train models**. Each element's physical density is a separate regression
 output, with a shared polynomial feature matrix and training cases. Inputs are
-scaled using the training volume range. Orders 1–10 and the existing case-quality
-filters are supported. Whole optimisation cases are held out; test densities
+scaled using the training volume range. There is no fixed order cap. Both
+ordinary least squares and ridge use the existing case-quality filters. Whole optimisation cases are held out; test densities
 never enter fitting or the mean-training-topology baseline. Matching split
 settings give the same cases as compliance regression.
 

@@ -193,17 +193,63 @@ def predict(model, volumes):
     return np.polynomial.polynomial.polyval(values, model["coefficients"])
 
 
-def validate_degrees(degrees, training_count):
+def validate_regression(method, ridge_alpha):
+    if method not in ("ols", "ridge"):
+        raise ValueError("Regression method must be ols or ridge")
+    if (isinstance(ridge_alpha, bool) or not isinstance(ridge_alpha, (int, float)) or
+            not math.isfinite(ridge_alpha) or ridge_alpha < 0):
+        raise ValueError("Ridge penalty must be finite and nonnegative")
+    return float(ridge_alpha) if method == "ridge" else 0.0
+
+
+def validate_degrees(degrees, training_count=None, *, method="ols", ridge_alpha=.01):
+    alpha = validate_regression(method, ridge_alpha)
     if (not isinstance(degrees, (list, tuple)) or not degrees or
-            any(type(degree) is not int or not 1 <= degree <= 10 for degree in degrees) or
+            any(type(degree) is not int or degree < 1 for degree in degrees) or
             len(set(degrees)) != len(degrees)):
-        raise ValueError("Polynomial orders must be distinct integers between 1 and 10")
+        raise ValueError("Polynomial orders must be distinct positive integers")
     required = max(degrees) + 1
-    if training_count < required:
+    if training_count is not None and alpha == 0 and training_count < required:
         raise ValueError(f"Order {max(degrees)} needs at least {required} training cases; "
                          f"this split has {training_count}. Generate more eligible cases, "
-                         "reduce the test share, or lower the polynomial order.")
+                         "reduce the test share, lower the polynomial order, or use ridge with a positive penalty.")
     return sorted(degrees)
+
+
+def fit_polynomial(inputs, targets, degree, *, method="ols", ridge_alpha=.01):
+    """Fit scaled monomials; ridge leaves the constant coefficient unpenalised."""
+    alpha = validate_regression(method, ridge_alpha)
+    matrix = np.polynomial.polynomial.polyvander(inputs, degree)
+    if alpha == 0:
+        coefficients, _, rank, _ = np.linalg.lstsq(matrix, targets, rcond=None)
+        if rank < degree + 1:
+            raise ValueError("Training volumes do not identify the requested polynomial at numerical precision. "
+                             "Lower the order or use ridge with a positive penalty.")
+    else:
+        # Centring removes the intercept from the penalty. Economy SVD also
+        # supports more coefficients than training cases without a p-by-p solve.
+        features = matrix[:, 1:]
+        feature_mean, target_mean = features.mean(axis=0), targets.mean(axis=0)
+        u, singular, vh = np.linalg.svd(features - feature_mean, full_matrices=False)
+        weights = singular / (singular**2 + alpha)
+        projected = u.T @ (targets - target_mean)
+        slopes = vh.T @ (weights * projected if targets.ndim == 1 else weights[:, None] * projected)
+        intercept = target_mean - feature_mean @ slopes
+        coefficients = np.concatenate((np.expand_dims(intercept, 0), slopes), axis=0)
+    if not np.all(np.isfinite(coefficients)):
+        raise ValueError("Polynomial fitting exceeded numerical precision; lower the order or increase the ridge penalty")
+    return coefficients
+
+
+def volume_coefficients(scaled_coefficients, offset, scale):
+    """Original-volume coefficients are optional when their expansion overflows."""
+    try:
+        with np.errstate(over="raise", invalid="raise"):
+            values = np.polynomial.Polynomial(scaled_coefficients)(
+                np.polynomial.Polynomial([-offset / scale, 1 / scale])).coef
+        return values.tolist() if np.all(np.isfinite(values)) else None
+    except FloatingPointError:
+        return None
 
 
 def _errors(actual, predicted):
@@ -214,6 +260,7 @@ def _errors(actual, predicted):
 
 
 def fit_models(directory, *, test_fraction=0.25, seed=42, include_unconverged=False, degrees=(1, 2),
+               method="ols", ridge_alpha=.01,
                stop_requested=lambda: False, allow_interrupted=False):
     directory = Path(directory)
     data = read_dataset(directory)
@@ -221,7 +268,7 @@ def fit_models(directory, *, test_fraction=0.25, seed=42, include_unconverged=Fa
         raise ValueError("Wait for dataset generation to finish before training")
     cases, train, test = split_cases(data, test_fraction=test_fraction, seed=seed,
                                    include_unconverged=include_unconverged)
-    degrees = validate_degrees(degrees, len(train))
+    degrees = validate_degrees(degrees, len(train), method=method, ridge_alpha=ridge_alpha)
     volumes = np.array([case["volume_fraction"] for case in cases])
     targets = np.array([case["compliance"] for case in cases])
     baseline = float(np.mean(targets[train]))
@@ -230,6 +277,7 @@ def fit_models(directory, *, test_fraction=0.25, seed=42, include_unconverged=Fa
               "trained_at": _now(), "test_fraction": test_fraction, "seed": seed,
               "include_unconverged": include_unconverged,
               "degrees": degrees,
+              "method": method, "ridge_alpha": validate_regression(method, ridge_alpha),
               "train_indices": [cases[i]["index"] for i in train],
               "test_indices": [cases[i]["index"] for i in test],
               "excluded_indices": [case["index"] for case in data["cases"] if case not in cases],
@@ -244,15 +292,13 @@ def fit_models(directory, *, test_fraction=0.25, seed=42, include_unconverged=Fa
             return None
         name = {1: "linear", 2: "quadratic"}.get(degree, f"polynomial_{degree}")
         started = perf_counter()
-        matrix = np.polynomial.polynomial.polyvander((volumes[train] - offset) / scale, degree)
-        scaled_coefficients, _, rank, _ = np.linalg.lstsq(matrix, targets[train], rcond=None)
-        if rank < degree + 1:
-            raise ValueError("Training volumes do not identify the requested polynomial")
+        scaled_coefficients = fit_polynomial((volumes[train] - offset) / scale, targets[train], degree,
+                                             method=method, ridge_alpha=ridge_alpha)
         # Retain original-volume coefficients for inspection and older consumers;
         # predictions use the scaled basis to avoid cancellation at higher orders.
-        coefficients = np.polynomial.Polynomial(scaled_coefficients)(
-            np.polynomial.Polynomial([-offset / scale, 1 / scale])).coef
-        model = {"degree": degree, "coefficients": coefficients.tolist(),
+        coefficients = volume_coefficients(scaled_coefficients, offset, scale)
+        model = {"degree": degree, "coefficients": coefficients,
+                 "method": method, "ridge_alpha": report["ridge_alpha"],
                  "scaled_coefficients": scaled_coefficients.tolist(),
                  "input_offset": offset, "input_scale": scale,
                  "training_seconds": perf_counter() - started}

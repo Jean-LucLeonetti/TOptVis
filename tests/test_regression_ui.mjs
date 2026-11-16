@@ -52,7 +52,9 @@ test("legacy regression experiments restore their volume sweep and training opti
     globalThis.fetch=async (url, options={})=>{
       requests.push({url,...options});
       if(options.method==="POST") {
-        const degrees=JSON.parse(options.body).degrees;
+        const payload=JSON.parse(options.body), degrees=payload.degrees;
+        if(!url.includes("/topology/")) models={...models,method:payload.method,
+          ridge_alpha:payload.ridge_alpha,degrees,trained_at:String(requests.length)};
         if(degrees.includes(3)) models={...models,degrees,models:{...models.models,
           polynomial_3:{...fitted,degree:3,coefficients:[50,-10,2,1],scaled_coefficients:[10,2,-1,.5],input_offset:.45,input_scale:.2},
           polynomial_4:{...fitted,degree:4,coefficients:[50,-10,2,1,1]},
@@ -84,7 +86,7 @@ test("legacy regression experiments restore their volume sweep and training opti
     await flush();
     const request=requests.find(item=>item.method==="POST");
     assert.equal(request.url,`/api/regression/${id}/fit`);
-    assert.deepEqual(JSON.parse(request.body),{test_fraction:.35,seed:7,include_unconverged:true,degrees:[1,2]});
+    assert.deepEqual(JSON.parse(request.body),{test_fraction:.35,seed:7,include_unconverged:true,degrees:[1,2],method:"ols",ridge_alpha:.01});
     assert.equal(node("reg-error").hidden,true,node("reg-error").textContent);
     assert.equal(node("reg-status").textContent,"Models ready");
     training.get("max_degree").value=5;
@@ -99,9 +101,9 @@ test("legacy regression experiments restore their volume sweep and training opti
     assert.equal(node("reg-coefficients").children.length,6);
     assert.equal(node("reg-scores").children.at(-1).children[0].textContent,"Order 5");
     const count=requests.filter(item=>item.method==="POST").length;
-    training.get("max_degree").value=11;
+    training.get("max_degree").value=0;
     node("reg-fit-form").emit("submit");await flush();
-    assert.match(node("reg-error").textContent,/between 1 and 10/);
+    assert.match(node("reg-error").textContent,/positive integer/);
     assert.equal(requests.filter(item=>item.method==="POST").length,count);
     documentEvents.get("regressionviewchange")({detail:"topology"});
     assert.equal(node("reg-compliance-results").hidden,true);
@@ -113,6 +115,38 @@ test("legacy regression experiments restore their volume sweep and training opti
     assert.equal(node("reg-compliance-results").hidden,false);
     assert.equal(node("reg-topology-results").hidden,true);
     assert.equal(node("reg-model").value,"polynomial_5");
+    assert.equal(training.get("method").value,"ols");
+    assert.equal(node("reg-ridge-options").hidden,true);
+    training.get("max_degree").value=5;
+    training.get("method").value="ridge";training.get("ridge_alpha").value=-1;
+    node("reg-fit-form").emit("change");
+    assert.equal(node("reg-ridge-options").hidden,false);
+    assert.equal(training.get("ridge_alpha").disabled,false);
+    node("reg-fit-form").emit("submit");await flush();
+    assert.match(node("reg-error").textContent,/finite and nonnegative/);
+    training.get("ridge_alpha").value=.25;training.get("max_degree").value=12;
+    node("reg-fit-form").emit("submit");await flush();
+    const ridgeRequest=JSON.parse(requests.filter(item=>item.method==="POST").at(-1).body);
+    assert.equal(ridgeRequest.method,"ridge");assert.equal(ridgeRequest.ridge_alpha,.25);
+    assert.deepEqual(ridgeRequest.degrees,Array.from({length:12},(_,i)=>i+1));
+    assert.equal(training.get("max_degree").value,"12");
+    assert.equal(training.get("method").value,"ridge");
+    assert.equal(training.get("ridge_alpha").value,"0.25");
+    documentEvents.get("regressionviewchange")({detail:"topology"});
+    assert.equal(training.get("method").value,"ols");
+    documentEvents.get("regressionviewchange")({detail:"compliance"});
+    assert.equal(training.get("method").value,"ridge");assert.equal(training.get("ridge_alpha").value,"0.25");
+    models.models.polynomial_5={...models.models.polynomial_5,coefficients:null,
+      scaled_coefficients:[10,2,-1,.5,0,0],input_offset:.45,input_scale:.2};
+    node("reg-dataset").emit("change");await flush();
+    node("reg-model").emit("change");
+    assert.equal(node("reg-coefficients").children[1].children[0].textContent,"Scaled volume (b)");
+    models.models.polynomial_5.scaled_coefficients=[1e308,1e308,0,0,0,0];
+    node("reg-dataset").emit("change");await flush();
+    node("reg-volume").value=.7;node("reg-volume").emit("input");
+    assert.equal(node("reg-prediction").textContent,"Unavailable");
+    assert.match(node("reg-prediction-note").textContent,/numerical range/);
+    assert.doesNotMatch(node("reg-chart").innerHTML,/NaN|Infinity/);
   } finally {
     for(const name of globals) {
       const descriptor=previous.get(name);
