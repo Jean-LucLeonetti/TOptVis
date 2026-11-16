@@ -1,12 +1,15 @@
 import {drawTopology} from "./viewer.js";
 import {parseProject} from "./project-io.js";
+import {createTopologyRegression} from "./topology-regression.js";
 
 const el = id => document.getElementById(id);
 const generateForm = el("reg-generate-form"), fitForm = el("reg-fit-form");
 const canvas = el("reg-topology"), chart = el("reg-chart");
 const state = {ready:false, busy:false, externalBusy:false, jobId:null, dataset:null, models:null,
   selected:null, liveConfig:null, liveDensity:null, loading:0, problem:null, importing:false,
-  importSupported:false};
+  importSupported:false, topologySupported:false, topologyModels:null, mode:"compliance", fitOptions:{}, fitIdentity:{}};
+const topologyPanel=createTopologyRegression({run});
+const activeReport=()=>state.mode==="topology" ? state.topologyModels : state.models;
 const number = value => Number(value).toLocaleString("en", {maximumFractionDigits:3});
 const percent = value => `${(100*value).toFixed(2)}%`;
 const evaluate = (model, volume) => {
@@ -41,7 +44,7 @@ function useOf(item) {
 function buttons() {
   const locked = state.busy || state.externalBusy || state.importing;
   el("reg-generate").disabled = !state.ready || locked || !state.problem || !state.importSupported;
-  el("reg-fit").disabled = !state.ready || locked || !state.dataset?.cases.length;
+  el("reg-fit").disabled = !state.ready || locked || !state.dataset?.cases.length || (state.mode==="topology" && !state.topologySupported);
   el("reg-generate-settings").disabled = state.busy || state.importing;
   el("reg-fit-settings").disabled = state.busy || state.importing;
   el("reg-dataset").disabled = state.busy || state.importing;
@@ -52,6 +55,43 @@ function buttons() {
     !state.importSupported ? "Restart TOptVis to enable saved-problem imports." : state.problem ?
       state.problem.name : "No setup loaded";
   if (!state.busy && state.externalBusy) status("Solver busy");
+  topologyPanel.update({dataset:state.dataset,report:state.topologyModels,locked,
+    ready:state.ready && state.topologySupported});
+}
+
+function restoreFitOptions() {
+  const report=activeReport(), options=state.fitOptions[state.mode] || {
+    test_percent:25, seed:42, include_unconverged:false, max_degree:2};
+  const identity=`${state.dataset?.id || ""}/${report?.trained_at || JSON.stringify(report && [report.degrees,report.seed,report.test_fraction])}`;
+  if(report && identity!==state.fitIdentity[state.mode]) {
+    options.test_percent=report.test_fraction*100;options.seed=report.seed;
+    options.include_unconverged=report.include_unconverged;
+    options.max_degree=Math.max(...(report.degrees || Object.values(report.models).map(degreeOf)));
+  }
+  state.fitIdentity[state.mode]=identity;
+  state.fitOptions[state.mode]={...options};
+  for(const [name,value] of Object.entries(options)) {
+    const control=fitForm.elements.namedItem(name);
+    if(name==="include_unconverged") control.checked=value;else control.value=value;
+  }
+}
+
+function rememberFitOptions() {
+  state.fitOptions[state.mode]=Object.fromEntries(["test_percent","seed","max_degree","include_unconverged"].map(name=>{
+    const control=fitForm.elements.namedItem(name);return [name,name==="include_unconverged" ? control.checked : control.value];
+  }));
+}
+
+function selectView(view) {
+  if(!["compliance","topology"].includes(view) || view===state.mode) return;
+  rememberFitOptions();
+  state.mode=view;restoreFitOptions();
+  el("reg-title").textContent=`Regression · ${view==="topology" ? "Topology" : "Compliance"}`;
+  el("reg-compliance-results").hidden=view!=="compliance";
+  el("reg-topology-results").hidden=view!=="topology";
+  el("reg-compliance-help").hidden=view!=="compliance";
+  el("reg-topology-help").hidden=view!=="topology";
+  render();
 }
 
 function setBusy(busy) {
@@ -256,23 +296,19 @@ async function json(response) {
 
 async function load(id) {
   const token=++state.loading;
-  if (!id) { state.dataset=state.models=null; state.liveConfig=state.liveDensity=null; render(); status(state.problem ? "Setup loaded" : "Ready"); return; }
+  if (!id) { state.dataset=state.models=state.topologyModels=null; state.liveConfig=state.liveDensity=null; render(); status(state.problem ? "Setup loaded" : "Ready"); return; }
   const result=await json(await fetch(`/api/regression/${id}`));
   if(token!==state.loading) return;
-  state.dataset=result.dataset; state.models=result.models; state.liveConfig=state.liveDensity=null;
+  state.dataset=result.dataset; state.models=result.models; state.topologyModels=result.topology_models || null; state.liveConfig=state.liveDensity=null;
+  if(result.topology_model_error && state.mode==="topology") error(result.topology_model_error);
   state.problem=state.dataset.settings.source_problem ? {
     name:state.dataset.settings.problem_name || "Saved problem",model:state.dataset.settings.source_problem} : null;
   for(const [name,value] of Object.entries(state.dataset.settings)) {
     const control=generateForm.elements.namedItem(name);
     if(control) control.value=value;
   }
-  if(state.models) {
-    fitForm.elements.namedItem("test_percent").value=state.models.test_fraction*100;
-    fitForm.elements.namedItem("seed").value=state.models.seed;
-    fitForm.elements.namedItem("include_unconverged").checked=state.models.include_unconverged;
-    fitForm.elements.namedItem("max_degree").value=Math.max(...(state.models.degrees || Object.values(state.models.models).map(degreeOf)));
-  }
-  render(); status(state.models ? "Models ready" : state.dataset.status === "complete" ? "Dataset ready" : "Partial dataset");
+  restoreFitOptions();
+  render(); status(activeReport() ? "Models ready" : state.dataset.status === "complete" ? "Dataset ready" : "Partial dataset");
 }
 
 async function refresh(selected=el("reg-dataset").value) {
@@ -290,6 +326,7 @@ async function availability(refreshData=false) {
     const health=await json(await fetch("/api/health"));
     state.ready=!!health.regression_supported;
     state.importSupported=!!health.regression_problem_import_supported;
+    state.topologySupported=!!health.topology_regression_supported;
     if(!state.busy) state.externalBusy=health.running;
     if(!state.ready) status("Restart TOptVis to enable regression");
     else if(refreshData && !state.busy && !state.importing) await refresh();
@@ -300,6 +337,7 @@ async function availability(refreshData=false) {
 function receive(event) {
   if(event.event === "error") throw new Error(event.message);
   if(event.event === "started") {state.jobId=event.run_id; buttons();}
+  if(event.event === "topology_evaluation") topologyPanel.acceptEvaluation(event.evaluation);
   if(event.event === "regression_case_started") {
     state.liveConfig=event.config; state.liveDensity=null;
     state.dataset.fixed_config ??= event.config;
@@ -318,10 +356,10 @@ function receive(event) {
 async function run(endpoint, payload, kind) {
   if(state.busy || state.externalBusy || state.importing || !state.ready) return;
   ++state.loading;
-  error(); state.jobId=null; setBusy(true); status(kind === "generate" ? "Generating dataset" : "Training models","running");
+  error(); state.jobId=null; setBusy(true); status(kind === "generate" ? "Generating dataset" : kind === "evaluate" ? "Checking structure" : "Training models","running");
   let completedId=null, terminal=false, cancelled=false;
   if(kind === "generate") {
-    state.models=null; state.selected=null; state.liveConfig=state.liveDensity=null;
+    state.models=state.topologyModels=null; state.selected=null; state.liveConfig=state.liveDensity=null;
     state.dataset={id:null,cases:[],settings:payload,generation_seconds:0,status:"generating"};
     render(); el("reg-downloads").hidden=true;
   }
@@ -353,7 +391,7 @@ async function run(endpoint, payload, kind) {
     state.jobId=null; setBusy(false);
     try {await refresh(completedId || el("reg-dataset").value);} catch(e) {error(e.message);}
     await availability();
-    if(terminal) status(cancelled ? "Stopped / saved progress" : kind === "generate" ? "Dataset ready" : "Models ready");
+    if(terminal) status(cancelled ? "Stopped / saved progress" : kind === "generate" ? "Dataset ready" : kind === "evaluate" ? "Structure checked" : "Models ready");
   }
 }
 
@@ -380,7 +418,7 @@ el("reg-problem-file").addEventListener("change",async()=>{
       headers:{"Content-Type":"application/json"},body:JSON.stringify(project.model)}));
     state.problem={name:file.name,model:result.model};
     el("reg-dataset").value=""; ++state.loading;
-    state.dataset=state.models=null; state.selected=null;
+    state.dataset=state.models=state.topologyModels=null; state.selected=null;
     state.liveConfig=result.model; state.liveDensity=null;
     render(); status("Setup loaded");
   } catch(e) {error(e.message || "Could not load the optimisation problem.");}
@@ -391,10 +429,12 @@ fitForm.addEventListener("submit",event=>{
   event.preventDefault(); if(!state.dataset?.id) return;
   const maximum=Number(fitForm.elements.namedItem("max_degree").value);
   if(!Number.isInteger(maximum) || maximum<1 || maximum>10) {error("Choose a polynomial order between 1 and 10.");return;}
-  run(`/api/regression/${state.dataset.id}/fit`,{test_fraction:Number(fitForm.elements.namedItem("test_percent").value)/100,
+  run(`/api/regression/${state.dataset.id}/${state.mode==="topology" ? "topology/fit" : "fit"}`,{test_fraction:Number(fitForm.elements.namedItem("test_percent").value)/100,
     seed:Number(fitForm.elements.namedItem("seed").value),include_unconverged:fitForm.elements.namedItem("include_unconverged").checked,
     degrees:Array.from({length:maximum},(_,index)=>index+1)},"fit");
 });
+fitForm.addEventListener("input",rememberFitOptions);
+fitForm.addEventListener("change",rememberFitOptions);
 el("reg-model").addEventListener("change",()=>{renderModels(); renderCases();});
 el("reg-volume").addEventListener("input",()=>{prediction(); plot();});
 el("reg-case").addEventListener("change",event=>selectCase(event.target.value));
@@ -421,6 +461,7 @@ document.addEventListener("solveractivity",event=>{
 document.addEventListener("mlmethodchange",event=>{
   if(event.detail === "regression") {topology();if(!state.busy) availability(true);}
 });
+document.addEventListener("regressionviewchange",event=>selectView(event.detail));
 new ResizeObserver(()=>{topology();plot();}).observe(chart.parentElement);
 new ResizeObserver(topology).observe(canvas.parentElement);
 render();availability(true);

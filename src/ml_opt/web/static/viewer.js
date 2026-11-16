@@ -237,6 +237,19 @@ export function drawTopology(canvas, model, density) {
   maximumSizeReference(view, model);
 }
 
+export function drawDensityDifference(canvas, model, difference) {
+  const view = surface(canvas, model);
+  const {ctx, left, top, w, h} = view;
+  const cellWidth = w / model.nx, cellHeight = h / model.ny;
+  difference.forEach((value, index) => {
+    const error = clamp(value, 0, 1);
+    ctx.fillStyle = `rgb(${Math.round(255-65*error)},${Math.round(255-207*error)},${Math.round(255-213*error)})`;
+    ctx.fillRect(left+(index%model.nx)*cellWidth,
+      top+(model.ny-1-Math.floor(index/model.nx))*cellHeight,cellWidth+.2,cellHeight+.2);
+  });
+  outline(view); dimensions(view, model);
+}
+
 export function pickNode(canvas, model, event) {
   const view = surface(canvas, model, false);
   const bounds = canvas.getBoundingClientRect();

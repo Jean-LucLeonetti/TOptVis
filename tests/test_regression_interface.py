@@ -51,6 +51,26 @@ def test_generate_fit_download_reload_and_existing_routes(tmp_path):
         assert saved.json() == data["dataset"]
         assert "attachment" in saved.headers["content-disposition"]
         assert client.get(endpoint + "/artifacts/models").json() == report
+        assert client.post(endpoint + "/topology/evaluate", json={"degree": 1, "volume": .4}).status_code == 422
+        assert client.post(endpoint + "/topology/fit", json={}).status_code == 422
+        topology_options = {"include_unconverged": True, "degrees": [1, 2, 3]}
+        events(client.post(endpoint + "/topology/fit", json=topology_options))
+        topology_report = client.get(endpoint).json()["topology_models"]
+        assert topology_report["test_indices"] == report["test_indices"]
+        assert topology_report["train_indices"] == report["train_indices"]
+        assert topology_report["element_count"] == 12
+        assert set(topology_report["models"]) == {"1", "2", "3"}
+        assert client.get(endpoint + "/artifacts/topology-models").json() == topology_report
+        assert client.get(endpoint).json()["models"] == report
+        volume = data["dataset"]["cases"][topology_report["test_indices"][0]]["volume_fraction"]
+        checked = events(client.post(endpoint + "/topology/evaluate", json={"degree": 2, "volume": volume}))
+        evaluation = next(event["evaluation"] for event in checked if event["event"] == "topology_evaluation")
+        assert evaluation["prediction"]["objective"] > 0
+        assert evaluation["reference"]["objective"] > 0
+        assert evaluation["prediction"]["residual"] < 1e-8
+        assert client.post(endpoint + "/topology/evaluate", json={"degree": 10, "volume": volume}).status_code == 422
+        assert client.post(endpoint + "/topology/evaluate", json={"degree": True, "volume": volume}).status_code == 422
+        assert client.post(endpoint + "/topology/evaluate", json={"degree": 2, "volume": 0}).status_code == 422
         records = client.get("/api/regression/datasets").json()["datasets"]
         assert records[0]["has_models"] and records[0]["completed_cases"] == 6
         assert "cases" not in records[0]
@@ -68,6 +88,7 @@ def test_generate_fit_download_reload_and_existing_routes(tmp_path):
         assert client.get(endpoint + "/artifacts/models").json() == report
     with TestClient(create_app(training_root=tmp_path / "rom", regression_root=root)) as client:
         assert client.get(endpoint).json()["models"] == report
+        assert client.get(endpoint).json()["topology_models"]["element_count"] == 12
         assert client.get(endpoint).json()["dataset"]["settings"]["nx"] == 6
 
 

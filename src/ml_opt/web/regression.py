@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..regression import (RegressionSettings, dataset_summary, read_dataset, read_models,
                           split_cases, validate_degrees)
+from ..topology_regression import read_topology_models, topology_cases
 from .rom import training_directory
 from .streams import stream_job
 
@@ -59,6 +60,12 @@ class FitRequest(BaseModel):
         return self
 
 
+class TopologyPredictionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    degree: int = Field(ge=1, le=10, strict=True)
+    volume: float = Field(gt=0, lt=1)
+
+
 def create_regression_router(manager, root: Path, *, resolve_problem):
     router = APIRouter(prefix="/api/regression")
     root = root.resolve()
@@ -90,6 +97,7 @@ def create_regression_router(manager, root: Path, *, resolve_problem):
                     if record["status"] == "generating" and (manager.active is None or manager.active.id != record["id"]):
                         record["status"] = "interrupted"
                     record["has_models"] = (directory / "models.json").is_file()
+                    record["has_topology_models"] = (directory / "topology-models.json").is_file()
                     records.append(record)
                 except (OSError, ValueError, KeyError):
                     continue
@@ -117,7 +125,12 @@ def create_regression_router(manager, root: Path, *, resolve_problem):
             raise HTTPException(409, str(error)) from error
         if data["status"] == "generating" and (manager.active is None or manager.active.id != dataset_id):
             data["status"] = "interrupted"
-        return {"dataset": data, "models": models}
+        try:
+            topology_models, topology_error = read_topology_models(directory), None
+        except ValueError as error:
+            topology_models, topology_error = None, str(error)
+        return {"dataset": data, "models": models, "topology_models": topology_models,
+                "topology_model_error": topology_error}
 
     @router.post("/{dataset_id}/fit")
     async def fit(dataset_id: str, request: FitRequest):
@@ -132,8 +145,33 @@ def create_regression_router(manager, root: Path, *, resolve_problem):
         return start("regression_fit", {"dataset_id": dataset_id, "options": request.model_dump()},
                      lambda job: {"dataset_id": dataset_id, "kind": "regression_fit"})
 
+    @router.post("/{dataset_id}/topology/fit")
+    async def fit_topology(dataset_id: str, request: FitRequest):
+        _, data = read(dataset_id)
+        if manager.active is not None and manager.active.id == dataset_id:
+            raise HTTPException(409, "Wait for dataset generation to finish before training")
+        try:
+            _, train, _, _, _ = topology_cases(data, **request.model_dump(exclude={"degrees"}))
+            validate_degrees(request.degrees, len(train))
+        except (ValueError, KeyError) as error:
+            raise HTTPException(422, str(error)) from error
+        return start("regression_topology_fit", {"dataset_id": dataset_id, "options": request.model_dump()},
+                     lambda job: {"dataset_id": dataset_id, "kind": "regression_topology_fit"})
+
+    @router.post("/{dataset_id}/topology/evaluate")
+    async def evaluate_topology(dataset_id: str, request: TopologyPredictionRequest):
+        directory, _ = read(dataset_id)
+        try:
+            report = read_topology_models(directory)
+            if report is None or str(request.degree) not in report["models"]:
+                raise ValueError("Train the selected topology model first")
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
+        return start("regression_topology_evaluate", {"dataset_id": dataset_id, "options": request.model_dump()},
+                     lambda job: {"dataset_id": dataset_id, "kind": "regression_topology_evaluate"})
+
     @router.get("/{dataset_id}/artifacts/{kind}")
-    async def artifact(dataset_id: str, kind: Literal["dataset", "models"]):
+    async def artifact(dataset_id: str, kind: Literal["dataset", "models", "topology-models"]):
         directory, _ = read(dataset_id)
         path = directory / f"{kind}.json"
         if not path.is_file() or path.is_symlink():

@@ -39,14 +39,14 @@ test("legacy regression experiments restore their volume sweep and training opti
   let models={test_fraction:.35,seed:7,include_unconverged:true,train_indices:[0,2,4,5],
     test_indices:[1,3],excluded_indices:[],unfinished_indices:[],training_range:[.25,.65],
     baseline:{test:{mean_relative_error:.3}},models:{linear:fitted,quadratic:{...fitted,coefficients:[50,-10,2]}}};
-  const requests=[];
+  const requests=[], documentEvents=new Map();
   const globals=["document","fetch","ResizeObserver","Option"];
   const previous=new Map(globals.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]));
   const flush=()=>new Promise(resolve=>setImmediate(resolve));
   try {
     globalThis.document={getElementById:id=>{
       assert.ok(elements.has(id),`Missing element ${id}`);return node(id);
-    },createElement:()=>new Element(),addEventListener(){},dispatchEvent(){}};
+    },createElement:()=>new Element(),addEventListener:(name,fn)=>documentEvents.set(name,fn),dispatchEvent(){}};
     globalThis.ResizeObserver=class {observe(){}};
     globalThis.Option=class extends Element {constructor(text,value){super();this.textContent=text;this.value=value;}};
     globalThis.fetch=async (url, options={})=>{
@@ -60,7 +60,7 @@ test("legacy regression experiments restore their volume sweep and training opti
         return new Response(JSON.stringify({event:"started",run_id:"job",dataset_id:id})+"\n"+
           JSON.stringify({event:"complete",dataset_id:id,stop_reason:"complete"})+"\n");
       }
-      const data=url==="/api/health" ? {regression_supported:true,running:false} :
+      const data=url==="/api/health" ? {regression_supported:true,topology_regression_supported:true,running:false} :
         url==="/api/regression/datasets" ? {datasets:[{id,created_at:"2026-11-16T12:00",completed_cases:6}]} :
         {dataset,models};
       return new Response(JSON.stringify(data));
@@ -103,6 +103,16 @@ test("legacy regression experiments restore their volume sweep and training opti
     node("reg-fit-form").emit("submit");await flush();
     assert.match(node("reg-error").textContent,/between 1 and 10/);
     assert.equal(requests.filter(item=>item.method==="POST").length,count);
+    documentEvents.get("regressionviewchange")({detail:"topology"});
+    assert.equal(node("reg-compliance-results").hidden,true);
+    assert.equal(node("reg-topology-results").hidden,false);
+    training.get("max_degree").value=2;
+    node("reg-fit-form").emit("submit");await flush();
+    assert.equal(requests.filter(item=>item.method==="POST").at(-1).url,`/api/regression/${id}/topology/fit`);
+    documentEvents.get("regressionviewchange")({detail:"compliance"});
+    assert.equal(node("reg-compliance-results").hidden,false);
+    assert.equal(node("reg-topology-results").hidden,true);
+    assert.equal(node("reg-model").value,"polynomial_5");
   } finally {
     for(const name of globals) {
       const descriptor=previous.get(name);

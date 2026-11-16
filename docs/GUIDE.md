@@ -340,6 +340,12 @@ and `node --test tests/*.mjs`.
 
 ## Regression experiments
 
+Click **Regression** in Machine learning to open its dropdown, then choose
+**Compliance** or **Topology**. Both views share saved datasets and generation
+settings, but save their fitted models separately. Direct links are
+`/#ml/regression/compliance` and `/#ml/regression/topology`; existing
+`/#ml/regression` links open Compliance.
+
 Open **Machine learning > Regression** to learn a scalar input-output relationship
 from actual optimisation runs. The input is permitted volume fraction; the target
 is final compliance achieved by the optimiser, not a certified global optimum.
@@ -428,6 +434,63 @@ Method: [ordinary least squares and polynomial regression](https://scikit-learn.
 Checks: `python -m pytest -q tests/test_regression.py tests/test_regression_interface.py`
 and `node --test tests/*.mjs`. Numerical and worker tests use native PETSc/PyTorch;
 the UI tests import the production modules without rewriting their source.
+
+### Topology regression
+
+Choose **Regression → Topology**, load an existing experiment (or generate one
+from a saved optimisation setup), set the polynomial order and split, then click
+**Train models**. Each element's physical density is a separate regression
+output, with a shared polynomial feature matrix and training cases. Inputs are
+scaled using the training volume range. Orders 1–10 and the existing case-quality
+filters are supported. Whole optimisation cases are held out; test densities
+never enter fitting or the mean-training-topology baseline. Matching split
+settings give the same cases as compliance regression.
+
+The volume slider previews predicted physical densities. The model selector
+compares polynomial orders. Selecting a reference case moves the prediction to
+that exact volume; the case list labels training, test and excluded cases. A
+held-out case is selected first after training. Prediction and reference views
+share the mesh and density colours. Absolute density difference uses a fixed
+white-to-red scale from 0 to 1 and appears only at matching reference volumes.
+Model comparison reports mean absolute density error after clipping, rather
+than a percentage relative to void densities. Downloads also retain RMSE,
+maximum case MAE, per-case errors and raw out-of-bounds fractions.
+
+Predictions are clipped to [0, 1]. Fixed solid and void regions remain exactly
+fixed. The interface reports the number of clipped elements and the resulting
+physical volume. Clipping does not enforce the volume target, connectivity or
+manufacturing constraints. Topology changes can make smooth polynomial
+interpolation inaccurate even when training error is small.
+
+**Check structure** evaluates the current predicted physical field through the
+existing PETSc/PyTorch problem, preserving material, supports, independent load
+cases and prescribed motion. Filtering and projection are disabled for this
+check because the learned targets are already physical densities. The check
+uses full-order analysis even if the dataset used a reduced model. At an exact
+saved volume, the reference physical field is re-evaluated in the same way.
+The report compares compliance (elastic work with prescribed motion), physical
+volume, equilibrium residual and nominal constraint feasibility. For robust
+experiments only nominal material is checked; this does not validate the
+original eroded/dilated constraints. Structural checks do not certify optimality.
+Changing the model or volume clears the prior check. These predictions do not
+initialise or run optimisation.
+
+Topology models persist in `outputs/regression/<id>/topology-models.json`, with
+the exact dataset fingerprint, split, polynomial coefficients in scaled volume,
+training range and metrics. Cancelled fits preserve the previous artifact.
+Refresh/restart restores both kinds of saved models. Checks are interactive
+results rather than persisted certificates.
+
+API: `POST /api/regression/<id>/topology/fit` takes the same options as scalar
+fitting. `POST /api/regression/<id>/topology/evaluate` takes `degree` and `volume`.
+Both stream NDJSON through the shared cancellable worker; evaluation emits a
+`topology_evaluation` event. Download the fitted artifact at
+`GET /api/regression/<id>/artifacts/topology-models`. The dataset response includes
+`topology_models` alongside the existing scalar `models`.
+
+This direct per-element polynomial model is an introductory baseline. For a
+research example that regresses compressed topology representations, see
+[Garayalde et al., Real-time topology optimization via learnable mappings](https://arxiv.org/abs/2311.08473).
 
 ## Offline ROM training
 

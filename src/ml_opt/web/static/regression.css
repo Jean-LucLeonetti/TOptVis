@@ -71,3 +71,22 @@
 .reg-downloads {display:flex;gap:20px;flex-wrap:wrap;font-size:14px;padding:0 0 8px}
 @media(max-width:1100px) {.reg-workspace{grid-template-columns:270px minmax(0,1fr);gap:16px}.reg-bottom-grid{grid-template-columns:1fr}.reg-topology-wrap{min-height:240px}}
 @media(max-width:700px) {.reg-workspace{grid-template-columns:1fr;gap:12px}.reg-settings,.reg-results{overflow:visible}.reg-chart-panel .panel-heading{flex-wrap:wrap}.reg-chart-wrap{min-height:230px}#reg-chart{height:250px}.reg-model-label{gap:8px}.reg-table th,.reg-table td{padding:12px}.reg-settings .input-grid{gap:16px}}
+.ml-method-dropdown {position:relative}
+.regression-menu {position:absolute;top:100%;left:0;z-index:30;min-width:180px;padding:6px;background:white;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px #152c401a}
+.regression-menu button {display:block;width:100%;padding:12px;text-align:left;border:0;border-radius:4px;background:white;color:var(--ink);font:inherit;font-size:14px}
+.regression-menu button:hover,.regression-menu button:focus-visible {background:#edf4f1;outline:2px solid var(--teal);outline-offset:-2px}
+.regression-menu button[aria-checked=true] {color:var(--teal);font-weight:600;background:#edf4f1}
+.top-view-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.top-view-grid .panel {min-width:0}
+.top-view-grid .panel-heading {min-height:76px}
+.top-view-grid .reg-case-label select {width:150px}
+.top-canvas-wrap {height:240px;min-height:200px;position:relative}
+.top-canvas-wrap canvas {display:block;width:100%;height:100%}
+.top-empty {position:absolute;inset:0;display:grid;place-items:center;padding:20px;margin:0;text-align:center;font-size:14px;color:var(--muted)}
+.top-difference-panel {grid-column:1 / -1}
+.top-difference-panel .top-canvas-wrap {height:210px}
+.top-view-grid .viewer-footer {min-height:58px;font-size:14px;gap:12px;flex-wrap:wrap}
+.top-error-scale {display:flex;align-items:center;gap:8px;color:var(--muted);font-size:14px}
+.top-error-scale i {display:inline-block;width:100px;height:10px;border:1px solid var(--line);background:linear-gradient(to right,white,#be302a)}
+#top-prediction-note[data-warning=true] {color:#9a402d}
+@media(max-width:1100px) {.top-view-grid {grid-template-columns:1fr}.top-difference-panel {grid-column:auto}}

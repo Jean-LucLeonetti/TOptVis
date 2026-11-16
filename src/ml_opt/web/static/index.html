@@ -250,12 +250,18 @@
     </section>
     <section id="workspace-ml" class="workspace-page" role="tabpanel" aria-labelledby="tab-ml" tabindex="0" hidden>
       <nav class="ml-method-tabs" role="tablist" aria-label="ML methods">
-        <button id="tab-regression" class="ml-method-tab" type="button" role="tab" aria-selected="true" aria-controls="workspace-regression" data-method="regression" tabindex="0">Regression</button>
+        <div class="ml-method-dropdown">
+          <button id="tab-regression" class="ml-method-tab" type="button" role="tab" aria-selected="true" aria-controls="workspace-regression" aria-haspopup="menu" aria-expanded="false" data-method="regression" tabindex="0">Regression <span aria-hidden="true">▾</span></button>
+          <div id="regression-menu" class="regression-menu" role="menu" aria-label="Regression views" hidden>
+            <button type="button" role="menuitemradio" aria-checked="true" data-regression-view="compliance" tabindex="-1">Compliance</button>
+            <button type="button" role="menuitemradio" aria-checked="false" data-regression-view="topology" tabindex="-1">Topology</button>
+          </div>
+        </div>
         <button id="tab-rom-training" class="ml-method-tab" type="button" role="tab" aria-selected="false" aria-controls="workspace-rom-training" data-method="rom" tabindex="-1">Reduced models</button>
       </nav>
       <section id="workspace-regression" class="ml-method-panel" role="tabpanel" aria-labelledby="tab-regression" tabindex="0">
         <div class="page-heading">
-          <h1>Regression</h1>
+          <h1 id="reg-title">Regression · Compliance</h1>
           <div class="run-actions">
             <span id="reg-status" role="status">Ready</span>
             <button id="reg-stop" class="button secondary" type="button" disabled>Stop</button>
@@ -297,7 +303,7 @@
                 <button id="reg-fit" class="button primary" type="submit" disabled>Train models</button>
               </fieldset>
             </form>
-            <details class="reg-help control-section">
+            <details id="reg-compliance-help" class="reg-help control-section">
               <summary>About this experiment</summary>
               <p>Input: permitted material volume. Target: final compliance achieved by the optimiser. Lower compliance means a stiffer structure for this load. With prescribed motion, the target is elastic work; minimising it can favour a softer structure.</p>
               <p>Load a problem saved from Optimisation to reuse its geometry, supports, load cases, constraints and solver settings. Only volume varies. Saved results are ignored; each case starts a fresh optimisation.</p>
@@ -307,8 +313,16 @@
               <p>Convergence means the solver met its stopping criteria, not that a global optimum was certified. Feasibility checks every active constraint. Unfinished feasible runs are excluded unless explicitly included. Cancelled, failed and infeasible runs are always excluded.</p>
               <a href="https://scikit-learn.org/stable/modules/linear_model.html#ordinary-least-squares" target="_blank" rel="noopener noreferrer">Least-squares method reference</a>
             </details>
+            <details id="reg-topology-help" class="reg-help control-section" hidden>
+              <summary>About topology regression</summary>
+              <p>Input: permitted material volume. Output: one physical density per element on this fixed mesh. Each element gets its own polynomial, fitted using the training cases only.</p>
+              <p>The saved experiment is shared with compliance regression. Training and test cases use the same split settings; endpoints stay in training. Density error is the mean absolute difference on a scale from 0 to 1.</p>
+              <p>Predictions are clipped to [0, 1], with fixed solid and void regions preserved. Clipping does not enforce the volume target, connectivity or size constraints. The difference view compares matching volumes only.</p>
+              <p>Check structure evaluates the predicted physical density directly, without filtering or projecting it again. For robust datasets, it checks nominal material only. It does not certify the original robust constraints. This experiment does not initialise or run optimisation.</p>
+              <a href="https://arxiv.org/abs/2311.08473" target="_blank" rel="noopener noreferrer">Research: regression of topology representations</a>
+            </details>
           </aside>
-          <div class="reg-results">
+          <div id="reg-compliance-results" class="reg-results">
             <section class="panel reg-chart-panel">
               <div class="panel-heading">
                 <h2 id="reg-prediction-title">Compliance prediction</h2>
@@ -351,6 +365,44 @@
               <div class="reg-table-wrap"><table class="reg-table"><thead><tr><th scope="col">Volume</th><th id="reg-case-objective" scope="col">Compliance</th><th scope="col">Run status</th><th scope="col">Use</th></tr></thead><tbody id="reg-case-rows"></tbody></table></div>
             </details>
             <div id="reg-downloads" class="reg-downloads" hidden><a id="reg-download-data">Download dataset</a><a id="reg-download-models" hidden>Download fitted models</a></div>
+          </div>
+          <div id="reg-topology-results" class="reg-results" hidden>
+            <section class="panel">
+              <div class="panel-heading"><h2>Topology prediction</h2><label class="reg-model-label">Model<select id="top-model" disabled></select></label></div>
+              <div class="reg-explore">
+                <label for="top-volume">Permitted volume<output id="top-volume-value">0.450</output></label>
+                <input id="top-volume" type="range" min="0.2" max="0.7" step="any" value="0.45" disabled>
+                <p id="top-prediction-note" class="model-message" role="status">Train topology models to explore predictions.</p>
+              </div>
+            </section>
+            <div class="top-view-grid">
+              <section class="panel viewer-panel">
+                <div class="panel-heading"><h2>Predicted topology</h2></div>
+                <div class="canvas-wrap top-canvas-wrap"><canvas id="top-predicted" role="img" aria-label="Predicted physical density"></canvas><p id="top-predicted-empty" class="top-empty">No topology model trained</p></div>
+                <div class="viewer-footer" id="top-predicted-note">Physical density</div>
+              </section>
+              <section class="panel viewer-panel">
+                <div class="panel-heading"><h2>Reference topology</h2><label class="reg-case-label">Case<select id="top-case" disabled></select></label></div>
+                <div class="canvas-wrap top-canvas-wrap"><canvas id="top-reference" role="img" aria-label="Reference physical density"></canvas><p id="top-reference-empty" class="top-empty">No reference case selected</p></div>
+                <div class="viewer-footer" id="top-reference-note"></div>
+              </section>
+              <section class="panel viewer-panel top-difference-panel">
+                <div class="panel-heading"><h2>Absolute density difference</h2></div>
+                <div class="canvas-wrap top-canvas-wrap"><canvas id="top-difference" role="img" aria-label="Absolute density error on a fixed zero to one scale"></canvas><p id="top-difference-empty" class="top-empty">Select a reference volume to compare</p></div>
+                <div class="viewer-footer"><span id="top-difference-note"></span><span class="top-error-scale" aria-label="Error scale: white is zero, red is one">0 <i></i> 1</span></div>
+              </section>
+            </div>
+            <section class="panel">
+              <div class="panel-heading"><h2>Model comparison</h2></div>
+              <p id="top-fit-note" class="reg-note">At least six eligible cases with saved density fields are needed.</p>
+              <div class="reg-table-wrap"><table class="reg-table"><caption class="reg-caption">Mean absolute density error after clipping, from 0 to 1</caption><thead><tr><th scope="col">Model</th><th scope="col">Training</th><th scope="col">Test</th></tr></thead><tbody id="top-scores"></tbody></table></div>
+            </section>
+            <section class="panel">
+              <div class="panel-heading"><h2>Structural check</h2><button id="top-evaluate" class="button secondary" type="button" disabled>Check structure</button></div>
+              <p id="top-evaluation-note" class="reg-note" role="status">Evaluate the predicted density with the current loads and material.</p>
+              <div class="reg-table-wrap"><table class="reg-table"><thead><tr><th scope="col">Quantity</th><th scope="col">Prediction</th><th scope="col">Reference</th></tr></thead><tbody id="top-evaluation"></tbody></table></div>
+            </section>
+            <div class="reg-downloads"><a id="top-download-models" hidden>Download topology models</a></div>
           </div>
         </div>
       </section>

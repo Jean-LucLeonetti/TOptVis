@@ -35,7 +35,8 @@ def worker_loop(commands, messages, cancel, ready) -> None:
                 return
             run_id, configuration = command
             # Each command constructs and closes a fresh problem and optimiser.
-            if configuration.get("task") in ("regression_generate", "regression_fit"):
+            if configuration.get("task") in ("regression_generate", "regression_fit",
+                                               "regression_topology_fit", "regression_topology_evaluate"):
                 field_pool.clear()
                 run_regression(configuration, _RunMessages(messages, run_id), cancel)
             elif configuration.get("task") in ("rom_snapshots", "rom_basis", "rom_validation"):
@@ -57,6 +58,7 @@ def _parent_gone() -> bool:
 
 def run_regression(configuration, messages, cancel):
     from ..regression import RegressionSettings, generate_dataset, fit_models
+    from ..topology_regression import fit_topology_models, evaluate_topology_prediction
     try:
         stopped = lambda: cancel.is_set() or _parent_gone()
         root = Path(configuration["root"])
@@ -66,11 +68,16 @@ def run_regression(configuration, messages, cancel):
             result = generate_dataset(RegressionSettings(**configuration["settings"]), directory,
                                       emit=messages.put, stop_requested=stopped)
             cancelled = result["status"] == "cancelled"
+        elif configuration["task"] == "regression_topology_evaluate":
+            result = evaluate_topology_prediction(directory, **configuration["options"], stop_requested=stopped)
+            cancelled = result is None
+            if result is not None:
+                messages.put({"event": "topology_evaluation", "evaluation": result})
         else:
             # This task owns the worker lock, so an old generating manifest is
             # interrupted, not a concurrently changing dataset.
-            result = fit_models(directory, **configuration["options"], stop_requested=stopped,
-                                allow_interrupted=True)
+            fit = fit_topology_models if configuration["task"] == "regression_topology_fit" else fit_models
+            result = fit(directory, **configuration["options"], stop_requested=stopped, allow_interrupted=True)
             cancelled = result is None
         messages.put({"event": "complete", "dataset_id": dataset_id,
                       "stop_reason": "cancelled" if cancelled else "complete"})

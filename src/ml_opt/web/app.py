@@ -161,6 +161,7 @@ def create_app(*, training_root: Path | None = None, regression_root: Path | Non
                 "gcmma_inner_limit_supported": True,
                 "rom_training_supported": True,
                 "regression_supported": True,
+                "topology_regression_supported": True,
                 "regression_problem_import_supported": True,
                 "rom_validation_supported": True,
                 "rom_optimisation_supported": True,
