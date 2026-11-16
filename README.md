@@ -56,7 +56,9 @@ the complete licence are included in `src/ml_opt/optimizers/`.
 Measured solid/void iteration speedups and remaining bottlenecks are documented
 in [the size-constraint performance report](benchmarks/SIZE_CONSTRAINTS.md).
 
-Double-click **Start TOptVis.bat** in the project folder. It uses the existing
+Double-click **Start TOptVis.bat** on Windows or **Start TOptVis.command** on
+macOS in the project folder. For first-time Mac setup, see
+[Local macOS environment](#local-macos-environment). Both launchers use the existing
 `.venv`, starts the app, and opens the interface in your default browser once
 the server is ready. Keep the launcher window open while using the app.
 The launcher reuses a running server only when it matches this checkout's
@@ -788,6 +790,36 @@ in `.venv/build/petsc-3.26.1`. After a successful PETSc build, use
 
 The native build follows the [PETSc Windows installation guide](https://petsc.org/release/install/windows/)
 and [petsc4py source installation instructions](https://petsc.org/release/petsc4py/install.html).
+
+### Local macOS environment
+
+Create a local environment using Python 3.11 or newer, then install the project
+and interface dependencies. This requires real double-precision PETSc and
+`petsc4py` for your platform, as described under Other environments below.
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -e ".[ui]"
+```
+
+Double-click **Start TOptVis.command** in Finder. It opens Terminal, starts the
+local server, and opens your default browser when ready. Keep Terminal open
+while using the app; press **Control-C** to stop the server. If the environment
+is missing or startup fails, the launcher displays the error and waits for
+Return before closing.
+
+The launcher is executable in Git. If a downloaded copy has lost that permission,
+restore it from the project folder:
+
+```sh
+chmod +x "Start TOptVis.command"
+```
+
+You can also run it from Terminal and pass launcher options:
+
+```sh
+./"Start TOptVis.command" --port 8001
+```
 
 ### Other environments
 
