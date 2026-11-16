@@ -3,419 +3,489 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TOptVis · Cantilever 2D</title>
+  <title>TOptVis · Optimisation</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23196964'/%3E%3Cpath d='M7 8h18v5h-6v12h-6V13H7z' fill='white'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="/static/styles.css?v=column-scrolling">
-  <link rel="stylesheet" href="/static/rom-training.css?v=snapshot-tabs">
+  <link rel="stylesheet" href="/static/styles.css?v=model-projects">
+  <link rel="stylesheet" href="/static/rom-training.css?v=clean-workspace">
+  <link rel="stylesheet" href="/static/regression.css">
   <script type="module" src="/static/app.js"></script>
 </head>
 <body>
   <header class="app-header">
     <a class="brand" href="/" aria-label="TOptVis home">
       <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M6 7h20v6h-7v13h-6V13H6z"/></svg></span>
-      <span>TOptVis<span class="brand-caption">Topology optimisation</span></span>
+      <span>TOptVis</span>
     </a>
     <nav class="workspace-tabs" role="tablist" aria-label="Workspaces">
-      <button id="tab-cantilever" class="workspace-tab" type="button" role="tab" aria-selected="true" aria-controls="workspace-cantilever" data-workspace="cantilever-2d" tabindex="0">Cantilever 2D</button>
-      <button id="tab-ml" class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="workspace-ml" data-workspace="ml" tabindex="-1">ML</button>
+      <button id="tab-cantilever" class="workspace-tab" type="button" role="tab" aria-selected="true" aria-controls="workspace-cantilever" data-workspace="cantilever-2d" tabindex="0">Optimisation</button>
+      <button id="tab-ml" class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="workspace-ml" data-workspace="ml" tabindex="-1">Machine learning</button>
     </nav>
     <div class="connection" id="connection"><i></i><span>Connecting</span></div>
   </header>
   <main>
     <section id="workspace-cantilever" class="workspace-page" role="tabpanel" aria-labelledby="tab-cantilever" tabindex="0">
     <div class="page-heading">
-      <div><div class="eyebrow">DESIGN WORKSPACE</div><h1>Shape follows force.</h1><p>Configure on the left. Explore the mesh and material in the workspace.</p></div>
+      <div class="workspace-heading"><h1>Optimisation</h1><div class="project-actions"><button id="project-save" class="button secondary" type="button">Save</button><button id="project-load" class="button secondary" type="button">Load</button><button id="method-references" class="button secondary" type="button">References</button><input id="project-file" type="file" accept=".json,application/json" hidden></div></div>
       <div class="run-actions">
         <button class="button secondary" id="stop" type="button" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="5" width="10" height="10" rx="1"/></svg>Stop</button>
         <button class="button primary" id="run" type="submit" form="model-form" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 3.5 16 10 6 16.5z"/></svg><span id="run-label">Run optimisation</span></button>
       </div>
     </div>
-    <div class="error-banner" id="error" role="alert" hidden></div>
-    <p id="run-solver-description" class="solver-run-description" role="status">FOM · full-order elasticity</p>
+    <div class="error-banner" id="error" role="alert" hidden><span id="error-message"></span><button id="dismiss-error" type="button" aria-label="Dismiss error"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg></button></div>
     <div class="workspace">
       <nav class="config-tabs" role="tablist" aria-label="Workspace sections" aria-orientation="vertical">
-        <button id="tab-geometry" class="config-tab" type="button" role="tab" aria-selected="true" aria-controls="panel-geometry" data-panel="panel-geometry" data-title="Geometry & mesh" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM4 10h16M10 4v16"/></svg><span>Geometry</span></button>
-        <button id="tab-load" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-load" data-panel="panel-load" data-title="Applied load" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 19 5M9 5h10v10"/></svg><span>Load</span></button>
+        <button id="tab-geometry" class="config-tab" type="button" role="tab" aria-selected="true" aria-controls="panel-geometry" data-panel="panel-geometry" data-title="Geometry" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM4 10h16M10 4v16"/></svg><span>Geometry</span></button>
+        <button id="tab-load" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-load" data-panel="panel-load" data-title="Boundary conditions" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 19 5M9 5h10v10"/></svg><span>Boundaries</span></button>
         <button id="tab-material" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-material" data-panel="panel-material" data-title="Material" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5"/></svg><span>Material</span></button>
-        <button id="tab-filters" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-filters" data-panel="panel-filters" data-title="Density filters" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/><circle cx="12" cy="6" r="2"/><circle cx="10" cy="12" r="2"/></svg><span>Filters</span></button>
+        <button id="tab-filters" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-filters" data-panel="panel-filters" data-title="Filters" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/><circle cx="12" cy="6" r="2"/><circle cx="10" cy="12" r="2"/></svg><span>Filters</span></button>
         <button id="tab-objective" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-objective" data-panel="panel-objective" data-title="Objective" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 10v4M10 12h4"/></svg><span>Objective</span></button>
         <button id="tab-constraints" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-constraints" data-panel="panel-constraints" data-title="Constraints" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14M5 19h14M8 8v8M16 8v8M5 12h14"/></svg><span>Constraints</span></button>
         <button id="tab-optimiser" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-optimiser" data-panel="panel-optimiser" data-title="Optimiser" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 17 5-6 5 3 6-9M16 5h4v4"/></svg><span>Optimiser</span></button>
         <button id="tab-solver" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-solver" data-panel="panel-solver" data-title="Solver" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="10" cy="18" r="2"/></svg><span>Solver</span></button>
-        <button id="tab-visualisation" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-visualisation" data-panel="panel-visualisation" data-title="Visualisation" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16h16M7 15l4-6 4 3 5-7"/><circle cx="11" cy="9" r="1"/><circle cx="15" cy="12" r="1"/></svg><span>Visualisation</span></button>
+        <button id="tab-visualisation" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-visualisation" data-panel="panel-visualisation" data-title="Convergence" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16h16M7 15l4-6 4 3 5-7"/><circle cx="11" cy="9" r="1"/><circle cx="15" cy="12" r="1"/></svg><span>Convergence</span></button>
       </nav>
-
       <aside class="controls panel">
-        <div class="controls-title"><h2 id="config-title">Geometry & mesh</h2><span class="tag">2D</span></div>
+        <div class="controls-title"><h2 id="config-title">Geometry</h2></div>
         <form id="model-form">
           <fieldset id="settings">
             <section id="panel-geometry" class="control-section" role="tabpanel" aria-labelledby="tab-geometry">
-              <p class="control-hint">Set the domain and the number of quadrilateral elements.</p>
               <div class="input-grid">
                 <label>Length<input id="length" name="length" type="number" min="0" step="any" value="3" required></label>
                 <label>Height<input id="height" name="height" type="number" min="0" step="any" value="1" required></label>
-                <label>Elements · x<input id="nx" name="nx" type="number" min="1" step="1" value="60" required></label>
-                <label>Elements · y<input id="ny" name="ny" type="number" min="1" step="1" value="20" required></label>
+                <label>Elements in x<input id="nx" name="nx" type="number" min="1" step="1" value="60" required></label>
+                <label>Elements in y<input id="ny" name="ny" type="number" min="1" step="1" value="20" required></label>
               </div>
-              <div class="section-note" id="mesh-description">1,200 elements · 1,281 nodes</div>
-              <div class="config-info">Plane stress · fixed left edge<br>Lengths use the same model units throughout.</div>
             </section>
-
             <section id="panel-load" class="control-section" role="tabpanel" aria-labelledby="tab-load" hidden>
-              <p class="control-hint">Click any free node in the mesh to place the load.</p>
+              <input id="load_node_x" name="load_node_x" type="hidden" value="60">
+              <input id="load_node_y" name="load_node_y" type="hidden" value="10">
+              <input id="load" name="load" type="hidden" value="1">
+              <input id="load_angle" name="load_angle" type="hidden" value="-90">
+              <h3>Load cases</h3>
+              <label>Active case<select id="active-load-case" form="boundary-editor-form"></select></label>
+              <div class="case-actions"><button id="case-add" class="button secondary" type="button" title="Duplicate the active case's forces into a new independent case.">Add case</button><button id="case-remove" class="button secondary" type="button" disabled>Remove</button></div>
+              <div class="input-grid case-settings"><label>Name<input id="case-name" form="boundary-editor-form" type="text" value="Load case 1" maxlength="80" required></label><label>Weight<input id="case-weight" form="boundary-editor-form" type="number" min="0.000001" max="1000000" step="any" value="1" required></label></div>
+              <label class="case-settings">Objective<select id="load-aggregation" form="boundary-editor-form"><option value="weighted">Weighted mean</option><option value="worst">Worst case</option></select></label>
+              <output id="case-result" class="model-message"></output>
+              <div class="filter-divider"></div><h3>Selection</h3>
               <div class="input-grid">
-                <label>Node column<input id="load_node_x" name="load_node_x" type="number" min="1" max="60" step="1" value="60" required></label>
-                <label>Node row<input id="load_node_y" name="load_node_y" type="number" min="0" max="20" step="1" value="10" required></label>
-                <label>Magnitude<input id="load" name="load" type="number" min="0.001" max="1000000" step="any" value="1" required></label>
-                <label>Direction · °<input id="load_angle" name="load_angle" type="number" min="-180" max="180" step="any" value="-90" required></label>
+                <label>Start column<input id="selection-x0" form="boundary-editor-form" type="number" min="0" max="60" step="1" value="0"></label>
+                <label>Start row<input id="selection-y0" form="boundary-editor-form" type="number" min="0" max="20" step="1" value="0"></label>
               </div>
-              <input id="angle-slider" type="range" min="-180" max="180" step="1" value="-90" aria-label="Load direction in degrees">
-              <div class="range-labels"><span>−180°</span><span>0° →</span><span>180°</span></div>
-              <div class="section-note">Left-edge nodes are fixed. Positive angles rotate counterclockwise.</div>
+              <div id="selection-end-fields" class="input-grid" hidden>
+                <label>End column<input id="selection-x1" form="boundary-editor-form" type="number" min="0" max="60" step="1" value="0"></label>
+                <label>End row<input id="selection-y1" form="boundary-editor-form" type="number" min="0" max="20" step="1" value="0"></label>
+              </div>
+              <button id="boundary-select-coordinates" type="button" class="button secondary boundary-select">Select nodes</button>
+              <div class="filter-divider"></div>
+              <label>Assignment<select id="boundary-kind" form="boundary-editor-form"><option value="fixed">Fixed support</option><option value="restrain_x">Restrain x</option><option value="restrain_y">Restrain y</option><option value="displacement">Prescribed displacement</option><option value="force">Force</option><option value="solid">Non-design: solid</option><option value="void">Non-design: void</option></select></label>
+              <div id="boundary-displacement-fields" hidden><label>Components<select id="boundary-components" form="boundary-editor-form"><option value="xy">Both directions</option><option value="x">Horizontal</option><option value="y">Vertical</option></select></label><div class="input-grid case-settings"><label>Horizontal motion<input id="boundary-ux" form="boundary-editor-form" type="number" step="any" value="0" required disabled></label><label>Vertical motion<input id="boundary-uy" form="boundary-editor-form" type="number" step="any" value="0" required disabled></label></div></div>
+              <div id="boundary-force-fields" class="input-grid" hidden>
+                <label>Total force<input id="boundary-magnitude" form="boundary-editor-form" type="number" min="0.000001" max="1000000" step="any" value="1" required disabled></label>
+                <label>Angle (degrees)<input id="boundary-angle" form="boundary-editor-form" type="number" min="-180" max="180" step="any" value="-90" required disabled></label>
+              </div>
+              <button id="boundary-apply" type="button" class="button primary boundary-select" disabled>Assign</button>
+              <div class="filter-divider"></div>
+              <h3>Assigned conditions</h3>
+              <ul id="boundary-list" class="boundary-list" aria-label="Assigned boundary conditions"></ul>
+              <button id="boundary-reset" type="button" class="button secondary boundary-select" disabled>Reset cantilever</button>
+              <div class="filter-divider"></div><h3>Non-design regions</h3>
+              <ul id="non-design-list" class="boundary-list" aria-label="Non-design regions"></ul>
             </section>
-
             <section id="panel-material" class="control-section" role="tabpanel" aria-labelledby="tab-material" hidden>
-              <p class="control-hint">Choose how physical density determines the element stiffness.</p>
               <label>Interpolation<select id="material_model" name="material_model"><option value="simp">SIMP</option><option value="ramp">RAMP</option></select></label>
-              <label><span id="penalty-label">Penalty exponent · p</span><input id="penalisation" name="penalisation" type="number" min="1" step="any" value="3" required aria-describedby="material-description"></label>
-              <div class="config-info" id="material-formula">E(ρ) = E_min + (E₀ − E_min) ρᵖ</div>
-              <p class="filter-hint" id="material-description">SIMP: p ≥ 1. Larger p penalises intermediate densities; p = 1 is linear.</p>
-              <div class="section-note">E₀ = 1 · E_min = 10⁻⁶ · Poisson ratio = 0.3<br>Volume uses physical density before stiffness penalisation.</div>
+              <label><span id="penalty-label">Penalty exponent</span><input id="penalisation" name="penalisation" type="number" min="1" step="any" value="3" required></label>
             </section>
-
             <section id="panel-filters" class="control-section" role="tabpanel" aria-labelledby="tab-filters" hidden>
               <h3>Helmholtz smoothing</h3>
-              <label for="filter_radius">Length · ℓ<input id="filter_radius" name="filter_radius" type="number" min="0" max="1000" step="any" value="0.1" aria-describedby="filter-description filter-hint" required></label>
+              <label for="filter_radius">Filter length<input id="filter_radius" title="Set to 0 to disable smoothing." name="filter_radius" type="number" min="0" max="1000" step="any" value="0.1" required></label>
               <input id="filter-slider" type="range" min="0" max="0.5" step="0.005" value="0.1" aria-label="Helmholtz filter size in model units">
-              <div class="range-labels"><span>Off</span><span id="filter-range-max">0.5</span></div>
-              <div class="filter-description" id="filter-description" aria-live="polite">ℓ = 0.1 · Ø = 0.2 model units · radius 2 × 2 cells</div>
-              <p class="filter-hint" id="filter-hint">The circle shows the Helmholtz length ℓ as its radius, in model units. Set ℓ to 0 to disable smoothing.</p>
               <div class="filter-divider"></div>
               <h3>Heaviside projection</h3>
               <div class="input-grid">
-                <label>Sharpness · β<input id="projection_beta" name="projection_beta" type="number" min="0" max="64" step="any" value="2" required></label>
-                <label>Threshold · η<input id="projection_eta" name="projection_eta" type="number" min="0.01" max="0.99" step="any" value="0.5" required></label>
+                <label>Sharpness<input id="projection_beta" title="Set to 0 to disable fixed projection." name="projection_beta" type="number" min="0" max="64" step="any" value="2" required></label>
+                <label>Threshold<input id="projection_eta" name="projection_eta" type="number" min="0.01" max="0.99" step="any" value="0.5" required></label>
               </div>
               <input id="projection-slider" type="range" min="0" max="16" step="0.25" value="2" aria-label="Projection sharpness">
-              <div class="range-labels"><span>Off</span><span id="projection-range-max">16</span></div>
-              <div class="filter-description" id="projection-description" aria-live="polite">β = 2 · η = 0.5</div>
-              <p class="filter-hint">Higher β sharpens the solid/void transition. A fixed β of 0 disables projection.</p>
-              <label>β schedule<select id="projection_schedule" name="projection_schedule"><option value="fixed">Fixed β</option><option value="geometric">Scheduled increase</option></select></label>
+              <label>Sharpness schedule<select id="projection_schedule" name="projection_schedule"><option value="fixed">Fixed</option><option value="geometric">Scheduled increase</option></select></label>
               <div id="beta-schedule-options" hidden>
                 <div class="input-grid">
-                  <label>Every · iterations<input id="projection_beta_interval" name="projection_beta_interval" type="number" min="1" step="1" value="25" required></label>
+                  <label>Interval (iterations)<input id="projection_beta_interval" name="projection_beta_interval" type="number" min="1" step="1" value="25" required></label>
                   <label>Multiplier<input id="projection_beta_multiplier" name="projection_beta_multiplier" type="number" min="1" step="any" value="2" required></label>
-                  <label>Maximum · β<input id="projection_beta_max" name="projection_beta_max" type="number" min="0" max="64" step="any" value="16" required></label>
+                  <label>Maximum sharpness<input id="projection_beta_max" name="projection_beta_max" type="number" min="0" max="64" step="any" value="16" required></label>
                 </div>
-                <p class="filter-hint" id="beta-schedule-description">Start at the sharpness above, then increase after every 25 completed iterations.</p>
               </div>
-              <div class="config-info">Design → Helmholtz → projection → physical material</div>
               <div class="filter-divider"></div>
               <h3>Robust formulation</h3>
-              <label>Material fields<select id="robust" name="robust"><option value="false">Single field</option><option value="true">Three fields · robust</option></select></label>
+              <label>Material fields<select id="robust" name="robust"><option value="false">Single field</option><option value="true">Three fields</option></select></label>
               <div class="input-grid robust-options" id="robust-options" hidden>
-                <label>Threshold offset · Δη<input id="robust_eta_offset" name="robust_eta_offset" type="number" min="0.001" max="0.499" step="any" value="0.1" required></label>
+                <label>Threshold offset<input id="robust_eta_offset" name="robust_eta_offset" type="number" min="0.001" max="0.499" step="any" value="0.1" required></label>
               </div>
-              <p class="filter-hint" id="robust-description" hidden>Worst compliance over eroded, nominal and dilated material. The volume limit applies to dilated material. Requires β &gt; 0.</p>
             </section>
-
             <section id="panel-objective" class="control-section" role="tabpanel" aria-labelledby="tab-objective" hidden>
-              <h3>Minimise compliance</h3>
-              <div class="config-info">C = fᵀu · lower is stiffer</div>
-              <p class="control-hint" id="objective-description">Minimise compliance for the applied load using the physical material after filtering and projection.</p>
+              <h3 id="objective-title">Minimise compliance</h3>
+              <p id="objective-description" class="objective-summary">Maximise stiffness under the applied load.</p>
             </section>
-
             <section id="panel-constraints" class="control-section" role="tabpanel" aria-labelledby="tab-constraints" hidden>
               <div class="label-row"><label for="volume_fraction">Material volume</label><output id="volume-label">40%</output></div>
-              <label>Volume constraint<select id="volume_constraint" name="volume_constraint"><option value="lt">&lt; target · upper bound</option><option value="gt">&gt; target · lower bound</option><option value="eq">= target · equality</option></select></label>
+              <label>Volume constraint<select id="volume_constraint" name="volume_constraint"><option value="lt">At most</option><option value="gt">At least</option><option value="eq">Equal to</option></select></label>
               <input id="volume_fraction" name="volume_fraction" type="range" min="0.05" max="0.95" step="0.01" value="0.4">
-              <div class="range-labels"><span>5%</span><span>95%</span></div>
               <div class="filter-divider"></div>
               <h3>Maximum solid size</h3>
-              <p class="filter-hint">Morphological constraint on solid-member thickness. The blue circle shows the chosen diameter in model units. Set 0 to disable.</p>
-              <label>Maximum diameter<input id="max_solid_size" name="max_solid_size" type="number" min="0" max="1000" step="any" value="0" required aria-describedby="max-size-description"></label>
+              <label>Maximum diameter<input id="max_solid_size" title="Diameter in model units. Set to 0 to disable." name="max_solid_size" type="number" min="0" max="1000" step="any" value="0" required></label>
               <div id="max-size-options" hidden>
                 <div class="input-grid">
-                  <label>Sharpness · b<input id="max_size_beta" name="max_size_beta" type="number" min="0.01" max="64" step="any" value="16" required></label>
+                  <label>Sharpness<input id="max_size_beta" name="max_size_beta" type="number" min="0.01" max="64" step="any" value="16" required></label>
                   <label>Allowed fraction<input id="max_size_tolerance" name="max_size_tolerance" type="number" min="0.000001" max="0.999999" step="any" value="0.001" required></label>
                 </div>
-                <p class="filter-hint">These control the relaxed erosion test and are separate from projection β scheduling.</p>
               </div>
-              <div class="section-note" id="max-size-description">Maximum-size constraint off</div>
-              <div class="filter-description" id="max-size-status" aria-live="polite"></div>
+              <p id="max-size-status" class="constraint-status" role="status" hidden></p>
               <div class="filter-divider"></div>
               <h3>Maximum void size</h3>
-              <p class="filter-hint">Morphological constraint on void-region size. The green circle shows its diameter in model units. Set 0 to disable; solid and void constraints can run together.</p>
-              <label>Maximum void diameter<input id="max_void_size" name="max_void_size" type="number" min="0" max="1000" step="any" value="0" required aria-describedby="max-void-description"></label>
+              <label>Maximum void diameter<input id="max_void_size" title="Diameter in model units. Set to 0 to disable." name="max_void_size" type="number" min="0" max="1000" step="any" value="0" required></label>
               <div id="max-void-options" hidden>
                 <div class="input-grid">
-                  <label>Sharpness · b<input id="max_void_beta" name="max_void_beta" type="number" min="0.01" max="64" step="any" value="16" required></label>
+                  <label>Sharpness<input id="max_void_beta" name="max_void_beta" type="number" min="0.01" max="64" step="any" value="16" required></label>
                   <label>Allowed fraction<input id="max_void_tolerance" name="max_void_tolerance" type="number" min="0.000001" max="0.999999" step="any" value="0.001" required></label>
                 </div>
-                <p class="filter-hint">Limits the void remaining after material dilation. Exterior space remains void.</p>
               </div>
-              <div class="section-note" id="max-void-description">Maximum void-size constraint off</div>
-              <div class="filter-description" id="max-void-status" aria-live="polite"></div>
-              <div class="config-info" id="volume-description">The volume limit is applied to the physical material after filtering and projection.</div>
+              <p id="max-void-status" class="constraint-status" role="status" hidden></p>
             </section>
-
             <section id="panel-optimiser" class="control-section" role="tabpanel" aria-labelledby="tab-optimiser" hidden>
               <label>Optimiser<select id="optimizer" name="optimizer"><option value="mma">MMA</option><option value="gcmma">GCMMA</option></select></label>
               <label class="iteration-limit">Maximum iterations<input id="max_iterations" name="max_iterations" type="number" min="1" max="1000" step="1" value="100" required></label>
               <div id="gcmma-options" hidden>
-                <label>GCMMA inner iteration limit<input id="max_inner_iterations" name="max_inner_iterations" type="number" min="1" step="1" value="30" required disabled aria-describedby="gcmma-inner-hint"></label>
-                <p class="filter-hint" id="gcmma-inner-hint">Maximum retries per outer iteration, after the initial trial. Stops with an error if no conservative trial is found.</p>
+                <label>GCMMA inner iteration limit<input id="max_inner_iterations" name="max_inner_iterations" type="number" min="1" step="1" value="30" required disabled></label>
               </div>
             </section>
-
             <section id="panel-solver" class="control-section" role="tabpanel" aria-labelledby="tab-solver" hidden>
-              <p class="control-hint">Choose how the elasticity state equations are solved.</p>
-              <label>Elasticity solver<select id="state_solver" name="state_solver"><option value="fom">FOM · full order</option><option id="rom-solver-option" value="rom" disabled>ROM · saved reduced basis</option></select></label>
-              <div id="fom-linear-options"><label>Full-order method<select id="linear_solver" name="linear_solver"><option value="lu">LU · direct</option><option value="cholesky">Cholesky · direct</option><option value="cg-icc">CG + incomplete Cholesky</option><option value="cg-gamg">CG + algebraic multigrid</option></select></label></div>
+              <label>Model<select id="state_solver" name="state_solver"><option value="fom">Full model</option><option id="rom-solver-option" value="rom" disabled>Reduced model</option></select></label>
+              <div id="fom-linear-options"><label>Linear solver<select id="linear_solver" name="linear_solver"><option value="lu">LU</option><option value="cholesky">Cholesky</option><option value="cg-icc">CG + incomplete Cholesky</option><option value="cg-gamg">CG + algebraic multigrid</option></select></label></div>
               <div id="rom-solver-options" class="rom-solver-options" hidden>
-                <label>ROM model<select id="rom_training_id" name="rom_training_id" disabled><option value="">No trained ROMs</option></select></label>
-                <p id="rom-model-description" class="section-note" aria-live="polite">Build a basis in ML → ROM first.</p>
-                <div class="rom-model-actions"><button id="rom-use-mesh" class="button secondary" type="button" hidden>Use ROM mesh</button><button id="rom-refresh-models" class="button secondary" type="button">Refresh ROMs</button></div>
+                <label>Saved model<select id="rom_training_id" name="rom_training_id" disabled><option value="">No saved models</option></select></label>
+                <p id="rom-model-description" class="model-message" role="status"></p>
+                <div class="rom-model-actions"><button id="rom-use-mesh" class="button secondary" type="button" hidden>Use model mesh</button><button id="rom-refresh-models" class="button secondary" type="button">Refresh models</button></div>
               </div>
-              <p class="filter-hint" id="fom-method-hint">LU and Cholesky use direct factorisation. CG uses incomplete Cholesky or algebraic multigrid preconditioning.</p>
               <div id="solver-field-options" hidden>
                 <div class="filter-divider"></div>
                 <h3>Three-field execution</h3>
-                <label>State solves<select id="field_execution" name="field_execution"><option value="sequential">Sequential</option><option value="parallel">Parallel · 3 processes</option></select></label>
-                <p class="filter-hint">Solve the eroded, nominal and dilated states in sequence or in three parallel processes.</p>
+                <label>State solves<select id="field_execution" name="field_execution"><option value="sequential">Sequential</option><option value="parallel">Parallel</option></select></label>
               </div>
             </section>
             <section id="panel-visualisation" class="control-section" role="tabpanel" aria-labelledby="tab-visualisation" hidden>
-              <p class="control-hint">Follow convergence after every evaluated iteration. Switch to any configuration tab to return to the mesh and topology.</p>
               <div class="history-summary">
                 <div><span>Latest iteration</span><strong id="history-iteration">—</strong></div>
                 <div><span>Compliance</span><strong id="history-compliance">—</strong></div>
-                <div><span>Physical material volume</span><strong id="history-volume">—</strong></div>
-                <div><span>Elapsed solver time</span><strong id="history-elapsed">—</strong></div>
-                <div><span>Active projection β</span><strong id="history-beta">—</strong></div>
-                <div id="history-max-size-summary" hidden><span>Solid-size constraint · ≤ 0</span><strong id="history-max-size">—</strong></div>
-                <div id="history-max-void-summary" hidden><span>Void-size constraint · ≤ 0</span><strong id="history-max-void">—</strong></div>
+                <div><span>Material volume</span><strong id="history-volume">—</strong></div>
+                <div><span>Elapsed time</span><strong id="history-elapsed">—</strong></div>
+                <div id="history-max-size-summary" hidden><span>Solid size constraint</span><strong id="history-max-size">—</strong></div>
+                <div id="history-max-void-summary" hidden><span>Void size constraint</span><strong id="history-max-void">—</strong></div>
               </div>
-              <div class="config-info">Hover over a graph to inspect an iteration across all plots. You can also focus a graph and use the arrow keys, Home, and End.</div>
-              <div class="section-note">History stays available after stopping or finishing. A new run or a model change clears it.</div>
             </section>
           </fieldset>
         </form>
-        <div class="controls-footer"><span class="mini-dot"></span><span id="filter-status">Helmholtz + projection</span></div>
+        <form id="boundary-editor-form" hidden></form>
       </aside>
-
       <div class="central-workspace">
       <div class="viewers" id="model-view">
         <section class="panel viewer-panel" aria-labelledby="model-title">
-          <div class="panel-heading"><div><h2 id="model-title">Geometry & mesh</h2><p id="selection-description">Load at node (60, 10)</p></div><span class="viewer-badge" id="model-filter-summary">ℓ = 0.1 · β = 2</span></div>
-          <div class="canvas-wrap model-wrap"><canvas id="model-canvas" tabindex="0" role="img" aria-label="Cantilever mesh with the Helmholtz length reference circle. Click a free node to select the load position."></canvas></div>
-          <div class="viewer-footer"><div class="legend"><span><i class="legend-support"></i>Fixed edge</span><span><i class="legend-load"></i>Applied load</span><span id="filter-legend"><i class="legend-filter"></i>Helmholtz length ℓ</span></div><span id="force-components">F = (0.00, −1.00)</span></div>
+          <div class="panel-heading mesh-heading"><h2 id="model-title">Design domain</h2>
+            <div class="selection-tools" role="group" aria-label="Mesh selection">
+              <button type="button" data-selection-mode="point" aria-pressed="true" title="Select a node. Arrow keys move; Enter selects.">Point</button>
+              <button type="button" data-selection-mode="line" aria-pressed="false" title="Drag along a mesh row or column, or select two endpoints.">Line</button>
+              <button type="button" data-selection-mode="surface" aria-pressed="false" title="Drag a rectangle, or select two opposite corners.">Surface</button>
+            </div>
+          </div>
+          <div class="canvas-wrap model-wrap"><canvas id="model-canvas" tabindex="0" role="img" aria-label="Editable mesh. Select a point, line, or surface to assign supports, forces, or non-design regions. Arrow keys move the cursor; Enter selects; Escape clears."></canvas></div>
+          <div class="viewer-footer"><div class="legend"><span><i class="legend-support"></i>Supports</span><span><i class="legend-load"></i>Forces</span><span id="filter-legend"><i class="legend-filter"></i>Filter length</span><span id="fixed-solid-legend" hidden><i class="legend-fixed-solid"></i>Fixed solid</span><span id="fixed-void-legend" hidden><i class="legend-fixed-void"></i>Fixed void</span></div><div class="selection-actions"><output id="selection-count" role="status"></output><button id="selection-clear" class="text-button" type="button" disabled>Clear selection</button></div></div>
         </section>
-
         <section class="panel viewer-panel topology-panel" aria-labelledby="topology-title">
-          <div class="panel-heading"><div><h2 id="topology-title">Live topology</h2><p id="topology-description">Run optimisation to see the material distribution.</p></div><span class="status-badge" id="run-status" data-status="ready"><i></i>Ready</span></div>
+          <div class="panel-heading"><div><h2 id="topology-title">Topology</h2></div><span class="status-badge" id="run-status" data-status="ready"><i></i>Ready</span></div>
           <div class="metrics" aria-live="polite" aria-atomic="true">
-            <div><span id="compliance-label">COMPLIANCE</span><strong id="compliance">—</strong><small id="improvement">Waiting for first solve</small></div>
-            <div><span id="material-volume-label">MATERIAL VOLUME</span><strong id="current-volume">—</strong><small id="volume-target">Target 40%</small></div>
-            <div><span>ITERATION</span><strong id="iteration">—<em> / 100</em></strong><small id="density-change">No iterations yet</small></div>
+            <div><span id="compliance-label">Compliance</span><strong id="compliance">—</strong><small id="improvement"></small></div>
+            <div><span id="material-volume-label">Material volume</span><strong id="current-volume">—</strong><small id="volume-target">Target 40%</small></div>
+            <div><span>Iteration</span><strong id="iteration">—<em> / 100</em></strong></div>
           </div>
           <div class="field-view" id="field-view" hidden><label>View material<select id="display-field"><option value="eroded">Eroded</option><option value="nominal" selected>Nominal</option><option value="dilated">Dilated</option></select></label><span id="field-metrics"></span></div>
-          <div class="canvas-wrap topology-wrap"><canvas id="topology-canvas" role="img" aria-label="Live physical material density after Helmholtz filtering and Heaviside projection, with a Helmholtz length reference circle"></canvas><div class="empty-state" id="empty-state"><span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M4 4h8v8H4zm12 0h8v8h-8zM4 16h8v8H4zm12 0h8v8h-8z"/></svg></span><strong>Your design starts here</strong><span>Click Run optimisation to begin.</span></div></div>
+          <div class="canvas-wrap topology-wrap"><canvas id="topology-canvas" role="img" aria-label="Live physical material density after Helmholtz filtering and Heaviside projection, with a Helmholtz length reference circle"></canvas><div class="empty-state" id="empty-state"><span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M4 4h8v8H4zm12 0h8v8h-8zM4 16h8v8H4zm12 0h8v8h-8z"/></svg></span><strong>No result yet</strong></div></div>
           <div class="iteration-progress"><span id="progress-bar"></span></div>
-          <div class="viewer-footer"><div class="density-legend"><span>Void</span><i></i><span>Solid</span></div><span id="live-note">Updates after every evaluated iteration</span></div>
+          <div class="viewer-footer topology-footer"><div class="density-legend"><span>Void</span><i></i><span>Solid</span></div><p id="topology-description" class="result-message" role="status"></p></div>
         </section>
       </div>
       <section id="convergence-view" class="convergence-view" aria-labelledby="convergence-title" hidden>
         <div class="panel convergence-heading">
-          <div><h2 id="convergence-title">Convergence</h2><p id="convergence-description">Run an optimisation to build the convergence history.</p></div>
-          <div class="convergence-actions"><button id="show-model" class="button secondary" type="button">Mesh & topology</button><span class="status-badge" id="convergence-status" data-status="ready"><i></i>Ready</span></div>
+          <div><h2 id="convergence-title">Convergence</h2></div>
+          <div class="convergence-actions"><button id="show-model" class="button secondary" type="button">Back to design</button><span class="status-badge" id="convergence-status" data-status="ready"><i></i>Ready</span></div>
         </div>
         <div class="convergence-grid">
           <section class="panel convergence-card" aria-labelledby="compliance-chart-title">
-            <div class="chart-heading"><h3 id="compliance-chart-title">Compliance</h3><span>Lower is stiffer</span></div>
+            <div class="chart-heading"><h3 id="compliance-chart-title">Compliance</h3><div class="chart-tools"><span>Lower is stiffer</span><label class="chart-scale"><input id="convergence-compliance-log" type="checkbox" aria-label="Log scale for compliance" aria-controls="convergence-compliance">Log scale</label></div></div>
             <div class="chart-wrap"><canvas id="convergence-compliance" tabindex="0" role="img" aria-label="Compliance against outer iteration"></canvas></div>
             <output class="chart-readout" id="convergence-compliance-readout">No evaluated iterations yet</output>
           </section>
           <section class="panel convergence-card" aria-labelledby="volume-chart-title">
-            <div class="chart-heading"><h3 id="volume-chart-title">Physical material volume</h3><span id="volume-reference">Target 40%</span></div>
+            <div class="chart-heading"><h3 id="volume-chart-title">Physical material volume</h3><div class="chart-tools"><span id="volume-reference">Target 40%</span><label class="chart-scale"><input id="convergence-volume-log" type="checkbox" aria-label="Log scale for physical material volume" aria-controls="convergence-volume">Log scale</label></div></div>
             <div class="chart-wrap"><canvas id="convergence-volume" tabindex="0" role="img" aria-label="Physical material volume against outer iteration, with its target"></canvas></div>
             <output class="chart-readout" id="convergence-volume-readout">No evaluated iterations yet</output>
           </section>
           <section class="panel convergence-card" aria-labelledby="design-chart-title">
-            <div class="chart-heading"><h3 id="design-chart-title">Design change</h3><span id="design-reference">Stopping tolerance</span></div>
+            <div class="chart-heading"><h3 id="design-chart-title">Design change</h3><div class="chart-tools"><span id="design-reference">Stopping tolerance</span><label class="chart-scale"><input id="convergence-design-log" type="checkbox" aria-label="Log scale for design change" aria-controls="convergence-design">Log scale</label></div></div>
             <div class="chart-wrap"><canvas id="convergence-design" tabindex="0" role="img" aria-label="Maximum design change against outer iteration, with its stopping tolerance"></canvas></div>
             <output class="chart-readout" id="convergence-design-readout">Changes start at iteration 1</output>
           </section>
           <section class="panel convergence-card" aria-labelledby="objective-chart-title">
-            <div class="chart-heading"><h3 id="objective-chart-title">Relative objective change</h3><span id="objective-reference">Stopping tolerance</span></div>
+            <div class="chart-heading"><h3 id="objective-chart-title">Relative objective change</h3><div class="chart-tools"><span id="objective-reference">Stopping tolerance</span><label class="chart-scale"><input id="convergence-objective-log" type="checkbox" aria-label="Log scale for relative objective change" aria-controls="convergence-objective">Log scale</label></div></div>
             <div class="chart-wrap"><canvas id="convergence-objective" tabindex="0" role="img" aria-label="Relative objective change against outer iteration, with its stopping tolerance"></canvas></div>
             <output class="chart-readout" id="convergence-objective-readout">Changes start at iteration 1</output>
           </section>
           <section class="panel convergence-card elapsed-card" aria-labelledby="elapsed-chart-title">
-            <div class="chart-heading"><h3 id="elapsed-chart-title">Iteration time</h3><span>Seconds per iteration</span></div>
+            <div class="chart-heading"><h3 id="elapsed-chart-title">Iteration time</h3><div class="chart-tools"><span>Seconds per iteration</span><label class="chart-scale"><input id="convergence-elapsed-log" type="checkbox" aria-label="Log scale for iteration time" aria-controls="convergence-elapsed">Log scale</label></div></div>
             <div class="chart-wrap"><canvas id="convergence-elapsed" tabindex="0" role="img" aria-label="Bar chart of time in seconds for each outer iteration"></canvas></div>
             <output class="chart-readout" id="convergence-elapsed-readout">No evaluated iterations yet</output>
           </section>
         </div>
-        <p class="convergence-note">Dashed lines show the volume target and stopping tolerances. Compliance and volume include the initial design at iteration 0; change curves start at iteration 1. A flat curve alone does not certify convergence.</p>
-        <p class="convergence-note">Each time bar shows the difference between consecutive solver timestamps, including all GCMMA trials in that outer iteration. Bars start at iteration 1; setup and the initial evaluation are excluded. Process warm-up, browser/network delay, and final cleanup are excluded.</p>
       </section>
       </div>
     </div>
     </section>
     <section id="workspace-ml" class="workspace-page" role="tabpanel" aria-labelledby="tab-ml" tabindex="0" hidden>
-      <div class="page-heading ml-heading">
-        <div><div class="eyebrow">MODEL DEVELOPMENT</div><h1>ML</h1><p>Train and validate models for elasticity.</p></div>
-      </div>
       <nav class="ml-method-tabs" role="tablist" aria-label="ML methods">
-        <button id="tab-rom-training" class="ml-method-tab" type="button" role="tab" aria-selected="true" aria-controls="workspace-rom-training" data-method="rom" tabindex="0">ROM</button>
+        <button id="tab-regression" class="ml-method-tab" type="button" role="tab" aria-selected="true" aria-controls="workspace-regression" data-method="regression" tabindex="0">Regression</button>
+        <button id="tab-rom-training" class="ml-method-tab" type="button" role="tab" aria-selected="false" aria-controls="workspace-rom-training" data-method="rom" tabindex="-1">Reduced models</button>
       </nav>
-      <section id="workspace-rom-training" class="ml-method-panel" role="tabpanel" aria-labelledby="tab-rom-training" tabindex="0">
+      <section id="workspace-regression" class="ml-method-panel" role="tabpanel" aria-labelledby="tab-regression" tabindex="0">
+        <div class="page-heading">
+          <h1>Regression</h1>
+          <div class="run-actions">
+            <span id="reg-status" role="status">Ready</span>
+            <button id="reg-stop" class="button secondary" type="button" disabled>Stop</button>
+            <button id="reg-generate" class="button primary" type="submit" form="reg-generate-form" disabled>Generate dataset</button>
+          </div>
+        </div>
+        <div id="reg-error" class="error-banner" role="alert" hidden></div>
+        <div class="reg-workspace">
+          <aside class="panel reg-settings">
+            <div class="controls-title"><h2>Dataset</h2></div>
+            <div class="control-section reg-saved">
+              <label>Saved experiment<select id="reg-dataset"><option value="">New experiment</option></select></label>
+              <button id="reg-refresh" class="button secondary" type="button">Refresh</button>
+              <p id="reg-dataset-note" class="model-message"></p>
+            </div>
+            <form id="reg-generate-form" class="control-section">
+              <fieldset id="reg-generate-settings">
+                <div id="reg-problem-import" class="reg-problem-import">
+                  <button id="reg-load-problem" class="button secondary" type="button">Load setup</button>
+                  <input id="reg-problem-file" type="file" accept=".json,application/json" hidden>
+                  <p id="reg-problem-name" class="model-message" role="status">No setup loaded</p>
+                </div>
+                <div class="input-grid">
+                  <label>Minimum volume<input name="volume_min" type="number" min="0.01" max="0.98" step="any" value="0.25" required></label>
+                  <label>Maximum volume<input name="volume_max" type="number" min="0.02" max="0.99" step="any" value="0.65" required></label>
+                  <label>Cases<input name="case_count" type="number" min="6" step="1" value="20" required></label>
+                </div>
+              </fieldset>
+            </form>
+            <div class="controls-title"><h2>Training</h2></div>
+            <form id="reg-fit-form" class="control-section">
+              <fieldset id="reg-fit-settings">
+                <label class="reg-order">Maximum polynomial order<input name="max_degree" type="number" min="1" max="10" step="1" value="2" required></label>
+                <div class="input-grid">
+                  <label>Test share (%)<input name="test_percent" type="number" min="10" max="50" step="1" value="25" required></label>
+                  <label>Split seed<input name="seed" type="number" min="0" max="4294967295" step="1" value="42" required></label>
+                </div>
+                <label class="reg-check"><input name="include_unconverged" type="checkbox">Include feasible unfinished runs</label>
+                <button id="reg-fit" class="button primary" type="submit" disabled>Train models</button>
+              </fieldset>
+            </form>
+            <details class="reg-help control-section">
+              <summary>About this experiment</summary>
+              <p>Input: permitted material volume. Target: final compliance achieved by the optimiser. Lower compliance means a stiffer structure for this load. With prescribed motion, the target is elastic work; minimising it can favour a softer structure.</p>
+              <p>Load a problem saved from Optimisation to reuse its geometry, supports, load cases, constraints and solver settings. Only volume varies. Saved results are ignored; each case starts a fresh optimisation.</p>
+              <p>Training fits orders 1 through the maximum you choose, up to 10. Order 1 is linear, 2 is quadratic, and 3 is cubic. Order p needs at least p + 1 training cases after the split. Inputs are scaled internally for numerical stability; displayed coefficients use the original volume.</p>
+              <p>Test cases are kept out of fitting; their errors measure interpolation on unseen volumes. The range endpoints stay in training. All orders use the same split. The baseline always predicts the training mean.</p>
+              <p>Higher orders can fit the training data more closely while predicting unseen cases less accurately (overfitting). Compare training and test errors. Predictions do not guarantee physical validity or generate a topology.</p>
+              <p>Convergence means the solver met its stopping criteria, not that a global optimum was certified. Feasibility checks every active constraint. Unfinished feasible runs are excluded unless explicitly included. Cancelled, failed and infeasible runs are always excluded.</p>
+              <a href="https://scikit-learn.org/stable/modules/linear_model.html#ordinary-least-squares" target="_blank" rel="noopener noreferrer">Least-squares method reference</a>
+            </details>
+          </aside>
+          <div class="reg-results">
+            <section class="panel reg-chart-panel">
+              <div class="panel-heading">
+                <h2 id="reg-prediction-title">Compliance prediction</h2>
+                <label class="reg-model-label">Model<select id="reg-model" disabled></select></label>
+              </div>
+              <div class="reg-chart-wrap">
+                <svg id="reg-chart" viewBox="0 0 800 350" role="group" aria-label="Compliance versus permitted volume. Select a reference point to inspect its topology."></svg>
+                <p id="reg-chart-empty">Generate a dataset to compare reference results and predictions.</p>
+              </div>
+              <div id="reg-legend" class="reg-legend" hidden>
+                <span><i class="reg-dot reg-train"></i><span id="reg-train-label">Reference</span></span>
+                <span id="reg-test-legend"><i class="reg-dot reg-test"></i>Test</span>
+                <span id="reg-excluded-legend"><i class="reg-dot reg-excluded"></i>Excluded</span>
+                <span id="reg-curve-legend"><i class="reg-line"></i>Prediction</span>
+              </div>
+              <div class="reg-explore">
+                <label for="reg-volume">Permitted volume <output id="reg-volume-value">0.45</output></label>
+                <input id="reg-volume" type="range" min="0.2" max="0.7" step="0.001" value="0.45" disabled>
+                <div class="reg-prediction"><span><span id="reg-prediction-label">Predicted compliance</span> <strong id="reg-prediction">Unavailable</strong></span><span id="reg-prediction-note" role="status">Train a model to explore predictions.</span></div>
+              </div>
+            </section>
+            <div class="reg-bottom-grid">
+              <section class="panel reg-evaluation">
+                <div class="panel-heading"><h2>Model comparison</h2></div>
+                <p id="reg-fit-note" class="reg-note">At least six eligible cases are needed for training.</p>
+                <div class="reg-table-wrap">
+                  <table class="reg-table"><caption class="reg-caption">Mean absolute percentage error on the saved split</caption><thead><tr><th scope="col">Model</th><th scope="col">Training</th><th scope="col">Test</th></tr></thead><tbody id="reg-scores"><tr><td colspan="3">No fitted models</td></tr></tbody></table>
+                </div>
+                <dl id="reg-coefficients" class="reg-coefficients"></dl>
+                <dl class="reg-timings"><div><dt>Data generation</dt><dd id="reg-generation-time">Unavailable</dd></div><div><dt>Model training</dt><dd id="reg-training-time">Unavailable</dd></div><div><dt>Prediction (201 values)</dt><dd id="reg-prediction-time">Unavailable</dd></div></dl>
+              </section>
+              <section class="panel viewer-panel reg-topology-panel">
+                <div class="panel-heading"><h2>Reference topology</h2><label class="reg-case-label">Case<select id="reg-case" disabled><option>No cases</option></select></label></div>
+                <div class="canvas-wrap reg-topology-wrap"><canvas id="reg-topology" role="img" aria-label="Selected reference topology"></canvas><p id="reg-topology-empty">No reference case selected</p></div>
+                <div class="viewer-footer"><span id="reg-case-note">Reference results come from the optimiser.</span></div>
+              </section>
+            </div>
+            <details class="panel reg-cases">
+              <summary>Reference cases <span id="reg-case-count">0</span></summary>
+              <div class="reg-table-wrap"><table class="reg-table"><thead><tr><th scope="col">Volume</th><th id="reg-case-objective" scope="col">Compliance</th><th scope="col">Run status</th><th scope="col">Use</th></tr></thead><tbody id="reg-case-rows"></tbody></table></div>
+            </details>
+            <div id="reg-downloads" class="reg-downloads" hidden><a id="reg-download-data">Download dataset</a><a id="reg-download-models" hidden>Download fitted models</a></div>
+          </div>
+        </div>
+      </section>
+      <section id="workspace-rom-training" class="ml-method-panel" role="tabpanel" aria-labelledby="tab-rom-training" tabindex="0" hidden>
       <div class="page-heading">
-        <div><div class="eyebrow">OFFLINE MODEL TRAINING</div><h2>ROM Training</h2><p>Build and validate a reusable reduced-order model for elasticity.</p></div>
+        <div><h1>Reduced models</h1></div>
         <div class="run-actions">
+          <button data-open-references type="button" class="button secondary">References</button>
           <button id="rom-stop" class="button secondary" type="button" disabled>Stop training</button>
           <button id="rom-generate" class="button primary" type="submit" form="rom-snapshot-form" disabled>Generate snapshots</button>
         </div>
       </div>
       <div id="rom-error" class="error-banner" role="alert" hidden></div>
-      <p id="rom-availability" class="rom-note" role="status">Connecting to the training worker…</p>
+      <p id="rom-availability" class="model-message" hidden role="status">Connecting to the training worker…</p>
       <div class="rom-workspace">
         <nav class="config-tabs rom-config-tabs" role="tablist" aria-label="Snapshot settings" aria-orientation="vertical">
-          <button id="rom-tab-geometry" class="config-tab" type="button" role="tab" aria-selected="true" aria-controls="rom-panel-geometry" data-panel="rom-panel-geometry" data-title="Geometry & mesh" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM4 10h16M10 4v16"/></svg><span>Geometry</span></button>
+          <button id="rom-tab-geometry" class="config-tab" type="button" role="tab" aria-selected="true" aria-controls="rom-panel-geometry" data-panel="rom-panel-geometry" data-title="Geometry" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM4 10h16M10 4v16"/></svg><span>Geometry</span></button>
           <button id="rom-tab-loads" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="rom-panel-loads" data-panel="rom-panel-loads" data-title="Training loads" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 19 5M9 5h10v10"/></svg><span>Loads</span></button>
           <button id="rom-tab-material" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="rom-panel-material" data-panel="rom-panel-material" data-title="Material volumes" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5"/></svg><span>Material</span></button>
-          <button id="rom-tab-filters" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="rom-panel-filters" data-panel="rom-panel-filters" data-title="Density filters" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/><circle cx="12" cy="6" r="2"/><circle cx="10" cy="12" r="2"/></svg><span>Filters</span></button>
+          <button id="rom-tab-filters" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="rom-panel-filters" data-panel="rom-panel-filters" data-title="Filters" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/><circle cx="12" cy="6" r="2"/><circle cx="10" cy="12" r="2"/></svg><span>Filters</span></button>
           <button id="rom-tab-sampling" class="config-tab" type="button" role="tab" aria-selected="false" aria-controls="rom-panel-sampling" data-panel="rom-panel-sampling" data-title="Snapshot sampling" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6 15V9M12 15V5M18 15v-4"/><circle cx="6" cy="7" r="1"/><circle cx="12" cy="3" r="1"/><circle cx="18" cy="9" r="1"/></svg><span>Sampling</span></button>
         </nav>
         <aside class="panel rom-configuration">
-          <div class="controls-title"><h2 id="rom-config-title">Geometry & mesh</h2><span class="tag">Full order</span></div>
+          <div class="controls-title"><h2 id="rom-config-title">Geometry</h2></div>
           <form id="rom-snapshot-form">
             <fieldset id="rom-snapshot-settings">
               <section id="rom-panel-geometry" class="control-section" role="tabpanel" aria-labelledby="rom-tab-geometry">
-                <p class="control-hint">Choose the fixed domain and mesh shared by every training case.</p>
                 <div class="input-grid">
-                  <label>Training length<input name="length" type="number" min="0" step="any" value="3" required></label>
-                  <label>Training height<input name="height" type="number" min="0" step="any" value="1" required></label>
-                  <label>Training elements · x<input name="nx" type="number" min="1" step="1" value="30" required></label>
-                  <label>Training elements · y<input name="ny" type="number" min="1" step="1" value="10" required></label>
+                  <label>Length<input name="length" type="number" min="0" step="any" value="3" required></label>
+                  <label>Height<input name="height" type="number" min="0" step="any" value="1" required></label>
+                  <label>Elements in x<input name="nx" type="number" min="1" step="1" value="30" required></label>
+                  <label>Elements in y<input name="ny" type="number" min="1" step="1" value="10" required></label>
                 </div>
-                <p class="rom-note">Plane stress · fixed left edge · unit load and solid modulus. A basis belongs to this mesh.</p>
               </section>
               <section id="rom-panel-loads" class="control-section" role="tabpanel" aria-labelledby="rom-tab-loads" hidden>
-                <p class="control-hint">Enter the load positions and directions the ROM should learn.</p>
-                <label>Load heights · fraction of height<input name="load_heights" type="text" value="0.25, 0.5, 0.75" required></label>
-                <label>Load angles · degrees<input name="load_angles" type="text" value="-90" required></label>
-                <p class="rom-note">Use comma-separated values, for example 0.25, 0.5, 0.75. Heights run from 0 (bottom) to 1 (top). Each direction is applied at every height, on the nearest right-edge node.</p>
+                <label>Load heights (fraction)<input name="load_heights" title="Comma-separated fractions between 0 and 1, measured from the bottom edge." type="text" value="0.25, 0.5, 0.75" required></label>
+                <label>Load angles (degrees)<input name="load_angles" title="Comma-separated angles in degrees." type="text" value="-90" required></label>
               </section>
               <section id="rom-panel-material" class="control-section" role="tabpanel" aria-labelledby="rom-tab-material" hidden>
-                <p class="control-hint">Choose the material budgets for the full-order training trajectories.</p>
-                <label>Volume fractions<input name="volume_fractions" type="text" value="0.3, 0.4, 0.5" required></label>
-                <p class="rom-note">Use comma-separated fractions between 0 and 1. For example, 0.3, 0.4, 0.5 trains at 30%, 40%, and 50% material. Every load is combined with every volume fraction.</p>
+                <label>Volume fractions<input name="volume_fractions" title="Comma-separated material fractions between 0 and 1." type="text" value="0.3, 0.4, 0.5" required></label>
               </section>
               <section id="rom-panel-filters" class="control-section" role="tabpanel" aria-labelledby="rom-tab-filters" hidden>
-                <p class="control-hint">Set the density filter and projection used throughout snapshot generation.</p>
-                <label>Training Helmholtz length · ℓ<input name="filter_radius" type="number" min="0" step="any" value="0.1" required></label>
+                <label>Filter length<input name="filter_radius" type="number" min="0" step="any" value="0.1" required></label>
                 <div class="input-grid">
-                  <label>Training sharpness · β<input name="projection_beta" type="number" min="0" step="any" value="2" required></label>
-                  <label>Training threshold · η<input name="projection_eta" type="number" min="0" max="1" step="any" value="0.5" required></label>
+                  <label>Sharpness<input name="projection_beta" type="number" min="0" step="any" value="2" required></label>
+                  <label>Threshold<input name="projection_eta" type="number" min="0" max="1" step="any" value="0.5" required></label>
                 </div>
-                <p class="rom-note">These settings stay fixed across training cases and are saved with the dataset.</p>
               </section>
               <section id="rom-panel-sampling" class="control-section" role="tabpanel" aria-labelledby="rom-tab-sampling" hidden>
-                <p class="control-hint">Choose how long to optimise each case and how often to save its displacement.</p>
                 <label>Iterations per case<input name="iterations_per_case" type="number" min="1" step="1" value="20" required></label>
                 <label>Snapshot spacing<input name="snapshot_stride" type="number" min="1" step="1" value="2" required></label>
-                <p class="rom-note">A spacing of 2 saves every second iteration. Initial and final states are always included. MMA generates the layouts using the full PETSc solve.</p>
               </section>
             </fieldset>
           </form>
-          <div class="rom-snapshot-summary"><span class="eyebrow">SNAPSHOT PLAN</span><p id="rom-estimate" class="rom-estimate" aria-live="polite"></p></div>
+          <div class="rom-snapshot-summary"><h3>Snapshot plan</h3><p id="rom-estimate" class="rom-estimate" aria-live="polite"></p></div>
         </aside>
         <div class="rom-results">
           <section class="panel viewer-panel" aria-labelledby="rom-progress-title">
-            <div class="panel-heading"><div><h2 id="rom-progress-title">Training progress</h2><p id="rom-case-label">Ready to collect full-order displacement snapshots.</p></div><span id="rom-status" class="status-badge" data-status="ready">Ready</span></div>
+            <div class="panel-heading"><div><h2 id="rom-progress-title">Training progress</h2><p id="rom-case-label"></p></div><span id="rom-status" class="status-badge" data-status="ready">Ready</span></div>
             <div class="metrics" aria-live="polite">
-              <div><span>SNAPSHOTS</span><strong id="rom-snapshot-count">0</strong><small id="rom-case-count">No cases evaluated</small></div>
-              <div><span>LATEST COMPLIANCE</span><strong id="rom-compliance">—</strong><small id="rom-iteration">No snapshots yet</small></div>
-              <div><span>EQUILIBRIUM RESIDUAL</span><strong id="rom-residual">—</strong><small>Full-order solutions</small></div>
+              <div><span>Snapshots</span><strong id="rom-snapshot-count">0</strong><small id="rom-case-count"></small></div>
+              <div><span>Compliance</span><strong id="rom-compliance">—</strong><small id="rom-iteration"></small></div>
+              <div><span>Residual</span><strong id="rom-residual">—</strong></div>
             </div>
-            <div class="canvas-wrap rom-preview"><canvas id="rom-preview" role="img" aria-label="Physical density of the latest full-order training or validation design"></canvas><p id="rom-preview-empty">A material snapshot will appear here during generation.</p></div>
+            <div class="canvas-wrap rom-preview"><canvas id="rom-preview" role="img" aria-label="Physical density of the latest full-order training or validation design"></canvas><p id="rom-preview-empty">No snapshots yet</p></div>
             <progress id="rom-progress" max="100" value="0" aria-label="Snapshot generation progress"></progress>
-            <div class="viewer-footer"><span id="rom-progress-note" role="status">Initial and final states are always included. Stop keeps collected snapshots.</span></div>
+            <div class="viewer-footer"><span id="rom-progress-note" role="status"></span></div>
           </section>
           <section class="panel" aria-labelledby="rom-basis-title">
-            <div class="panel-heading"><div><h2 id="rom-basis-title">02 · Build the reduced basis</h2><p>Choose a saved dataset and compress its displacement snapshots with POD.</p></div><button id="rom-refresh" class="button secondary" type="button">Refresh datasets</button></div>
+            <div class="panel-heading"><div><h2 id="rom-basis-title">Build basis</h2></div><button id="rom-refresh" class="button secondary" type="button">Refresh datasets</button></div>
             <form id="rom-basis-form" class="rom-basis-form">
               <fieldset id="rom-basis-settings">
                 <label>Snapshot dataset<select id="rom-dataset" required><option value="">No saved datasets</option></select></label>
-                <p id="rom-dataset-description" class="rom-note">Generate snapshots to create your first dataset.</p>
+                <p id="rom-dataset-description" class="model-message"></p>
                 <div class="rom-basis-options">
-                  <label>Target POD energy · %<input name="energy_percent" type="number" min="0.01" max="100" step="any" value="99.9" required></label>
+                  <label>Target energy (%)<input name="energy_percent" type="number" min="0.01" max="100" step="any" value="99.9" required></label>
                   <label>Maximum modes<input name="max_modes" type="number" min="1" max="256" step="1" value="32" required></label>
                   <label class="rom-check"><input name="normalize" type="checkbox" checked>Weight snapshots equally</label>
                 </div>
-                <p class="rom-note">Equal weighting normalises each displacement snapshot before POD. No mean displacement is subtracted.</p>
               </fieldset>
               <button id="rom-build" class="button primary" type="submit" disabled>Build reduced basis</button>
             </form>
             <div id="rom-basis-result" class="rom-basis-result" hidden>
               <div class="metrics">
-                <div><span>RETAINED MODES</span><strong id="rom-rank">—</strong><small id="rom-rank-description"></small></div>
-                <div><span>CAPTURED POD ENERGY</span><strong id="rom-energy">—</strong><small id="rom-target-status"></small></div>
-                <div><span>MAX RECONSTRUCTION ERROR</span><strong id="rom-reconstruction">—</strong><small>Training displacements only</small></div>
+                <div><span>Retained modes</span><strong id="rom-rank">—</strong><small id="rom-rank-description"></small></div>
+                <div><span>Captured energy</span><strong id="rom-energy">—</strong><small id="rom-target-status"></small></div>
+                <div><span>Reconstruction error</span><strong id="rom-reconstruction">—</strong></div>
               </div>
               <svg id="rom-spectrum" viewBox="0 0 600 190" role="img" aria-label="Cumulative POD snapshot energy by number of modes"></svg>
             </div>
             <div id="rom-downloads" class="viewer-footer" hidden>
-              <span>Saved locally · <span id="rom-dataset-id"></span></span>
+              <span>Dataset <span id="rom-dataset-id"></span></span>
               <div class="rom-download-links"><a id="rom-download-snapshots">Download snapshots</a><a id="rom-download-basis" hidden>Download basis</a><a id="rom-download-metadata">Metadata</a></div>
             </div>
           </section>
           <section class="panel" aria-labelledby="rom-validation-title">
-            <div class="panel-heading"><div><h2 id="rom-validation-title">03 · Validate on unseen cases</h2><p>Compare the frozen ROM with full-order solutions on new design trajectories.</p></div><span id="rom-validation-verdict" class="status-badge">Not validated</span></div>
+            <div class="panel-heading"><div><h2 id="rom-validation-title">Validate model</h2></div><span id="rom-validation-verdict" class="status-badge">Not validated</span></div>
             <form id="rom-validation-form" class="rom-basis-form">
-              <p id="rom-validation-scope" class="rom-note">Select a dataset with a built basis above.</p>
+              <p id="rom-validation-scope" class="model-message"></p>
               <fieldset id="rom-validation-settings">
                 <div class="rom-validation-cases">
-                  <label>Validation load heights<input name="load_heights" type="text" value="0.4, 0.6" required></label>
-                  <label>Validation load angles · degrees<input name="load_angles" type="text" value="-75" required></label>
-                  <label>Validation volume fractions<input name="volume_fractions" type="text" value="0.35, 0.45" required></label>
+                  <label>Load heights (fraction)<input name="load_heights" title="Comma-separated fractions between 0 and 1, measured from the bottom edge." type="text" value="0.4, 0.6" required></label>
+                  <label>Load angles (degrees)<input name="load_angles" title="Comma-separated angles in degrees." type="text" value="-75" required></label>
+                  <label>Volume fractions<input name="volume_fractions" title="Comma-separated material fractions between 0 and 1." type="text" value="0.35, 0.45" required></label>
                 </div>
-                <p class="rom-note">Comma-separated values form every combination. Heights are fractions of height. Cases matching training after load-node snapping are rejected.</p>
                 <div class="rom-validation-cases">
-                  <label>Validation iterations per case<input name="iterations_per_case" type="number" min="1" max="300" value="10" required></label>
+                  <label>Iterations per case<input name="iterations_per_case" type="number" min="1" max="300" value="10" required></label>
                   <label>Comparison spacing<input name="comparison_stride" type="number" min="1" max="300" value="5" required></label>
                 </div>
                 <div class="rom-validation-cases">
-                  <label>Displacement tolerance · %<input name="displacement_tolerance" type="number" min="0.000001" max="100" step="any" value="5" required></label>
-                  <label>Compliance tolerance · %<input name="compliance_tolerance" type="number" min="0.000001" max="100" step="any" value="1" required></label>
-                  <label>Design gradient tolerance · %<input name="gradient_tolerance" type="number" min="0.000001" max="100" step="any" value="10" required></label>
+                  <label>Displacement tolerance (%)<input name="displacement_tolerance" type="number" min="0.000001" max="100" step="any" value="5" required></label>
+                  <label>Compliance tolerance (%)<input name="compliance_tolerance" type="number" min="0.000001" max="100" step="any" value="1" required></label>
+                  <label>Gradient tolerance (%)<input name="gradient_tolerance" type="number" min="0.000001" max="100" step="any" value="10" required></label>
                 </div>
-                <p class="rom-note">Mesh, material, and filters come from the selected dataset. Full-order MMA drives the designs; validation never fits or enriches the basis. Limits: 16 cases, 128 comparison states.</p>
               </fieldset>
               <button id="rom-validate" class="button primary" type="submit" disabled>Validate reduced basis</button>
             </form>
-            <p id="rom-validation-note" class="rom-validation-summary" role="status">No held-out validation for this basis.</p>
+            <p id="rom-validation-note" class="rom-validation-summary" role="status"></p>
             <div id="rom-validation-results" hidden>
               <div class="metrics" aria-live="polite">
-                <div><span>MAX DISPLACEMENT ERROR</span><strong id="rom-validation-displacement">—</strong><small id="rom-validation-displacement-mean">Relative L2 error</small></div>
-                <div><span>MAX COMPLIANCE ERROR</span><strong id="rom-validation-compliance">—</strong><small id="rom-validation-compliance-mean">Relative absolute error</small></div>
-                <div><span>MAX DESIGN GRADIENT ERROR</span><strong id="rom-validation-gradient">—</strong><small id="rom-validation-gradient-mean">Relative L2 error</small></div>
+                <div><span>Displacement error</span><strong id="rom-validation-displacement">—</strong><small id="rom-validation-displacement-mean">Relative L2 error</small></div>
+                <div><span>Compliance error</span><strong id="rom-validation-compliance">—</strong><small id="rom-validation-compliance-mean">Relative absolute error</small></div>
+                <div><span>Gradient error</span><strong id="rom-validation-gradient">—</strong><small id="rom-validation-gradient-mean">Relative L2 error</small></div>
               </div>
-              <p class="rom-validation-summary">Errors use full order as reference. Design gradients include SIMP, Helmholtz filtering, and projection. Displacement uses the nodal Euclidean norm, not an energy norm.</p>
               <div class="rom-validation-table-wrap" tabindex="0" role="region" aria-label="Held-out state comparisons">
                 <table class="rom-validation-table"><caption>ROM versus full-order results at each sampled design</caption><thead><tr><th scope="col">Case · load · volume</th><th scope="col">Iteration</th><th scope="col">Full compliance</th><th scope="col">ROM compliance</th><th scope="col">Displacement error</th><th scope="col">Compliance error</th><th scope="col">Gradient error</th><th scope="col">ROM residual</th><th scope="col">Tolerances</th></tr></thead><tbody id="rom-validation-rows"></tbody></table>
               </div>
             </div>
             <div id="rom-validation-downloads" class="viewer-footer" hidden><span id="rom-validation-provenance"></span><div class="rom-download-links"><a id="rom-download-validation">Download validation report</a><a id="rom-download-comparisons">Download comparison arrays</a></div></div>
           </section>
-          <p class="rom-note rom-validation-note">Held-out results apply to the tested cases and designs, not arbitrary material layouts. Choose a saved ROM under Cantilever 2D → Solver → Elasticity solver to use it for optimisation.</p>
         </div>
       </div>
       </section>
     </section>
-    <footer class="page-footer"><span id="workspace-label">TOptVis · Cantilever 2D</span><span>PyTorch + PETSc</span></footer>
   </main>
+  <dialog id="references-dialog" aria-labelledby="references-title"><div class="references-heading"><h2 id="references-title">Methods and references</h2><button id="references-close" type="button" class="button secondary">Close</button></div><div id="references-list" class="references-list"></div></dialog>
 </body>
 </html>

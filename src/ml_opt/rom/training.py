@@ -123,7 +123,7 @@ def generate_snapshots(config: SnapshotConfig, directory: Path, *, emit=lambda e
                 "maximum_snapshots": config.maximum_snapshots,
                 "estimated_snapshot_bytes": config.estimated_snapshot_bytes, "free_dof_count": len(mesh.free_dofs),
                 "snapshot_layout": "columns; free displacement DOFs; zero clamped displacement",
-                "cases": [asdict(case) for case in cases], "case_results": []}
+                "cases": json.loads(json.dumps([asdict(case) for case in cases])), "case_results": []}
     save_metadata(directory, metadata)
     displacements, densities, case_indices, iterations, compliances, residuals = [], [], [], [], [], []
     try:

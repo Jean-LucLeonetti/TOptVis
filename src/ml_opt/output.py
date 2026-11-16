@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 
 from .fem.mesh import StructuredMesh
+from .boundaries import resolve_boundary_data
 from .runner import OptimizationResult
 
 
@@ -16,8 +17,12 @@ def save_results(result: OptimizationResult, directory: str | Path) -> Path:
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
     config, evaluation = result.config, result.evaluation
-    mesh = StructuredMesh(config.nx, config.ny, config.length, config.height)
+    mesh = StructuredMesh(config.nx, config.ny, config.length, config.height, config.boundary_conditions, config.load_cases[0].id)
     fields = {}
+    force_vectors = ([mesh.cantilever_force(config.load, config.load_angle, None if config.load_node_x is None else
+                     (config.load_node_x,config.load_node_y))] if config.boundary_conditions is None else
+                     [resolve_boundary_data(config.boundary_conditions,config.nx,config.ny,case_id=case.id,
+                       default_case_id=config.load_cases[0].id,length=config.length,height=config.height).force for case in config.load_cases])
     if evaluation.field_densities is not None:
         for name, density in evaluation.field_densities.items():
             fields[f"density_{name}"] = density.reshape(config.ny, config.nx)
@@ -29,9 +34,14 @@ def save_results(result: OptimizationResult, directory: str | Path) -> Path:
                         force=mesh.cantilever_force(config.load, config.load_angle,
                               None if config.load_node_x is None else
                               (config.load_node_x, config.load_node_y)).reshape(-1, 2),
+                        forces=np.stack(force_vectors).reshape(len(force_vectors),-1,2),
+                        load_case_ids=np.array([case.id for case in config.load_cases]),
+                        prescribed_displacement=mesh.prescribed_values.reshape(-1,2),
+                        load_case_compliances_json=np.array(json.dumps(evaluation.load_case_compliances)),
                         state_solver=np.array(config.state_solver), rom_basis_json=np.array(json.dumps(result.rom_basis)), **fields)
     def history_row(entry):
         row = asdict(entry)
+        row["load_case_compliances"] = json.dumps(row["load_case_compliances"])
         compliances, volumes = row.pop("field_compliances"), row.pop("field_volumes")
         if compliances is not None:
             row.update({f"compliance_{name}": value for name, value in compliances.items()})
@@ -57,6 +67,9 @@ def save_results(result: OptimizationResult, directory: str | Path) -> Path:
         "state_solver": config.state_solver, "rom_basis": result.rom_basis,
         "objective_model": "approximate frozen Galerkin ROM" if config.state_solver == "rom" else "full-order elasticity",
         "final_projection_beta": evaluation.projection_beta,
+        "load_case_compliances": evaluation.load_case_compliances,
+        "load_aggregation": config.load_aggregation,
+        "objective_quantity": "elastic_work" if config.imposed_motion else "compliance",
     }
     if config.robust:
         epigraph_feasible = evaluation.epigraph_constraint <= config.feasibility_tolerance
@@ -96,24 +109,58 @@ def _save_figures(result: OptimizationResult, directory: Path) -> None:
     from matplotlib.patches import Rectangle
 
     config = result.config
+    objective_label = "Elastic work" if config.imposed_motion else "Compliance"
     figure, axes = plt.subplots(figsize=(10, 4), layout="constrained")
     axes.imshow(result.evaluation.density.reshape(config.ny, config.nx),
                 origin="lower", extent=(0, config.length, 0, config.height),
                 cmap="gray_r", vmin=0, vmax=1, interpolation="nearest")
     pad = 0.035 * config.length
-    axes.add_patch(Rectangle((-pad, 0), pad, config.height, facecolor="0.85", hatch="///"))
-    anchor = np.array([config.length, config.height / 2]) if config.load_node_x is None else np.array([
-        config.load_node_x * config.length / config.nx, config.load_node_y * config.height / config.ny])
-    direction = np.array([np.cos(np.deg2rad(config.load_angle)), np.sin(np.deg2rad(config.load_angle))])
-    tip = anchor + direction * 0.25 * config.height
-    axes.annotate("", xy=tip, xytext=anchor,
-                  arrowprops={"arrowstyle": "->", "color": "tab:red", "lw": 2})
-    axes.set(xlim=(min(-pad, tip[0] - pad), max(config.length + pad, tip[0] + pad)),
-             ylim=(min(-0.03 * config.height, tip[1] - pad), max(1.03 * config.height, tip[1] + pad)),
-             xlabel="x", ylabel="y", title=f"Cantilever | {config.optimizer.upper()} | {config.state_solver.upper()} | "
+    arrows = []
+    if config.boundary_conditions is None:
+        axes.add_patch(Rectangle((-pad, 0), pad, config.height, facecolor="0.85", hatch="///"))
+        anchor = np.array([config.length, config.height / 2]) if config.load_node_x is None else np.array([
+            config.load_node_x * config.length / config.nx, config.load_node_y * config.height / config.ny])
+        arrows.append((anchor, config.load_angle, "tab:red"))
+    else:
+        mesh = StructuredMesh(config.nx, config.ny, config.length, config.height, config.boundary_conditions, config.load_cases[0].id)
+        supports = mesh.coordinates[np.unique(mesh.fixed_dofs // 2)]
+        axes.scatter(supports[:, 0], supports[:, 1], marker="s", s=12, color="tab:blue", zorder=3)
+        for condition in config.boundary_conditions:
+            if condition.kind == "displacement":
+                nodes, weights = condition.selection.nodes_and_weights(config.nx,config.ny)
+                anchor = weights @ mesh.coordinates[nodes]
+                if "x" in condition.components and condition.ux:
+                    arrows.append((anchor,0 if condition.ux>0 else 180,"tab:purple"))
+                if "y" in condition.components and condition.uy:
+                    arrows.append((anchor,90 if condition.uy>0 else -90,"tab:purple"))
+            if condition.kind != "force":
+                continue
+            if (condition.case_id or config.load_cases[0].id) != config.load_cases[0].id:
+                continue
+            nodes, weights = condition.selection.nodes_and_weights(config.nx, config.ny)
+            coordinates = mesh.coordinates[nodes]
+            if condition.selection.kind == "line":
+                axes.plot(coordinates[:, 0], coordinates[:, 1], color="tab:red", linewidth=2)
+            elif condition.selection.kind == "surface":
+                lower, upper = coordinates.min(axis=0), coordinates.max(axis=0)
+                axes.add_patch(Rectangle(lower, *(upper-lower), facecolor="tab:red", edgecolor="tab:red", alpha=.15))
+            arrows.append((weights @ coordinates, condition.angle, "tab:red"))
+    tips = []
+    for anchor, angle, color in arrows:
+        direction = np.array([np.cos(np.deg2rad(angle)), np.sin(np.deg2rad(angle))])
+        tip = anchor + direction * .25 * config.height
+        tips.append(tip)
+        axes.annotate("", xy=tip, xytext=anchor,
+                      arrowprops={"arrowstyle": "->", "color": color, "lw": 2})
+    tips = np.asarray(tips)
+    axes.set(xlim=(min(-pad, tips[:, 0].min() - pad), max(config.length + pad, tips[:, 0].max() + pad)),
+             ylim=(min(-0.03 * config.height, tips[:, 1].min() - pad), max(1.03 * config.height, tips[:, 1].max() + pad)),
+             xlabel="x", ylabel="y", title=f"{'Topology' if config.boundary_conditions is not None else 'Cantilever'} | {config.optimizer.upper()} | {config.state_solver.upper()} | "
              f"{'nominal density | dilated volume' if config.robust else 'volume'} "
-             f"{result.evaluation.volume_fraction:.3f} | compliance {result.evaluation.compliance:.3f}")
+             f"{result.evaluation.volume_fraction:.3f} | {objective_label.lower()} {result.evaluation.compliance:.3f}")
     axes.set_aspect("equal")
+    if len(config.load_cases)>1:
+        axes.set_title(axes.get_title()+f" | forces: {config.load_cases[0].name}")
     figure.savefig(directory / "density.png", dpi=160)
     plt.close(figure)
 
@@ -123,7 +170,7 @@ def _save_figures(result: OptimizationResult, directory: Path) -> None:
             axis.imshow(density.reshape(config.ny, config.nx), origin="lower",
                         extent=(0, config.length, 0, config.height), cmap="gray_r", vmin=0, vmax=1)
             axis.set(title=f"{name.title()} | volume {result.evaluation.field_volumes[name]:.3f} | "
-                     f"compliance {result.evaluation.field_compliances[name]:.3f}", xlabel="x", ylabel="y")
+                     f"{objective_label.lower()} {result.evaluation.field_compliances[name]:.3f}", xlabel="x", ylabel="y")
             axis.set_aspect("equal")
         figure.savefig(directory / "robust-fields.png", dpi=160)
         plt.close(figure)
@@ -132,7 +179,7 @@ def _save_figures(result: OptimizationResult, directory: Path) -> None:
     iterations = [entry.iteration for entry in result.history]
     initial = result.history[0].compliance
     axes[0].plot(iterations, [entry.compliance / initial for entry in result.history])
-    axes[0].set(xlabel="Iteration", ylabel="Compliance / initial compliance")
+    axes[0].set(xlabel="Iteration", ylabel=f"{objective_label} / initial {objective_label.lower()}")
     axes[1].plot(iterations, [entry.volume_fraction for entry in result.history],
                  label="Dilated volume" if config.robust else "Physical volume")
     relation = {"lt": "≤", "gt": "≥", "eq": "="}[config.volume_constraint]

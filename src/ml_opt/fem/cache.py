@@ -7,7 +7,9 @@ from .elasticity import ElasticityState
 
 def copy_state(state):
     return ElasticityState(state.displacement.copy(), state.compliance, state.element_energy.copy(),
-                           state.relative_residual, state.iterations)
+                           state.relative_residual, state.iterations,
+                           None if state.case_compliances is None else dict(state.case_compliances),
+                           state.active_case, state.state_solves)
 
 
 class StateCache:

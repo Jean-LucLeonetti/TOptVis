@@ -1,5 +1,6 @@
 import "/static/cantilever.js";
 import "/static/rom-training.js";
+import "/static/regression.js";
 
 // Workspace navigation stays independent of each workspace's controls and state.
 const tabs = Array.from(document.querySelectorAll('.workspace-tabs [role="tab"]'));
@@ -28,7 +29,6 @@ function selectWorkspace(route, {focus = false, updateHistory = false, methodFoc
   const isML = active.dataset.workspace === "ml";
   const label = `${active.textContent.trim()}${isML ? ` · ${activeMethod.textContent.trim()}` : ""}`;
   document.title = `TOptVis · ${label}`;
-  document.getElementById("workspace-label").textContent = `TOptVis · ${label}`;
   if (focus) (methodFocus ? activeMethod : active).focus();
   const hash = `#${active.dataset.workspace}${isML ? `/${activeMethod.dataset.method}` : ""}`;
   if (updateHistory && location.hash !== hash) {

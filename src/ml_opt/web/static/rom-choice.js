@@ -1,8 +1,11 @@
+import {cantileverSupports} from "/static/mesh-selection.js";
+
 const byId = id => document.getElementById(id);
 
 export class RomChoice {
-  constructor({onChange, onStateChange, isRunning}) {
+  constructor({onChange, onStateChange, isRunning, getModel}) {
     this.onChange = onChange; this.onStateChange = onStateChange; this.isRunning = isRunning;
+    this.getModel = getModel;
     this.records = []; this.supported = false;
     this.mode = byId("state_solver"); this.models = byId("rom_training_id");
     for (const control of [this.mode, this.models]) control.addEventListener("input", () => this.sync());
@@ -26,7 +29,8 @@ export class RomChoice {
   get selected() { return this.records.find(record => record.id === this.models.value); }
   get compatible() {
     const record = this.selected;
-    return !!record && ["nx", "ny", "length", "height"].every(key => Number(byId(key).value) === record.settings[key]);
+    return !!record && cantileverSupports(this.getModel().boundary_conditions, this.getModel()) &&
+      ["nx", "ny", "length", "height"].every(key => Number(byId(key).value) === record.settings[key]);
   }
   get allowed() { return !this.isRom || (this.supported && this.compatible); }
   signature() { return `${this.selected?.id || ""}/${this.selected?.basis?.built_at || ""}`; }
@@ -37,13 +41,14 @@ export class RomChoice {
     this.models.disabled = !this.isRom;
     this.models.required = this.isRom;
     byId("rom-refresh-models").disabled = this.isRunning();
-    byId("rom-use-mesh").hidden = !this.selected || this.compatible;
+    byId("rom-use-mesh").hidden = !this.selected || ["nx", "ny", "length", "height"].every(key => Number(byId(key).value) === this.selected.settings[key]);
     byId("rom-use-mesh").disabled = this.isRunning();
     const record = this.selected;
-    byId("rom-model-description").textContent = !this.supported ? "Restart TOptVis to enable ROM optimisation." :
-      !record ? "No saved basis is available. Build one in ML → ROM, then refresh ROMs." :
-      !this.compatible ? `This ROM uses ${record.settings.nx} × ${record.settings.ny} elements on ${record.settings.length} × ${record.settings.height}. Use its mesh or choose a matching model.` :
-      `${record.basis.rank} modes · ${record.validation ? record.validation.status === "cancelled" ? "partial validation" : record.validation.meets_tolerances ? "within tested validation tolerances" : "outside tested validation tolerances" : "not validated"}. Reduced compliance and gradients are approximate; coverage depends on training cases.`;
+    byId("rom-model-description").textContent = !this.supported ? "Restart TOptVis to enable reduced models." :
+      !record ? "Build a basis in Machine learning, then refresh models." :
+      !cantileverSupports(this.getModel().boundary_conditions, this.getModel()) ? "This basis requires one load case and a fixed left edge. Restore those settings or use the full model." :
+      !this.compatible ? `Model mesh: ${record.settings.nx} by ${record.settings.ny}, domain ${record.settings.length} by ${record.settings.height}. Use model mesh to continue.` :
+      `${record.basis.rank} modes. ${record.validation ? record.validation.status === "cancelled" ? "Partial validation." : record.validation.meets_tolerances ? "Within tested tolerances." : "Outside tested tolerances." : "Not validated."} Approximate results.`;
     this.onStateChange();
   }
 
@@ -62,7 +67,7 @@ export class RomChoice {
         option.textContent = `${record.id.slice(0,8)} · ${record.settings.nx}×${record.settings.ny} · ${record.basis.rank} modes`;
         this.models.append(option);
       }
-      if (!this.records.length) this.models.add(new Option("No trained ROMs", ""));
+      if (!this.records.length) this.models.add(new Option("No saved models", ""));
       if (this.records.some(record => record.id === selectedId)) this.models.value = selectedId;
       else {
         const matching = this.records.find(record => ["nx", "ny", "length", "height"].every(key => Number(byId(key).value) === record.settings[key]));

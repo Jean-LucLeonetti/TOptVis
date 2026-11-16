@@ -46,7 +46,7 @@ class FieldSolves:
         except BaseException:
             self.close(healthy=False)
             raise
-        self.solve_count += len(states)
+        self.solve_count += sum(state.state_solves for state in states)
         self.cache.put(moduli, states)
         self.last_states = states
         return states

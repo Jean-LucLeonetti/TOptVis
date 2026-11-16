@@ -26,7 +26,7 @@ class MovingAsymptotes:
     def __init__(self, initial_design: np.ndarray, method: str = "mma",
                  move_limit: float = 0.2, max_inner_iterations: int = 30, *, robust: bool = False,
                  max_size: bool = False, max_void: bool = False,
-                 volume_mode: str = "lt", volume_tolerance: float = 1e-4):
+                 volume_mode: str = "lt", volume_tolerance: float = 1e-4, design_mask=None):
         if method not in ("mma", "gcmma"):
             raise ValueError("Unknown moving-asymptote method")
         if not 0 < move_limit <= 1 or max_inner_iterations < 1:
@@ -41,6 +41,11 @@ class MovingAsymptotes:
         self.m = (4 if robust else 1) + int(volume_mode == "eq") + int(max_size) + int(max_void)
         self.move = move_limit
         self.max_inner_iterations = max_inner_iterations
+        self.design_mask = None if design_mask is None else np.asarray(design_mask, dtype=bool)
+        if self.design_mask is not None:
+            if self.design_mask.shape != np.shape(initial_design) or not np.any(self.design_mask):
+                raise ValueError("Expected at least one designable element")
+            initial_design = np.asarray(initial_design)[self.design_mask]
         self.n = len(initial_design)
         self.xold1 = np.asarray(initial_design, dtype=float).reshape(-1, 1).copy()
         self.xold2 = self.xold1.copy()
@@ -93,6 +98,8 @@ class MovingAsymptotes:
         if self.robust and current.field_gradients is None:
             raise ValueError("Epigraph MMA requires all three field gradients")
         x = np.asarray(design, dtype=float).reshape(-1, 1)
+        if self.design_mask is not None:
+            x = x[self.design_mask]
         if self.scale is None:
             self.scale = current.compliance
             if not np.isfinite(self.scale) or self.scale <= 0:
@@ -106,7 +113,7 @@ class MovingAsymptotes:
         else:
             volume_rows = current.constraint_gradient.reshape(1, -1)
         if self.robust:
-            objective_gradient = np.zeros((self.n, 1))
+            objective_gradient = np.zeros((len(design), 1))
             constraint_gradient = np.vstack([current.field_gradients[name] / self.scale
                 for name in ("eroded", "nominal", "dilated")] + [volume_rows])
         else:
@@ -121,6 +128,16 @@ class MovingAsymptotes:
                 raise ValueError("Maximum-void MMA requires its constraint gradient")
             constraint_gradient = np.vstack([constraint_gradient, current.max_void_gradient])
         inner_iterations = 0
+        def expand(candidate):
+            if self.design_mask is None:
+                return candidate.ravel()
+            full = np.array(design, dtype=float, copy=True)
+            full[self.design_mask] = candidate.ravel()
+            return full
+
+        if self.design_mask is not None:
+            objective_gradient = objective_gradient[self.design_mask]
+            constraint_gradient = constraint_gradient[:, self.design_mask]
         # PERF B2: retain mmapy's subproblem algorithm, with diagonal row
         # scaling performed by broadcasting instead of allocating sparse matrices.
         if self.method == "mma":
@@ -143,7 +160,7 @@ class MovingAsymptotes:
                     objective_gradient, constraint, constraint_gradient,
                     1.0, self.a, self.c, self.d)
                 candidate, approximation, constraint_approximation = result[0], result[-2], result[-1]
-                trial = evaluate(candidate.ravel(), False)
+                trial = evaluate(expand(candidate), False)
                 trial_value, trial_constraint = self._values(trial)
                 trial_objective = np.array([[trial_value]])
                 # a_i*z is exact and cancels from these conservativeness checks.
@@ -165,4 +182,4 @@ class MovingAsymptotes:
         epigraph = float(np.asarray(result[2]).item()) * self.scale if self.robust else None
         if epigraph is not None and (not np.isfinite(epigraph) or epigraph < 0):
             raise RuntimeError("Optimizer returned an invalid epigraph value")
-        return OptimizerStep(candidate.copy(), inner_iterations, epigraph)
+        return OptimizerStep(expand(candidate).copy(), inner_iterations, epigraph)

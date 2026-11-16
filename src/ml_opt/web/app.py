@@ -14,9 +14,42 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from ..config import CantileverConfig
 from .jobs import RunManager
 from .rom import create_rom_router, selected_basis_path
+from .regression import create_regression_router
 from ..rom.solver import load_basis
 from .streams import stream_job
 from .runtime import source_revision
+
+
+class SelectionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    kind: Literal["point", "line", "surface"]
+    start: tuple[float, float]
+    end: tuple[float, float] | None = None
+
+
+class BoundaryRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    kind: Literal["fixed", "restrain_x", "restrain_y", "displacement", "force"]
+    selection: SelectionRequest
+    magnitude: float = Field(default=1, gt=0, le=1e6)
+    angle: float = Field(default=-90, ge=-180, le=180)
+    components: Literal["x", "y", "xy"] = "xy"
+    ux: float = 0
+    uy: float = 0
+    case_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,64}$")
+
+
+class LoadCaseRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
+    name: str = Field(min_length=1, max_length=80)
+    weight: float = Field(default=1, gt=0, le=1e6)
+
+
+class NonDesignRegionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    kind: Literal["solid", "void"]
+    selection: SelectionRequest
 
 
 class RunRequest(BaseModel):
@@ -55,10 +88,14 @@ class RunRequest(BaseModel):
     state_solver: Literal["fom", "rom"] = "fom"
     linear_solver: Literal["lu", "cholesky", "cg-icc", "cg-gamg"] = "lu"
     rom_training_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{32}$")
+    boundary_conditions: list[BoundaryRequest] | None = Field(default=None, max_length=128)
+    load_cases: list[LoadCaseRequest] | None = Field(default=None, min_length=1, max_length=16)
+    load_aggregation: Literal["weighted", "worst"] = "weighted"
+    non_design_regions: list[NonDesignRegionRequest] = Field(default_factory=list, max_length=128)
 
     @model_validator(mode="after")
     def valid_node(self):
-        if self.load_node_x > self.nx or self.load_node_y > self.ny:
+        if self.boundary_conditions is None and (self.load_node_x > self.nx or self.load_node_y > self.ny):
             raise ValueError("The selected load node must be inside the mesh")
         if self.state_solver == "rom" and self.rom_training_id is None:
             raise ValueError("Choose a saved ROM basis for ROM optimisation")
@@ -72,8 +109,9 @@ class RunRequest(BaseModel):
         return CantileverConfig(**self.model_dump(exclude={"rom_training_id"}), rom_basis_path=rom_basis_path)
 
 
-def create_app(*, training_root: Path | None = None) -> FastAPI:
+def create_app(*, training_root: Path | None = None, regression_root: Path | None = None) -> FastAPI:
     training_root = (training_root or Path(__file__).resolve().parents[3] / "outputs" / "rom-training").resolve()
+    regression_root = (regression_root or training_root.parent / "regression").resolve()
     manager = RunManager()
     # Capture at startup; recomputing in /health would misidentify old imported code.
     revision = source_revision()
@@ -88,6 +126,22 @@ def create_app(*, training_root: Path | None = None) -> FastAPI:
     app = FastAPI(title="TOptVis", lifespan=lifespan)
     app.state.manager = manager
     app.include_router(create_rom_router(manager, training_root))
+
+    def resolve_configuration(request):
+        if request.state_solver == "rom":
+            path = selected_basis_path(training_root, request.rom_training_id)
+            config = request.configuration(rom_basis_path=str(path))
+            _, info = load_basis(path, config)
+            if info["training_id"] != request.rom_training_id:
+                raise ValueError("The ROM artifact does not belong to the selected training dataset")
+            return replace(config, rom_basis_sha256=info["basis_sha256"])
+        return request.configuration()
+
+    def resolve_problem(model):
+        request = RunRequest.model_validate(model)
+        return request.model_dump(mode="json"), resolve_configuration(request)
+
+    app.include_router(create_regression_router(manager, regression_root, resolve_problem=resolve_problem))
     static = Path(__file__).with_name("static")
     app.mount("/static", StaticFiles(directory=static), name="static")
 
@@ -106,23 +160,21 @@ def create_app(*, training_root: Path | None = None) -> FastAPI:
                 "volume_modes_supported": True,
                 "gcmma_inner_limit_supported": True,
                 "rom_training_supported": True,
+                "regression_supported": True,
+                "regression_problem_import_supported": True,
                 "rom_validation_supported": True,
                 "rom_optimisation_supported": True,
                 "linear_solver_supported": True,
+                "boundary_conditions_supported": True,
+                "extended_boundaries_supported": True,
+                "multiple_load_cases_supported": True,
+                "non_design_regions_supported": True,
                 "active_kind": manager.active.kind if manager.active else None}
 
     @app.post("/api/run")
     async def run(request: RunRequest):
         try:
-            if request.state_solver == "rom":
-                path = selected_basis_path(training_root, request.rom_training_id)
-                config = request.configuration(rom_basis_path=str(path))
-                _, info = load_basis(path, config)
-                if info["training_id"] != request.rom_training_id:
-                    raise ValueError("The ROM artifact does not belong to the selected training dataset")
-                config = replace(config, rom_basis_sha256=info["basis_sha256"])
-            else:
-                config = request.configuration()
+            config = resolve_configuration(request)
         except ValueError as error:
             raise HTTPException(422, str(error)) from error
         try:
@@ -131,6 +183,11 @@ def create_app(*, training_root: Path | None = None) -> FastAPI:
             raise HTTPException(409, str(error)) from error
 
         return stream_job(manager, job, {"config": asdict(config)})
+
+    @app.post("/api/project/validate")
+    async def validate_project(request: RunRequest):
+        # Validate user-editable data without starting a worker or trusting paths.
+        return {"model": request.model_dump(mode="json")}
 
     @app.post("/api/run/{run_id}/stop")
     async def stop(run_id: str):

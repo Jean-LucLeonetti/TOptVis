@@ -64,7 +64,8 @@ function updateButtons() {
   validationView.setDisabled(disabled, state.validationSupported);
   byId("rom-availability").textContent = !state.ready ? "Restart TOptVis, then refresh this page to enable offline ROM training." :
     state.externalBusy ? "The solver worker is busy. Finish or stop the current job before starting training." :
-    "Generate snapshots, then build a basis. Datasets and bases are saved locally and remain available after restart.";
+    "";
+  byId("rom-availability").hidden = state.ready && !state.externalBusy;
 }
 
 function setBusy(busy) {
@@ -94,7 +95,8 @@ function estimate() {
     const power = bytes >= 2**40 ? 40 : bytes >= 2**30 ? 30 : bytes >= 2**20 ? 20 : bytes >= 2**10 ? 10 : 0;
     const unit = {0:"B",10:"KiB",20:"MiB",30:"GiB",40:"TiB"}[power];
     const storage = Number.isFinite(bytes) ? `${number(bytes/2**power)} ${unit}` : "estimate unavailable";
-    byId("rom-estimate").textContent = `${number(cases)} case${cases === 1 ? "" : "s"} · up to ${number(snapshots)} snapshots · ${storage} of displacement/density arrays. No fixed size caps. Saving and POD require additional RAM.`;
+    byId("rom-estimate").textContent = `${number(cases)} cases / ${number(snapshots)} snapshots / ${storage}`;
+    byId("rom-estimate").title = "Estimated array storage. Saving and basis construction require additional memory.";
   } catch (e) { byId("rom-estimate").textContent = e.message; }
 }
 
@@ -138,17 +140,17 @@ function renderDataset() {
       state.previewModel = null; state.density = null;
       canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
       byId("rom-preview-empty").hidden = false;
-      byId("rom-preview-empty").textContent = "Live preview appears during generation. Download saved snapshots below.";
+      byId("rom-preview-empty").textContent = "No live preview";
       byId("rom-compliance").textContent = record.last_snapshot ? number(record.last_snapshot.compliance) : "—";
       byId("rom-residual").textContent = record.last_snapshot ? record.last_snapshot.residual.toExponential(1) : "—";
       byId("rom-iteration").textContent = record.last_snapshot ? `Saved snapshot at iteration ${record.last_snapshot.iteration}` : "No live snapshot loaded";
     }
-    byId("rom-case-label").textContent = `Saved dataset ${record.id.slice(0, 8)} · ${record.snapshot_count} full-order snapshots`;
+    byId("rom-case-label").textContent = `Dataset ${record.id.slice(0, 8)}`;
     byId("rom-progress").value = 100 * record.completed_cases / record.case_count;
     status(basis ? "Basis ready" : record.status === "snapshots_ready" ? "Snapshots ready" : record.status.replaceAll("_", " "),
       basis || record.status === "snapshots_ready" ? "complete" : "ready");
   } else {
-    byId("rom-dataset-description").textContent = "Generate snapshots to create your first dataset.";
+    byId("rom-dataset-description").textContent = "";
   }
   if (basis) {
     byId("rom-rank").textContent = basis.rank;
@@ -202,7 +204,7 @@ function receive(event) {
   } else if (event.event === "validation_case_started") {
     state.previewModel = event.config;
     validationView.caseStarted(event);
-    byId("rom-case-label").textContent = `Validation case ${event.case_index+1}/${event.case_count} · node ${event.config.load_node_y} · ${event.config.load_angle}° · volume ${percent(event.config.volume_fraction)}`;
+    byId("rom-case-label").textContent = `Validation case ${event.case_index+1} of ${event.case_count}`;
   } else if (event.event === "validation_state") {
     validationView.addResult(event);
     state.density = event.density;
@@ -215,7 +217,7 @@ function receive(event) {
     redraw();
   } else if (event.event === "case_started") {
     state.previewModel = event.config;
-    byId("rom-case-label").textContent = `Case ${event.case_index+1}/${event.case_count} · node (${event.config.load_node_x}, ${event.config.load_node_y}) · ${event.config.load_angle}° · volume ${percent(event.config.volume_fraction)}`;
+    byId("rom-case-label").textContent = `Case ${event.case_index+1} of ${event.case_count}`;
   } else if (event.event === "snapshot") {
     state.density = event.density;
     byId("rom-preview-empty").hidden = true;
@@ -225,7 +227,7 @@ function receive(event) {
     byId("rom-iteration").textContent = `Snapshot at iteration ${event.iteration}`;
     byId("rom-residual").textContent = event.residual.toExponential(1);
     byId("rom-progress").value = 100 * event.snapshot_count / event.maximum_snapshots;
-    byId("rom-progress-note").textContent = "Collecting full-order solutions…";
+    byId("rom-progress-note").textContent = "Collecting snapshots...";
     redraw();
   } else if (event.event === "saving_snapshots") {
     status("Saving snapshots", "running");
@@ -253,7 +255,7 @@ function complete(event) {
   }
   status(stopped ? "Stopped" : event.training?.basis ? "Basis ready" : "Snapshots ready", stopped ? "ready" : "complete");
   byId("rom-progress-note").textContent = stopped ? "Stopped. Previously saved data and collected snapshots are retained." :
-    event.training?.basis ? "Basis and reduced element operators saved. Choose this model in Cantilever 2D to optimise with it." : "Snapshots saved. Build the reduced basis below.";
+    event.training?.basis ? "Basis and reduced element operators saved. Choose this model in Optimisation to optimise with it." : "Snapshots saved. Build the reduced basis below.";
   if (!stopped) byId("rom-progress").value = 100;
 }
 

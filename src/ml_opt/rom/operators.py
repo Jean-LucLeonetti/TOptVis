@@ -33,7 +33,7 @@ def prepare_element_operators(config, basis, *, stop_requested=lambda: False):
     """
     if stop_requested():
         return None
-    mesh = StructuredMesh(config.nx, config.ny, config.length, config.height)
+    mesh = StructuredMesh(config.nx, config.ny, config.length, config.height, config.boundary_conditions, config.load_cases[0].id)
     rank = basis.shape[1]
     shape = operator_shape(mesh.element_count, rank)
     if np.prod(shape) * 8 > MAX_OPERATOR_BYTES:

@@ -112,7 +112,7 @@ class FieldWorkerPool:
     def configuration_key(config):
         names = ("nx", "ny", "length", "height", "poisson_ratio", "thickness", "load", "load_angle",
                  "load_node_x", "load_node_y", "linear_tolerance", "linear_solver", "state_solver",
-                 "rom_basis_path", "rom_basis_sha256")
+                 "rom_basis_path", "rom_basis_sha256", "boundary_conditions", "load_cases", "load_aggregation")
         return tuple(getattr(config, name) for name in names)
 
     def acquire(self, config):

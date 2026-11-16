@@ -14,6 +14,7 @@ from .fem.filter import HelmholtzFilter
 from .fem.fields import FieldSolves, field_compliance
 from .projection import heaviside_projection
 from .material import elastic_modulus
+from .regions import region_densities
 from .morphology import MaximumSolidSize, MorphologicalSize
 
 
@@ -45,6 +46,8 @@ class Evaluation:
     max_void_gradient: np.ndarray | None = None
     volume_error: float | None = None
     volume_gradient: np.ndarray | None = None
+    load_case_compliances: dict[str, float] | None = None
+    active_load_case: str | None = None
 
 
 class CantileverProblem:
@@ -53,7 +56,11 @@ class CantileverProblem:
             raise ValueError("A supplied state solver is supported only for single-field problems")
         self.config = config
         self.projection_beta = config.projection_beta
-        self.mesh = StructuredMesh(config.nx, config.ny, config.length, config.height)
+        self.fixed_density = region_densities(config.non_design_regions, config.nx, config.ny)
+        self.design_mask = np.isnan(self.fixed_density)
+        self._design_mask = torch.from_numpy(self.design_mask)
+        self._fixed_density = torch.from_numpy(np.nan_to_num(self.fixed_density))
+        self.mesh = StructuredMesh(config.nx, config.ny, config.length, config.height, config.boundary_conditions, config.load_cases[0].id)
         self.solver = state_solver if state_solver is not None else create_state_solver(config)
         self._compliance_solver = CachedStateSolver(self.solver)
         self.rom_info = getattr(self.solver, "rom_info", None)
@@ -100,7 +107,10 @@ class CantileverProblem:
         self.close()
 
     def initial_design(self) -> np.ndarray:
-        return np.full(self.mesh.element_count, self.config.volume_fraction)
+        solid_fraction = np.count_nonzero(self.fixed_density == 1) / self.mesh.element_count
+        active_fraction = np.count_nonzero(self.design_mask) / self.mesh.element_count
+        initial = np.clip((self.config.volume_fraction - solid_fraction) / active_fraction, 0, 1)
+        return np.where(self.design_mask, initial, self.fixed_density)
 
     def evaluate(self, design: np.ndarray, sensitivities: bool = True) -> Evaluation:
         array = np.asarray(design, dtype=np.float64)
@@ -114,15 +124,20 @@ class CantileverProblem:
         worst_field = None
         field_gradients = None
         with torch.set_grad_enabled(sensitivities):
-            filtered = self.density_filter.apply(x)
+            design_input = torch.where(self._design_mask, x, self._fixed_density) if self.config.non_design_regions else x
+            filtered = self.density_filter.apply(design_input)
             if self.config.robust:
                 eta, offset = self.config.projection_eta, self.config.robust_eta_offset
                 densities = torch.stack([heaviside_projection(filtered, self.projection_beta, threshold)
                                          for threshold in (eta + offset, eta, eta - offset)])
+                if self.config.non_design_regions:
+                    densities = torch.where(self._design_mask, densities, self._fixed_density)
                 density = densities[1]
             else:
                 densities = density = heaviside_projection(filtered, self.projection_beta,
                                                            self.config.projection_eta)
+                if self.config.non_design_regions:
+                    densities = density = torch.where(self._design_mask, density, self._fixed_density)
             moduli = elastic_modulus(densities, self.config)
             if self.config.robust:
                 compliances = field_compliance(moduli, self.fields)
@@ -193,4 +208,5 @@ class CantileverProblem:
                           max_void_constraint=None if void_constraint is None else float(void_constraint.detach()),
                           max_void_remaining_volume=None if void_volume is None else float(void_volume.detach()),
                           max_void_gradient=max_void_gradient,
-                          volume_error=float(volume_error.detach()), volume_gradient=volume_gradient)
+                          volume_error=float(volume_error.detach()), volume_gradient=volume_gradient,
+                          load_case_compliances=state.case_compliances, active_load_case=state.active_case)

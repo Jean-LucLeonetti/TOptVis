@@ -19,7 +19,7 @@ class GalerkinSolver:
     """Solve V.T K V a = V.T f with one frozen basis throughout a run."""
 
     def __init__(self, config: CantileverConfig, basis, *, reduced_element_stiffness=None):
-        self.mesh = StructuredMesh(config.nx, config.ny, config.length, config.height)
+        self.mesh = StructuredMesh(config.nx, config.ny, config.length, config.height, config.boundary_conditions, config.load_cases[0].id)
         self.basis = np.array(basis, dtype=np.float64, copy=True)
         count = len(self.mesh.free_dofs)
         if (self.basis.ndim != 2 or self.basis.shape[0] != count or not 1 <= self.basis.shape[1] <= count
@@ -97,7 +97,7 @@ def load_basis(path, config: CantileverConfig, *, expected_sha256=None, include_
         for name in ("nx", "ny", "length", "height", "poisson_ratio", "thickness"):
             if getattr(config, name) != getattr(trained, name):
                 raise ValueError(f"ROM {name} must match its training model ({getattr(trained, name)})")
-        mesh = StructuredMesh(config.nx, config.ny, config.length, config.height)
+        mesh = StructuredMesh(config.nx, config.ny, config.length, config.height, config.boundary_conditions, config.load_cases[0].id)
         if not np.array_equal(free_dofs, mesh.free_dofs):
             raise ValueError("ROM free displacement DOFs do not match the model")
         rank = metadata["basis"]["rank"]

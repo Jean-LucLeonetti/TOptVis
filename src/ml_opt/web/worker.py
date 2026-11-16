@@ -35,7 +35,10 @@ def worker_loop(commands, messages, cancel, ready) -> None:
                 return
             run_id, configuration = command
             # Each command constructs and closes a fresh problem and optimiser.
-            if configuration.get("task") in ("rom_snapshots", "rom_basis", "rom_validation"):
+            if configuration.get("task") in ("regression_generate", "regression_fit"):
+                field_pool.clear()
+                run_regression(configuration, _RunMessages(messages, run_id), cancel)
+            elif configuration.get("task") in ("rom_snapshots", "rom_basis", "rom_validation"):
                 field_pool.clear()
                 run_training(configuration, _RunMessages(messages, run_id), cancel)
             else:
@@ -50,6 +53,30 @@ def worker_loop(commands, messages, cancel, ready) -> None:
 def _parent_gone() -> bool:
     parent = mp.parent_process()
     return parent is not None and not parent.is_alive()
+
+
+def run_regression(configuration, messages, cancel):
+    from ..regression import RegressionSettings, generate_dataset, fit_models
+    try:
+        stopped = lambda: cancel.is_set() or _parent_gone()
+        root = Path(configuration["root"])
+        dataset_id = messages.run_id if configuration["task"] == "regression_generate" else configuration["dataset_id"]
+        directory = root / dataset_id
+        if configuration["task"] == "regression_generate":
+            result = generate_dataset(RegressionSettings(**configuration["settings"]), directory,
+                                      emit=messages.put, stop_requested=stopped)
+            cancelled = result["status"] == "cancelled"
+        else:
+            # This task owns the worker lock, so an old generating manifest is
+            # interrupted, not a concurrently changing dataset.
+            result = fit_models(directory, **configuration["options"], stop_requested=stopped,
+                                allow_interrupted=True)
+            cancelled = result is None
+        messages.put({"event": "complete", "dataset_id": dataset_id,
+                      "stop_reason": "cancelled" if cancelled else "complete"})
+    except Exception as error:
+        traceback.print_exc()
+        messages.put({"event": "error", "message": str(error) or type(error).__name__})
 
 
 def run_training(configuration, messages, cancel):

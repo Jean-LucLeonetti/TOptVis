@@ -1,17 +1,22 @@
-import {drawModel, drawTopology, pickNode} from "/static/viewer.js";
-import {ConvergencePlots} from "/static/convergence.js?v=iteration-time-bars";
+import {drawModel, drawTopology} from "/static/viewer.js";
+import {ConvergencePlots} from "/static/convergence.js?v=individual-log-scales";
 import {RomChoice} from "/static/rom-choice.js";
+import {BoundaryEditor} from "/static/boundary-editor.js";
+import {ProjectIO} from "/static/project-io.js";
+import {initialiseReferences} from "/static/method-references.js";
 
 const byId = id => document.getElementById(id);
 const form = byId("model-form"), modelCanvas = byId("model-canvas"), topologyCanvas = byId("topology-canvas");
 const state = {model: null, density: null, fields: null, fieldRow: null, running: false, ready: false, externalBusy: false, runId: null, initial: null,
   hover: null, history: [], runConfig: null, activePanel: "panel-geometry", romSupported: false};
-const romChoice = new RomChoice({onChange: () => updateModel(), onStateChange: updateRunAvailability, isRunning: () => state.running});
+let boundaryEditor = null;
+let projectIO = null;
+const romChoice = new RomChoice({onChange: () => updateModel(), onStateChange: updateRunAvailability, isRunning: () => state.running,
+  getModel: () => state.model || readModel()});
 const convergencePlots = new ConvergencePlots();
 let convergenceFrame = null;
 const format = value => new Intl.NumberFormat("en", {maximumFractionDigits: 2}).format(value);
 const filterFormat = value => new Intl.NumberFormat("en", {maximumSignificantDigits: 4}).format(value);
-const signed = value => (Math.abs(value) < 1e-12 ? "0.00" : value.toFixed(2)).replace("-", "−");
 
 const volumeRelation = mode => ({lt: "<", gt: ">", eq: "="})[mode || "lt"];
 
@@ -22,22 +27,21 @@ function readModel() {
       ["optimizer", "field_execution", "state_solver", "linear_solver", "rom_training_id", "material_model", "projection_schedule", "volume_constraint"].includes(key) ? value : Number(value);
   }
   if (model.state_solver !== "rom") delete model.rom_training_id;
+  if (boundaryEditor?.conditions !== null && boundaryEditor?.conditions !== undefined) model.boundary_conditions = structuredClone(boundaryEditor.conditions);
+  if (boundaryEditor) { model.load_cases = structuredClone(boundaryEditor.cases); model.load_aggregation = boundaryEditor.aggregation; model.non_design_regions = structuredClone(boundaryEditor.regions); }
   return model;
 }
 
 function updateRunAvailability() {
-  byId("run").disabled = state.running || !state.ready || state.externalBusy || (byId("state_solver").value === "rom" && (!state.romSupported || !romChoice.allowed));
-  if (!state.running) byId("run-label").textContent = byId("state_solver").value === "rom" ? "Run ROM optimisation" : "Run optimisation";
+  const boundaryIssue = boundaryEditor?.validationError || "";
+  const incompatibleModel = byId("state_solver").value === "rom" && (!state.romSupported || !romChoice.allowed);
+  byId("run").disabled = state.running || !state.ready || state.externalBusy || !!boundaryIssue || incompatibleModel;
+  byId("run").title = boundaryIssue || (incompatibleModel ? "Choose a reduced model matching the mesh and supports, or use Full model." : "");
+  if (!state.running) byId("run-label").textContent = "Run optimisation";
 }
 
-function updateSolverDescription() {
-  const config = state.runConfig || state.model;
-  const latest = state.history.at(-1);
-  byId("run-solver-description").textContent = config?.state_solver === "rom" ?
-    `ROM · ${latest?.rom_basis_rank || romChoice.selected?.basis.rank || "—"} modes · basis ${config.rom_basis_sha256?.slice(0,12) || romChoice.selected?.id.slice(0,8) || "not selected"} · approximate compliance and sensitivities` :
-    `FOM · ${(config?.linear_solver || "lu").toUpperCase()} · full-order elasticity`;
+function updateSolverControls() {
   byId("fom-linear-options").hidden = state.model?.state_solver === "rom";
-  byId("fom-method-hint").hidden = state.model?.state_solver === "rom";
 }
 
 const configTabs = Array.from(document.querySelectorAll('#workspace-cantilever .config-tabs [role="tab"]'));
@@ -76,8 +80,14 @@ form.addEventListener("invalid", event => {
 }, true);
 
 function showError(message = "") {
-  byId("error").textContent = message;
+  byId("error-message").textContent = message;
   byId("error").hidden = !message;
+}
+byId("dismiss-error").addEventListener("click", () => showError());
+
+function resultMessage(message = "") {
+  byId("topology-description").textContent = message;
+  byId("topology-description").title = message;
 }
 
 function status(label, kind) {
@@ -94,14 +104,10 @@ function updateConvergence() {
   byId("history-compliance").textContent = latest ? format(latest.compliance) : "—";
   byId("history-volume").textContent = latest ? `${(100*latest.volume_fraction).toFixed(2)}%` : "—";
   byId("history-elapsed").textContent = Number.isFinite(latest?.elapsed_seconds) ? `${filterFormat(latest.elapsed_seconds)} s` : "—";
-  byId("history-beta").textContent = Number.isFinite(latest?.projection_beta) ? filterFormat(latest.projection_beta) : "—";
   byId("history-max-size-summary").hidden = !(config.max_solid_size > 0);
   byId("history-max-size").textContent = Number.isFinite(latest?.max_size_constraint) ? filterFormat(latest.max_size_constraint) : "—";
   byId("history-max-void-summary").hidden = !(config.max_void_size > 0);
   byId("history-max-void").textContent = Number.isFinite(latest?.max_void_constraint) ? filterFormat(latest.max_void_constraint) : "—";
-  byId("convergence-description").textContent = latest ?
-    `${state.model.optimizer.toUpperCase()} · ${(config.state_solver || "fom").toUpperCase()} · ${state.history.length} evaluated history ${state.history.length === 1 ? "point" : "points"} · iterations 0–${latest.iteration}` :
-    "Run an optimisation to build the convergence history.";
   byId("volume-reference").textContent = `Volume ${volumeRelation(config.volume_constraint)} ${filterFormat(100*config.volume_fraction)}%`;
   byId("design-reference").textContent = Number.isFinite(config.design_tolerance) ?
     `Tolerance ${filterFormat(config.design_tolerance)}` : "Stopping tolerance";
@@ -117,8 +123,9 @@ function updateConvergence() {
 function redraw() {
   if (!state.model || byId("workspace-cantilever").hidden) return;
   if (!byId("model-view").hidden) {
-    drawModel(modelCanvas, state.model, state.hover);
-    drawTopology(topologyCanvas, state.model, state.density);
+    const viewModel = {...state.model, display_load_case: boundaryEditor?.activeCase};
+    drawModel(modelCanvas, viewModel, null, boundaryEditor?.overlay);
+    drawTopology(topologyCanvas, viewModel, state.density);
   }
   updateConvergence();
 }
@@ -136,11 +143,7 @@ function syncControls() {
   byId("max-void-options").hidden = !(voidSize > 0);
   const ramp = byId("material_model").value === "ramp";
   byId("penalisation").min = ramp ? "0" : "1";
-  byId("penalty-label").textContent = ramp ? "Penalty parameter · q" : "Penalty exponent · p";
-  byId("material-formula").textContent = ramp ? "E(ρ) = E_min + (E₀ − E_min) ρ / [1 + q(1 − ρ)]" : "E(ρ) = E_min + (E₀ − E_min) ρᵖ";
-  byId("material-description").textContent = ramp ?
-    "RAMP: q ≥ 0. Larger q penalises intermediate densities; q = 0 is linear." :
-    "SIMP: p ≥ 1. Larger p penalises intermediate densities; p = 1 is linear.";
+  byId("penalty-label").textContent = ramp ? "Penalty parameter" : "Penalty exponent";
   const scheduled = byId("projection_schedule").value === "geometric";
   byId("beta-schedule-options").hidden = !scheduled;
   const beta = Number(byId("projection_beta").value), maximum = Number(byId("projection_beta_max").value);
@@ -149,98 +152,66 @@ function syncControls() {
   byId("projection_beta_multiplier").setCustomValidity(Number(byId("projection_beta_multiplier").value) <= 1 ? "The β multiplier must be greater than 1." : "");
 }
 
-function updateProjectionStatus() {
-  const m = state.model, active = state.history.at(-1)?.projection_beta ?? m.projection_beta;
-  byId("projection-description").textContent = active > 0 ?
-    `β = ${filterFormat(active)} · η = ${filterFormat(m.projection_eta)} · ${m.projection_schedule === "geometric" ? `scheduled to ${filterFormat(m.projection_beta_max)}` : "fixed during run"}` :
-    "Projection off · smoothed densities used directly";
-  byId("model-filter-summary").textContent = `${m.filter_radius > 0 ? `ℓ = ${filterFormat(m.filter_radius)}` : "Smoothing off"} · ${active > 0 ? `β = ${filterFormat(active)}` : "Projection off"}`;
-}
-
 function updateMaxSizeStatus() {
   const row = state.history.at(-1), m = state.model;
-  byId("max-size-description").textContent = m.max_solid_size > 0 ?
-    `Diameter ${filterFormat(m.max_solid_size)} model units · ${m.robust ? "dilated" : "physical"} field · allowed eroded fraction ${filterFormat(100*m.max_size_tolerance)}%. Outside the domain is void.` :
-    "Maximum-size constraint off";
+  byId("max-size-status").hidden = !(m.max_solid_size > 0 && Number.isFinite(row?.max_size_constraint));
   byId("max-size-status").textContent = Number.isFinite(row?.max_size_constraint) ?
-    `Eroded fraction ${filterFormat(100*row.max_size_eroded_volume)}% · ${row.max_size_constraint <= (state.runConfig?.feasibility_tolerance ?? 1e-4) ? "satisfied" : "violated"} · g = ${filterFormat(row.max_size_constraint)}` : "";
-  byId("max-void-description").textContent = m.max_void_size > 0 ?
-    `Diameter ${filterFormat(m.max_void_size)} model units · ${m.robust ? "eroded material" : "physical"} field · allowed remaining void ${filterFormat(100*m.max_void_tolerance)}%. Outside the domain is void.` :
-    "Maximum void-size constraint off";
+    `Solid size: ${row.max_size_constraint <= (state.runConfig?.feasibility_tolerance ?? 1e-4) ? "satisfied" : "exceeded"}` : "";
+  byId("max-void-status").hidden = !(m.max_void_size > 0 && Number.isFinite(row?.max_void_constraint));
   byId("max-void-status").textContent = Number.isFinite(row?.max_void_constraint) ?
-    `Remaining void ${filterFormat(100*row.max_void_remaining_volume)}% · ${row.max_void_constraint <= (state.runConfig?.feasibility_tolerance ?? 1e-4) ? "satisfied" : "violated"} · g = ${filterFormat(row.max_void_constraint)}` : "";
+    `Void size: ${row.max_void_constraint <= (state.runConfig?.feasibility_tolerance ?? 1e-4) ? "satisfied" : "exceeded"}` : "";
 }
 
 function updateLabels(resizeFilterRange = true) {
   const m = state.model;
-  byId("mesh-description").textContent = `${format(m.nx * m.ny)} elements · ${format((m.nx + 1) * (m.ny + 1))} nodes`;
-  byId("selection-description").textContent = `Load at node (${m.load_node_x}, ${m.load_node_y}) · x = ${format(m.load_node_x / m.nx * m.length)}, y = ${format(m.load_node_y / m.ny * m.height)}`;
+  byId("fixed-solid-legend").hidden = !(m.non_design_regions || []).some(item => item.kind === "solid");
+  byId("fixed-void-legend").hidden = !(m.non_design_regions || []).some(item => item.kind === "void");
   byId("volume-label").textContent = `${Math.round(m.volume_fraction * 100)}%`;
   byId("volume-target").textContent = `Volume ${volumeRelation(m.volume_constraint)} ${Math.round(m.volume_fraction * 100)}%`;
-  byId("angle-slider").value = m.load_angle;
   const radius = m.filter_radius;
   const slider = byId("filter-slider");
   const sliderMax = resizeFilterRange ? Math.max(Math.min(m.length, m.height) / 2, radius) : Number(slider.max);
   slider.max = sliderMax;
   slider.step = "any";
   slider.value = radius;
-  byId("filter-range-max").textContent = filterFormat(sliderMax);
-  byId("filter-description").textContent = radius > 0 ?
-    `ℓ = ${filterFormat(radius)} · Ø = ${filterFormat(2 * radius)} model units · radius ${filterFormat(radius * m.nx / m.length)} × ${filterFormat(radius * m.ny / m.height)} cells` : "Filter off · design densities used directly";
-  const beta = m.projection_beta, eta = m.projection_eta;
+  const beta = m.projection_beta;
   const projectionSlider = byId("projection-slider");
   const projectionMax = resizeFilterRange ? Math.max(16, beta) : Number(projectionSlider.max);
   projectionSlider.max = projectionMax;
   projectionSlider.value = beta;
-  byId("projection-range-max").textContent = filterFormat(projectionMax);
-  const scheduled = m.projection_schedule === "geometric";
-  const increases = scheduled && beta > 0 ? Math.max(0, Math.ceil(Math.log(m.projection_beta_max / beta) / Math.log(m.projection_beta_multiplier))) : 0;
-  const finalStage = increases ? increases * m.projection_beta_interval + 1 : 0;
-  byId("beta-schedule-description").textContent =
-    `Start β = ${filterFormat(beta)}; multiply by ${filterFormat(m.projection_beta_multiplier)} after every ${m.projection_beta_interval} completed iterations, capped at ${filterFormat(m.projection_beta_max)}. ` +
-    (finalStage > m.max_iterations ? `The iteration limit will be reached before the maximum β (first used at iteration ${format(finalStage)}).` :
-      `Maximum β is first used at iteration ${format(finalStage)}. Convergence stopping waits for this stage.`);
   byId("robust-options").hidden = !m.robust;
   byId("solver-field-options").hidden = !m.robust;
-  byId("robust-description").hidden = !m.robust;
   byId("field-view").hidden = !m.robust;
-  byId("compliance-label").textContent = `${m.state_solver === "rom" ? "ROM " : ""}${m.robust ? "WORST COMPLIANCE" : "COMPLIANCE"}`;
-  byId("objective-description").textContent = m.robust ?
-    "Minimise the worst compliance across the eroded, nominal and dilated material fields for the applied load." :
-    "Minimise compliance for the applied load using the physical material after filtering and projection.";
-  byId("material-volume-label").textContent = m.robust ? "DILATED VOLUME" : "MATERIAL VOLUME";
-  byId("volume-description").textContent =
-    `${m.robust ? "Dilated-field" : "Physical material"} volume ${volumeRelation(m.volume_constraint)} ${filterFormat(100*m.volume_fraction)}%. Applied after filtering and projection, within the solver's feasibility tolerance.` +
-    (m.volume_constraint === "gt" ? " A lower bound allows the optimiser to use more material, up to a fully solid domain." : "") +
-    (m.robust ? " This target applies to the dilated field for all three modes." : "");
-  if (m.robust) byId("robust-description").textContent =
-    `Thresholds: eroded ${filterFormat(eta + m.robust_eta_offset)}, nominal ${filterFormat(eta)}, dilated ${filterFormat(eta - m.robust_eta_offset)}. Worst compliance and dilated-volume constraint. Requires β > 0 and all thresholds inside (0, 1).`;
-  byId("filter-status").textContent = [radius > 0 ? "Helmholtz" : null, beta > 0 ? "Projection" : null].filter(Boolean).join(" + ") || "Filters off";
-  updateProjectionStatus();
+  const imposed = (m.boundary_conditions || []).some(item => item.kind === "displacement" &&
+    (((item.components || "xy").includes("x") && item.ux) || ((item.components || "xy").includes("y") && item.uy)));
+  byId("compliance-label").textContent = imposed ? "Elastic work" : m.robust ? "Worst compliance" : "Compliance";
+  byId("objective-title").textContent = imposed ? "Minimise elastic work" : "Minimise compliance";
+  byId("compliance-chart-title").textContent = imposed ? "Elastic work" : "Compliance";
+  byId("objective-description").textContent = imposed ? "Minimise total elastic work, including prescribed-motion reactions. Under imposed motion this can favour a softer structure." : m.robust ?
+    "Maximise stiffness across the eroded, nominal and dilated designs." :
+    "Maximise stiffness under the applied load.";
+  byId("material-volume-label").textContent = m.robust ? "Dilated volume" : "Material volume";
   byId("filter-legend").hidden = radius === 0;
   updateMaxSizeStatus();
-  const rad = m.load_angle * Math.PI / 180;
-  byId("force-components").textContent = `F = (${signed(m.load * Math.cos(rad))}, ${signed(m.load * Math.sin(rad))})`;
 }
 
 function clearResult() {
   state.density = null; state.fields = null; state.fieldRow = null; state.initial = null;
   byId("field-metrics").textContent = "";
   state.history = []; state.runConfig = null;
-  updateProjectionStatus();
+  boundaryEditor?.setResults(null);
   updateMaxSizeStatus();
   byId("empty-state").hidden = false;
   byId("compliance").textContent = "—";
-  byId("improvement").textContent = "Waiting for first solve";
+  byId("improvement").textContent = "";
   byId("improvement").className = "";
   byId("current-volume").textContent = "—";
   byId("iteration").innerHTML = `—<em> / ${state.model.max_iterations}</em>`;
-  byId("density-change").textContent = "No iterations yet";
+  for (const id of ["compliance", "current-volume", "iteration", "improvement"]) byId(id).title = byId(id).textContent;
   byId("progress-bar").style.width = "0%";
-  byId("topology-description").textContent = "Run optimisation to see the material distribution.";
-  byId("live-note").textContent = "Updates after every evaluated iteration";
+  resultMessage();
   status("Ready", "ready");
-  updateSolverDescription();
+  updateSolverControls();
   updateConvergence();
 }
 
@@ -250,7 +221,6 @@ function selectField(redrawView = true) {
     state.density = state.fields[name];
     const row = state.fieldRow;
     byId("field-metrics").textContent = `Compliance ${format(row.field_compliances[name])} · volume ${(100 * row.field_volumes[name]).toFixed(2)}%`;
-    if (Number.isFinite(row.epigraph_compliance)) byId("field-metrics").textContent += ` · epigraph t ${format(row.epigraph_compliance)}`;
     byId("topology-canvas").setAttribute("aria-label", `${name} material density with Helmholtz length reference`);
   } else {
     byId("topology-canvas").setAttribute("aria-label", "Physical material density with Helmholtz length reference");
@@ -270,19 +240,26 @@ function updateModel(event) {
       byId("load_node_y").value = Math.round(state.model.load_node_y / state.model.ny * ny);
     }
   }
-  romChoice.sync();
   if (!form.checkValidity()) return;
   state.model = readModel(); state.hover = null;
-  showError(); updateLabels(!["filter-slider", "projection-slider"].includes(event?.target.id)); clearResult(); redraw();
+  if (boundaryEditor) { boundaryEditor.render(); showError(boundaryEditor.validationError); }
+  else showError();
+  romChoice.sync();
+  if (state.model.state_solver === "rom" && !romChoice.allowed && !boundaryEditor?.validationError) {
+    showError("Choose a reduced model matching this mesh and supports, or use Full model in Solver.");
+  }
+  updateLabels(!["filter-slider", "projection-slider"].includes(event?.target.id)); clearResult(); redraw();
 }
 
 function setRunning(running) {
   state.running = running;
   byId("settings").disabled = running;
   updateRunAvailability();
-  byId("run-label").textContent = running ? "Optimising…" : romChoice.isRom ? "Run ROM optimisation" : "Run optimisation";
+  byId("run-label").textContent = running ? "Optimising..." : "Run optimisation";
   byId("stop").disabled = !running || !state.runId;
   modelCanvas.style.cursor = running ? "default" : "crosshair";
+  boundaryEditor?.render();
+  projectIO?.setRunning(running);
   romChoice.sync();
   document.dispatchEvent(new CustomEvent("solveractivity", {detail: {workspace: "cantilever", running}}));
 }
@@ -291,7 +268,7 @@ function receive(event) {
   if (event.event === "started") {
     state.runId = event.run_id;
     state.runConfig = event.config;
-    updateSolverDescription();
+    updateSolverControls();
     updateConvergence();
     byId("stop").disabled = false;
     return;
@@ -300,8 +277,7 @@ function receive(event) {
     const row = event.history;
     state.history.push(row);
     updateMaxSizeStatus();
-    updateSolverDescription();
-    updateProjectionStatus();
+    updateSolverControls();
     if (state.initial === null) state.initial = row.compliance;
     state.fields = event.field_densities || null;
     state.fieldRow = row;
@@ -314,23 +290,22 @@ function receive(event) {
     byId("improvement").className = reduction > 0 ? "positive" : "";
     byId("current-volume").textContent = `${(100 * row.volume_fraction).toFixed(2)}%`;
     byId("iteration").innerHTML = `${row.iteration}<em> / ${state.model.max_iterations}</em>`;
-    byId("density-change").textContent = `Density change ${row.design_change.toFixed(4)}`;
+    for (const id of ["compliance", "current-volume", "iteration", "improvement"]) byId(id).title = byId(id).textContent;
     byId("progress-bar").style.width = `${100 * row.iteration / state.model.max_iterations}%`;
-    byId("topology-description").textContent = state.model.robust ?
-      `${state.model.optimizer.toUpperCase()} · Three fields · worst: ${row.worst_field} · ${state.model.field_execution}` :
-      `${state.model.optimizer.toUpperCase()} · ${state.model.projection_beta > 0 ? "Projected" : state.model.filter_radius > 0 ? "Filtered" : "Unfiltered"} physical densities`;
-    byId("live-note").textContent = `Iteration ${row.iteration} · β = ${filterFormat(row.projection_beta)} · ${state.model.material_model.toUpperCase()} · ${row.state_solves} ${(row.state_solver || "fom").toUpperCase()} state solves · residual ${row.linear_residual.toExponential(2)}`;
+    boundaryEditor?.setResults(row.load_case_compliances);
+    resultMessage(state.model.state_solver === "rom" ? "Reduced model: approximate results" : "");
     status("Running", "running");
-    if (topologyCanvas.getClientRects().length) drawTopology(topologyCanvas, state.model, state.density);
+    if (topologyCanvas.getClientRects().length) drawTopology(topologyCanvas, {...state.model,display_load_case:boundaryEditor?.activeCase}, state.density);
     updateConvergence();
     return;
   }
   if (event.event === "complete") {
     const labels = {cancelled: "Stopped", maximum_iterations: "Iteration limit", design_and_objective_stable: "Complete"};
     status(labels[event.stop_reason] || "Finished", event.stop_reason === "cancelled" ? "ready" : "complete");
-    byId("topology-description").textContent = event.stop_reason === "cancelled" ? "Run stopped. Showing the last evaluated design." :
-      event.stop_reason === "maximum_iterations" ? "Iteration limit reached. Showing the last evaluated design." : "Design and objective reached the stopping tolerances.";
-    if (state.runConfig?.state_solver === "rom") byId("topology-description").textContent += " ROM objective and sensitivities; full-order accuracy is not certified by this stopping test.";
+    let message = event.stop_reason === "cancelled" ? "Stopped at the last evaluated design." :
+      event.stop_reason === "maximum_iterations" ? "Iteration limit reached." : "Stopping tolerances reached.";
+    if (state.runConfig?.state_solver === "rom") message += " Reduced model: approximate results.";
+    resultMessage(message);
     if (!event.feasible) showError(event.max_size_feasible === false ?
       "The final design has not met the maximum solid-size constraint. The last evaluated design is shown." : event.max_void_feasible === false ?
       "The final design has not met the maximum void-size constraint. The last evaluated design is shown." : event.volume_feasible !== false && event.epigraph_feasible === false ?
@@ -343,10 +318,10 @@ function receive(event) {
 
 async function start(event) {
   event.preventDefault();
-  if (state.running || state.externalBusy || !state.ready || !romChoice.allowed || !form.reportValidity()) return;
+  if (state.running || state.externalBusy || !state.ready || !romChoice.allowed || boundaryEditor?.validationError || !form.reportValidity()) return;
   state.model = readModel(); state.runId = null;
   clearResult(); showError(); setRunning(true); status("Starting", "running");
-  byId("topology-description").textContent = "Starting the solver…";
+  resultMessage("Starting the solver...");
   const resultView = document.querySelector(state.activePanel === "panel-visualisation" ? "#convergence-view" : ".topology-panel");
   if (window.matchMedia("(min-width: 701px)").matches) {
     const column = document.querySelector(".central-workspace");
@@ -393,7 +368,7 @@ async function start(event) {
   } catch (error) {
     showError(error.message || "Could not connect to the local solver.");
     status("Error", "error");
-    byId("topology-description").textContent = "The run could not finish.";
+    resultMessage("The run could not finish.");
     if (state.runId) fetch(`/api/run/${state.runId}/stop`, {method: "POST"}).catch(() => {});
   } finally {
     state.runId = null; setRunning(false);
@@ -404,10 +379,6 @@ form.addEventListener("submit", start);
 byId("display-field").addEventListener("change", () => selectField());
 byId("show-model").addEventListener("click", () => selectPanel("panel-geometry", true));
 form.addEventListener("input", updateModel);
-byId("angle-slider").addEventListener("input", event => {
-  byId("load_angle").value = event.target.value;
-  updateModel();
-});
 byId("filter-slider").addEventListener("input", event => {
   byId("filter_radius").value = Number(Number(event.target.value).toPrecision(4));
   updateModel(event);
@@ -416,20 +387,6 @@ byId("projection-slider").addEventListener("input", event => {
   byId("projection_beta").value = Number(Number(event.target.value).toPrecision(4));
   updateModel(event);
 });
-modelCanvas.addEventListener("click", event => {
-  if (state.running) return;
-  const node = pickNode(modelCanvas, state.model, event);
-  if (!node) { redraw(); return; }
-  if (node.x === 0) { showError("The left edge is fixed. Select a free mesh node for the load."); redraw(); return; }
-  byId("load_node_x").value = node.x; byId("load_node_y").value = node.y;
-  updateModel();
-});
-modelCanvas.addEventListener("pointermove", event => {
-  if (state.running) return;
-  state.hover = pickNode(modelCanvas, state.model, event);
-  drawModel(modelCanvas, state.model, state.hover);
-});
-modelCanvas.addEventListener("pointerleave", () => { state.hover = null; drawModel(modelCanvas, state.model); });
 byId("stop").addEventListener("click", async () => {
   if (!state.runId) return;
   byId("stop").disabled = true; status("Stopping", "running");
@@ -438,7 +395,10 @@ byId("stop").addEventListener("click", async () => {
     if (!response.ok && response.status !== 404) throw new Error("Could not stop the run.");
   } catch (error) { showError(error.message); byId("stop").disabled = false; }
 });
-new ResizeObserver(redraw).observe(document.querySelector(".central-workspace"));
+const viewerResizeObserver = new ResizeObserver(redraw);
+for (const element of [document.querySelector(".central-workspace"), modelCanvas.parentElement, topologyCanvas.parentElement]) {
+  viewerResizeObserver.observe(element);
+}
 document.addEventListener("solveractivity", event => {
   if (event.detail.workspace !== "cantilever") {
     state.externalBusy = event.detail.running;
@@ -449,7 +409,44 @@ document.addEventListener("solveractivity", event => {
 document.addEventListener("workspacechange", event => {
   if (event.detail === "cantilever-2d") { requestAnimationFrame(redraw); if (state.romSupported) romChoice.refresh(); }
 });
-syncControls(); state.model = readModel(); updateLabels(); clearResult(); redraw();
+syncControls(); state.model = readModel();
+boundaryEditor = new BoundaryEditor({canvas: modelCanvas, getModel: () => state.model, isRunning: () => state.running,
+  onChange: () => updateModel(), onError: showError, onOpen: () => selectPanel("panel-load"), redraw});
+updateLabels(); clearResult(); redraw();
+initialiseReferences();
+projectIO = new ProjectIO({isRunning: () => state.running, onError: showError,
+  getModel: () => {
+    if (!state.running && !form.reportValidity()) throw new Error("Correct the model inputs before saving.");
+    if (boundaryEditor.validationError) throw new Error(boundaryEditor.validationError);
+    return structuredClone(state.model);
+  },
+  getResult: () => state.density ? {density:state.density,fields:state.fields,history:state.history,
+    stopping_tolerances:Object.fromEntries(["design_tolerance","objective_tolerance","feasibility_tolerance"].filter(key => Number.isFinite(state.runConfig?.[key])).map(key => [key,state.runConfig[key]]))} : null,
+  load: (model, saved) => {
+    for (const control of form.elements) {
+      if (!control.name || !Object.hasOwn(model,control.name) || model[control.name] == null) continue;
+      if (control.name === "rom_training_id" && ![...control.options].some(option => option.value === model.rom_training_id)) control.add(new Option("Saved model unavailable",model.rom_training_id));
+      control.value = String(model[control.name]);
+    }
+    state.model = structuredClone(model); state.runId = null;
+    boundaryEditor.loadModel(model); syncControls(); updateLabels(); clearResult(); showError(); romChoice.sync();
+    if (saved) {
+      state.density = saved.density; state.fields = saved.fields || null; state.history = saved.history;
+      state.fieldRow = saved.history.at(-1); state.initial = saved.history[0].compliance;
+      state.runConfig = {...model,...saved.stopping_tolerances};
+      byId("empty-state").hidden = true;
+      byId("compliance").textContent = format(state.fieldRow.compliance);
+      byId("current-volume").textContent = `${(100*state.fieldRow.volume_fraction).toFixed(2)}%`;
+      byId("iteration").innerHTML = `${state.fieldRow.iteration}<em> / ${model.max_iterations}</em>`;
+      for (const id of ["compliance","current-volume","iteration"]) byId(id).title = byId(id).textContent;
+      byId("progress-bar").style.width = `${100*state.fieldRow.iteration/model.max_iterations}%`;
+      boundaryEditor.setResults(state.fieldRow.load_case_compliances);
+      selectField(false); updateMaxSizeStatus(); updateConvergence();
+      status("Saved snapshot","ready"); resultMessage("Saved result; start a new run to recompute.");
+    }
+    selectPanel("panel-geometry"); updateRunAvailability(); redraw();
+  },
+});
 async function connectSolver() {
   try {
     const response = await fetch("/api/health");
@@ -457,7 +454,7 @@ async function connectSolver() {
     let health = await response.json();
     state.romSupported = !!health.rom_optimisation_supported;
     await romChoice.refresh(state.romSupported);
-    if (!health.projection_supported || !health.robust_supported || !health.material_schedule_supported || !health.max_size_supported || !health.max_void_supported || !health.linear_solver_supported || !health.volume_modes_supported || !health.gcmma_inner_limit_supported) {
+    if (!health.non_design_regions_supported || !health.extended_boundaries_supported || !health.multiple_load_cases_supported || !health.boundary_conditions_supported || !health.projection_supported || !health.robust_supported || !health.material_schedule_supported || !health.max_size_supported || !health.max_void_supported || !health.linear_solver_supported || !health.volume_modes_supported || !health.gcmma_inner_limit_supported) {
       byId("connection").lastElementChild.textContent = "Server restart needed";
       showError("Open Start TOptVis.bat again to launch the updated server with the current solver and size controls. Use the browser page it opens.");
       setRunning(false);

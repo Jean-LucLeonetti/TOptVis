@@ -81,7 +81,7 @@ class RunManager:
         return self._start(asdict(config), "optimisation")
 
     def start_task(self, task: str, payload: dict) -> Job:
-        if task not in ("rom_snapshots", "rom_basis", "rom_validation"):
+        if task not in ("rom_snapshots", "rom_basis", "rom_validation", "regression_generate", "regression_fit"):
             raise ValueError("Unknown training task")
         return self._start({"task": task, **payload}, task)
 

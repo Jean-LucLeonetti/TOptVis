@@ -37,7 +37,7 @@ export class ValidationView {
     byId("rom-validation-results").hidden = false;
     byId("rom-validation-downloads").hidden = true;
     this.summary(null);
-    byId("rom-validation-note").textContent = "Comparing a frozen basis on held-out full-order trajectories…";
+    byId("rom-validation-note").textContent = "Comparing validation cases...";
     byId("rom-validation-verdict").textContent = "Validating";
   }
 
@@ -80,7 +80,7 @@ export class ValidationView {
   async render(record) {
     const summary = record?.validation, key = summary ? `${record.id}/${summary.id}` : null;
     if (this.supported) byId("rom-validation-scope").textContent = record?.basis ?
-      `Selected dataset ${record.id.slice(0,8)} · ${record.settings.nx} × ${record.settings.ny} mesh · ${record.basis.rank} frozen modes.` : "Build a reduced basis in the selected dataset first.";
+      "" : record ? "Build a basis for this dataset to validate it." : "";
     if (key && key === this.key) return;
     this.key = key; this.rows = []; this.cases = [];
     byId("rom-validation-rows").replaceChildren();
@@ -88,15 +88,16 @@ export class ValidationView {
     byId("rom-validation-downloads").hidden = !summary;
     if (!summary) {
       byId("rom-validation-verdict").textContent = "Not validated";
-      byId("rom-validation-note").textContent = "No held-out validation for this basis. Rebuilding a basis clears its previous validation.";
+      byId("rom-validation-note").textContent = "";
       return;
     }
     this.summary(summary);
     const verdict = summary.status === "cancelled" ? "Partial validation" : summary.meets_tolerances ? "Within tolerances" : "Outside tolerances";
     byId("rom-validation-verdict").textContent = verdict;
     byId("rom-validation-verdict").dataset.status = summary.meets_tolerances ? "complete" : "ready";
-    byId("rom-validation-note").textContent = `${verdict} · ${summary.passed_states}/${summary.state_count} designs within all tolerances · ${summary.completed_cases}/${summary.case_count} cases completed. Saved limits: displacement ${percentage(summary.options.displacement_tolerance)}, compliance ${percentage(summary.options.compliance_tolerance)}, design gradient ${percentage(summary.options.gradient_tolerance)}. Scope: these held-out designs only.`;
-    byId("rom-validation-provenance").textContent = `Basis SHA-256 ${summary.basis_sha256.slice(0,12)}…`;
+    byId("rom-validation-note").textContent = `${summary.passed_states}/${summary.state_count} designs within tolerances. ${summary.completed_cases}/${summary.case_count} cases completed. Results apply to tested designs.`;
+    byId("rom-validation-note").title = `Tested tolerances: displacement ${percentage(summary.options.displacement_tolerance)}, compliance ${percentage(summary.options.compliance_tolerance)}, gradient ${percentage(summary.options.gradient_tolerance)}.`;
+    byId("rom-validation-provenance").textContent = "";
     for (const artifact of ["validation", "comparisons"]) byId(`rom-download-${artifact}`).href = `/api/rom/${record.id}/artifacts/${artifact}`;
     try {
       const response = await fetch(`/api/rom/${record.id}/validation`);

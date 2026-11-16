@@ -1,0 +1,1 @@
+- Compare saved runs side by side: topology, convergence, solution quality, runtime, and approximation error.

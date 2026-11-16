@@ -33,8 +33,15 @@ export class ConvergencePlots {
     this.plots = specifications.map(specification => ({...specification,
       canvas: document.getElementById(`convergence-${specification.id}`),
       readout: document.getElementById(`convergence-${specification.id}-readout`),
+      logToggle: document.getElementById(`convergence-${specification.id}-log`),
+      logarithmic: false,
     }));
     for (const plot of this.plots) {
+      plot.logarithmic = plot.logToggle.checked;
+      plot.logToggle.addEventListener("change", () => {
+        plot.logarithmic = plot.logToggle.checked;
+        this.drawPlot(plot);
+      });
       plot.canvas.addEventListener("pointermove", event => {
         if (!plot.area || !this.history.length) return;
         const x = event.clientX - plot.canvas.getBoundingClientRect().left;
@@ -92,28 +99,41 @@ export class ConvergencePlots {
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     ctx.clearRect(0, 0, width, height);
     const valueOf = row => plot.value(row, this.iterationTimes);
-    const points = this.history.filter(row => (!plot.changes || row.iteration > 0) && Number.isFinite(valueOf(row)));
+    const valid = row => (!plot.changes || row.iteration > 0) && Number.isFinite(valueOf(row)) &&
+      (!plot.logarithmic || valueOf(row) > 0);
+    const points = this.history.filter(valid);
     const reference = plot.reference?.(this.model);
-    const left = 57, right = 18, top = 18, bottom = 37;
+    const showReference = Number.isFinite(reference) && (!plot.logarithmic || reference > 0);
+    const left = 66, right = 18, top = 18, bottom = 44;
     const plotWidth = Math.max(1, width-left-right), plotHeight = Math.max(1, height-top-bottom);
     const maxIteration = Math.max(1, this.history.at(-1)?.iteration || 0);
     const minX = plot.bars ? .5 : 0, maxX = maxIteration + (plot.bars ? .5 : 0);
     plot.area = {left, width: plotWidth, minIteration: minX, maxIteration: maxX};
     const values = points.map(valueOf);
-    if (Number.isFinite(reference)) values.push(reference);
+    if (showReference) values.push(reference);
     let low = values.length ? Math.min(...values) : 0;
     let high = values.length ? Math.max(...values) : 1;
     const padding = high-low > Math.max(1e-14, Math.abs(high)*1e-12) ? (high-low)*.1 : Math.max(Math.abs(high)*.06, .001);
     low = plot.zero ? 0 : Math.max(0, low-padding);
     high = Math.max(high+padding, low+1e-12);
+    if (plot.logarithmic) {
+      const logs = values.map(Math.log10);
+      low = logs.length ? Math.min(...logs) : 0;
+      high = logs.length ? Math.max(...logs) : 1;
+      const logPadding = high > low ? (high-low)*.1 : .5;
+      low = Math.max(Math.log10(Number.MIN_VALUE), low-logPadding);
+      high = Math.min(Math.log10(Number.MAX_VALUE), high+logPadding);
+    }
     const x = iteration => left + (iteration-minX)/(maxX-minX)*plotWidth;
-    const y = value => top + (high-value)/(high-low)*plotHeight;
+    const y = value => top + (high-(plot.logarithmic ? Math.log10(value) : value))/(high-low)*plotHeight;
 
-    ctx.font = "10px 'Segoe UI',sans-serif";
+    ctx.font = "12px 'Segoe UI',sans-serif";
     ctx.lineWidth = 1;
     ctx.textAlign = "right";
     for (let index = 0; index <= 4; index++) {
-      const value = low+(high-low)*index/4, py = y(value);
+      const axisValue = low+(high-low)*index/4;
+      const value = plot.logarithmic ? Math.min(10**axisValue,Number.MAX_VALUE) : axisValue;
+      const py = top + (1-index/4)*plotHeight;
       ctx.strokeStyle = "#eaf0f2";
       ctx.beginPath(); ctx.moveTo(left, py); ctx.lineTo(left+plotWidth, py); ctx.stroke();
       ctx.fillStyle = "#81949c"; ctx.fillText(tick(value), left-8, py+3);
@@ -127,7 +147,7 @@ export class ConvergencePlots {
     }
     ctx.fillText("Outer iteration", left+plotWidth/2, height-5);
 
-    if (Number.isFinite(reference)) {
+    if (showReference) {
       ctx.strokeStyle = "#a39a85"; ctx.setLineDash([5, 4]);
       ctx.beginPath(); ctx.moveTo(left, y(reference)); ctx.lineTo(left+plotWidth, y(reference)); ctx.stroke();
       ctx.setLineDash([]);
@@ -135,18 +155,26 @@ export class ConvergencePlots {
     if (points.length && plot.bars) {
       const barWidth = Math.max(.5, Math.min(36, .8*plotWidth/maxIteration));
       ctx.fillStyle = plot.color;
-      for (const row of points) ctx.fillRect(x(row.iteration)-barWidth/2, y(valueOf(row)), barWidth, y(0)-y(valueOf(row)));
+      const baseline = plot.logarithmic ? top+plotHeight : y(0);
+      for (const row of points) ctx.fillRect(x(row.iteration)-barWidth/2, y(valueOf(row)), barWidth, baseline-y(valueOf(row)));
     } else if (points.length) {
       ctx.strokeStyle = plot.color; ctx.lineWidth = 2;
       ctx.beginPath();
-      points.forEach((row, index) => index ? ctx.lineTo(x(row.iteration), y(valueOf(row))) : ctx.moveTo(x(row.iteration), y(valueOf(row))));
+      let connected = false;
+      for (const row of this.history) {
+        if (!valid(row)) { connected = false; continue; }
+        if (connected) ctx.lineTo(x(row.iteration), y(valueOf(row)));
+        else ctx.moveTo(x(row.iteration), y(valueOf(row)));
+        connected = true;
+      }
       ctx.stroke();
       const latest = points.at(-1);
       ctx.beginPath(); ctx.arc(x(latest.iteration), y(valueOf(latest)), 3, 0, 2*Math.PI);
       ctx.fillStyle = plot.color; ctx.fill();
     } else {
       ctx.fillStyle = "#93a2a9";
-      ctx.fillText(plot.changes && this.history.length === 1 ? "Waiting for iteration 1" :
+      ctx.fillText(plot.logarithmic && this.history.some(row => (!plot.changes || row.iteration > 0) && Number.isFinite(valueOf(row))) ? "No positive values for log scale" :
+        plot.changes && this.history.length === 1 ? "Waiting for iteration 1" :
         plot.unavailable && this.history.length ? "Timing unavailable for this run" :
         plot.changes && this.history.length ? "Waiting for iteration 1" : "Run an optimisation to see this graph", left+plotWidth/2, top+plotHeight/2);
     }
@@ -155,7 +183,7 @@ export class ConvergencePlots {
     if (this.selected !== null && selected && (!plot.bars || selected.iteration > 0)) {
       ctx.strokeStyle = "#b4c3ca"; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(x(selected.iteration), top); ctx.lineTo(x(selected.iteration), top+plotHeight); ctx.stroke();
-      if ((!plot.changes || selected.iteration > 0) && Number.isFinite(valueOf(selected))) {
+      if (valid(selected)) {
         ctx.beginPath(); ctx.arc(x(selected.iteration), y(valueOf(selected)), 4, 0, 2*Math.PI);
         ctx.fillStyle = plot.color; ctx.fill(); ctx.strokeStyle = "white"; ctx.lineWidth = 1.5; ctx.stroke();
       }
@@ -163,7 +191,9 @@ export class ConvergencePlots {
     const text = !selected ? "No evaluated iterations yet" : plot.changes && selected.iteration === 0 ?
       plot.initialText || "Iteration 0 · changes start at iteration 1" : !Number.isFinite(valueOf(selected)) ?
       plot.unavailable || "Value unavailable for this iteration" : `Iteration ${selected.iteration} · ${plot.format(valueOf(selected))}`;
-    setText(readout, text);
-    canvas.setAttribute("aria-label", `${plot.label} against outer iteration. ${text}. Use left and right arrows to inspect iterations.`);
+    const scaleNote = plot.logarithmic && selected && (!plot.changes || selected.iteration > 0) &&
+      Number.isFinite(valueOf(selected)) && valueOf(selected) <= 0 ? " · Not shown on log scale" : "";
+    setText(readout, text+scaleNote);
+    canvas.setAttribute("aria-label", `${plot.label} against outer iteration. ${plot.logarithmic ? "Logarithmic" : "Linear"} vertical scale. ${text}${scaleNote}. Use left and right arrows to inspect iterations.`);
   }
 }

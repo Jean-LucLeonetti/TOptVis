@@ -4,6 +4,10 @@ from dataclasses import dataclass
 import math
 import re
 
+from .boundaries import (BoundaryCondition, LoadCase, normalise_conditions,
+                         normalise_load_cases, resolve_boundary_data)
+from .regions import NonDesignRegion, normalise_regions, region_densities
+
 
 @dataclass(frozen=True)
 class CantileverConfig:
@@ -53,8 +57,33 @@ class CantileverConfig:
     state_solver: str = "fom"
     rom_basis_path: str | None = None
     rom_basis_sha256: str | None = None
+    boundary_conditions: tuple[BoundaryCondition, ...] | None = None
+    load_cases: tuple[LoadCase, ...] | None = None
+    load_aggregation: str = "weighted"
+    non_design_regions: tuple[NonDesignRegion, ...] = ()
+
+    @property
+    def extended_boundaries(self):
+        return len(self.load_cases) > 1 or any(condition.kind not in ("fixed", "force")
+                                            for condition in (self.boundary_conditions or ()))
+
+    @property
+    def imposed_motion(self):
+        return any(condition.kind == "displacement" and
+                   (("x" in condition.components and condition.ux != 0) or
+                    ("y" in condition.components and condition.uy != 0))
+                   for condition in (self.boundary_conditions or ()))
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, "boundary_conditions", normalise_conditions(self.boundary_conditions))
+        object.__setattr__(self, "load_cases", normalise_load_cases(self.load_cases))
+        object.__setattr__(self, "non_design_regions", normalise_regions(self.non_design_regions))
+        if self.load_aggregation not in ("weighted", "worst"):
+            raise ValueError("Load aggregation must be weighted or worst")
+        if self.state_solver == "rom" and self.extended_boundaries:
+            raise ValueError("Directional supports, prescribed motion, and independent load cases require the full model")
+        if len(self.load_cases) > 1 and self.boundary_conditions is None:
+            raise ValueError("Assign forces to each independent load case")
         if self.linear_solver not in ("lu", "cholesky", "cg-icc", "cg-gamg"):
             raise ValueError("linear_solver must be lu, cholesky, cg-icc, or cg-gamg")
         if self.state_solver not in ("fom", "rom"):
@@ -87,6 +116,14 @@ class CantileverConfig:
             raise ValueError("volume_fraction must lie between 0 and 1")
         if self.volume_constraint not in ("lt", "gt", "eq"):
             raise ValueError("volume_constraint must be lt, gt, or eq")
+        if self.non_design_regions:
+            fixed = region_densities(self.non_design_regions, self.nx, self.ny)
+            minimum = (fixed == 1).sum() / fixed.size
+            maximum = 1 - (fixed == 0).sum() / fixed.size
+            if self.volume_constraint in ("lt", "eq") and minimum > self.volume_fraction * (1 + self.feasibility_tolerance):
+                raise ValueError("Fixed solid regions exceed the permitted material volume")
+            if self.volume_constraint in ("gt", "eq") and maximum < self.volume_fraction * (1 - self.feasibility_tolerance):
+                raise ValueError("Fixed void regions prevent the required material volume")
         for size_name, beta_name, tolerance_name in (
                 ("max_solid_size", "max_size_beta", "max_size_tolerance"),
                 ("max_void_size", "max_void_beta", "max_void_tolerance")):
@@ -145,7 +182,17 @@ class CantileverConfig:
             raise ValueError("load_angle must be finite")
         if (self.load_node_x is None) != (self.load_node_y is None):
             raise ValueError("Specify both load_node_x and load_node_y")
-        if self.load_node_x is not None:
+        if self.boundary_conditions is not None:
+            identifiers = {case.id for case in self.load_cases}
+            if any(condition.case_id is not None and condition.case_id not in identifiers for condition in self.boundary_conditions):
+                raise ValueError("A force refers to an unknown load case")
+            for case in self.load_cases:
+                try:
+                    resolve_boundary_data(self.boundary_conditions, self.nx, self.ny, case_id=case.id,
+                                          default_case_id=self.load_cases[0].id, length=self.length, height=self.height)
+                except ValueError as error:
+                    raise ValueError(f"{case.name}: {error}") from error
+        elif self.load_node_x is not None:
             if (type(self.load_node_x) is not int or type(self.load_node_y) is not int or
                     not 1 <= self.load_node_x <= self.nx or not 0 <= self.load_node_y <= self.ny):
                 raise ValueError("The load must be on a free mesh node (column 1..nx, row 0..ny)")
