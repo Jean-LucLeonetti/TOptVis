@@ -11,7 +11,8 @@
 - Start every new feature in a new Git worktree with its own branch before making changes.
 - When agents work in parallel, give each agent a separate worktree and branch so their changes remain isolated.
 - Preserve existing uncommitted changes in other worktrees.
-- After confirming a feature branch has been merged into its target branch, remove its clean worktree and delete the local branch and any corresponding remote branch.
+- After merging a feature branch, push the target branch to its remote and verify that the merged commit is reachable from the remote target branch before cleanup.
+- Once that verification succeeds, remove the feature's clean worktree and delete the local feature branch and any corresponding remote feature branch.
 - Before cleanup, verify that no unmerged commits, uncommitted changes, or ongoing agent work remain. Never force removal or discard work; report any cleanup that cannot be completed safely.
 
 ## Git naming and attribution
