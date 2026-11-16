@@ -7,6 +7,7 @@ name = "ml-opt-project"
 version = "0.1.0"
 description = "Topology optimisation with PyTorch and PETSc"
 readme = "README.md"
+license = {text = "MIT AND GPL-3.0-or-later"}
 requires-python = ">=3.11"
 dependencies = [
     "numpy",
@@ -31,6 +32,9 @@ testpaths = ["tests"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools]
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md", "src/ml_opt/optimizers/GPL-3.0-or-later.txt"]
 
 [tool.setuptools.package-data]
 "ml_opt.web" = ["static/*"]
