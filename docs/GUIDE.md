@@ -649,6 +649,39 @@ partitions for identical settings; the NN selects its checkpoint using validatio
 loss only. The comparison explicitly flags saved models with different splits.
 The training-mean and volume-only linear baselines use fitting cases only.
 
+To broaden the base layouts, set **Generation method → Optimise other cases**.
+Select a saved regression experiment as **Original case**, or first prepare its
+connections in Optimisation and click **Use current optimisation setup**. This
+copies settings; the current result is not used as a training label.
+
+The batch includes a fresh original-case optimisation and auxiliary cases with
+clamped-edge or pinned/roller support patterns, random perimeter load nodes and
+random force directions. Mesh, material, volume, filtering, projection and
+connection regions stay fixed. Auxiliary mechanical constraints need not coincide
+with the connection anchors. Each auxiliary case uses one force and a validated,
+rigid-motion-stable support pattern; custom load-case combinations and prescribed
+motion are retained only for the original optimisation and original-case evaluation.
+
+Every final nominal density and its perturbations are analysed anew under the
+**original** loads and supports. Auxiliary objective values never become training
+labels. Families store the auxiliary setup, convergence and constraint feasibility
+separately, including iteration-limited results; those can still supply valid
+original-case forward-evaluation labels. The case inspector can switch the drawn
+loads/supports between original and optimisation cases. Predictions and **Check
+structure** always use the original setup, whichever overlay is selected.
+
+Whole auxiliary-case families remain together in the split. This is a broader
+layout test than adding noise to one volume sweep, but it does not establish
+accuracy on arbitrary topologies. Keep a separate final test set when using
+validation results to choose sampling settings. Cross-case generation runs through
+the same cancellable worker; completed labels survive cancellation.
+
+`POST /api/design-regression/cross-cases` accepts one of `source_id`, `problem`,
+or `original_dataset_id` (reuse a cross-case experiment’s saved original setup),
+plus `case_count`, `max_iterations`, `variants`, `amplitude` and `seed`. It emits
+`design_optimization` progress and `design_case` labels, and saves a standard design
+regression dataset with `source_kind: "cross_cases"` and per-family configurations.
+
 **Fit log objective**, enabled by default, fits `log(C)` and exponentiates the
 prediction. This keeps predictions positive and reduces domination by very soft
 structures. NN target standardisation also uses fitting cases only. All reported

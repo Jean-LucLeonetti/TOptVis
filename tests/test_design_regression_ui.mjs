@@ -40,7 +40,7 @@ test("design regression trains, restores, edits, checks, resets and shares worke
   const names=["document","fetch","ResizeObserver","CustomEvent"],previous=new Map(names.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]));
   const flush=async()=>{for(let i=0;i<5;i++)await new Promise(resolve=>setImmediate(resolve));};
   try {
-    globalThis.document={getElementById:id=>{assert.ok(nodes.has(id),id);return node(id);},createElement:()=>new Element(),addEventListener:(name,fn)=>events.set(name,fn),dispatchEvent(){}};
+    globalThis.document={getElementById:id=>{assert.ok(nodes.has(id),id);return node(id);},createElement:()=>new Element(),addEventListener:(name,fn)=>events.set(name,fn),dispatchEvent(event){if(event.type==="designregressionuseproblem") event.detail.accept(data.fixed_config);}};
     globalThis.ResizeObserver=class{observe(){}};
     globalThis.CustomEvent=class{constructor(type,{detail}){this.type=type;this.detail=detail;}};
     globalThis.fetch=async(url,options={})=>{
@@ -50,7 +50,7 @@ test("design regression trains, restores, edits, checks, resets and shares worke
         const check=url.endsWith("/evaluate");trained=true;
         return new Response([{event:"started",run_id:"job",dataset_id:identifier},...(check ? [{event:"design_evaluation",evaluation:{compliance:12,residual:1e-12}}] : [{event:"neural_training",epoch:0,train_loss:1,validation_loss:2}]),{event:"complete",stop_reason:"complete"}].map(JSON.stringify).join("\n"));
       }
-      const result=url==="/api/health" ? {design_regression_supported:true} : url==="/api/design-regression/datasets" ? {datasets:[{id:identifier,case_count:1}]} :
+      const result=url==="/api/health" ? {design_regression_supported:true,cross_case_designs_supported:true} : url==="/api/design-regression/datasets" ? {datasets:[{id:identifier,case_count:1}]} :
         url==="/api/regression/datasets" ? {datasets:[{id:identifier,completed_cases:3}]} : {dataset:data,reports:{neural:trained ? report : null},errors:{}};
       return new Response(JSON.stringify(result));
     };
@@ -76,6 +76,20 @@ test("design regression trains, restores, edits, checks, resets and shares worke
     assert.equal(node("design-error").textContent,"Training diverged");assert.equal(node("design-fit").disabled,false);workerFailure=false;
     generate.get("source_id").value=identifier;node("design-generate-form").emit("submit");await flush();
     const generated=requests.filter(r=>r.method==="POST").at(-1);assert.equal(generated.url,"/api/design-regression/generate");assert.equal(JSON.parse(generated.body).variants,4);
+    generate.get("generation_mode").value="cross";generate.get("generation_mode").emit("change");
+    node("design-use-current").emit("click");assert.match(node("design-original-note").textContent,/selected/);
+    node("design-generate-form").emit("submit");await flush();
+    const cross=requests.filter(r=>r.method==="POST").at(-1);assert.equal(cross.url,"/api/design-regression/cross-cases");
+    assert.deepEqual(JSON.parse(cross.body).problem,data.fixed_config);assert.equal(JSON.parse(cross.body).case_count,12);
+    assert.equal(JSON.parse(cross.body).source_id,undefined);
+    data.id="e".repeat(32);data.source_kind="cross_cases";data.source_config=data.fixed_config;
+    data.settings={case_count:3,max_iterations:2,variants:0,amplitude:.2,seed:42};
+    node("design-dataset").value=data.id;node("design-dataset").emit("change");await flush();
+    assert.equal(generate.get("generation_mode").value,"cross");assert.equal(generate.get("case_count").value,"3");
+    assert.match(node("design-original-note").textContent,/Saved original/);
+    node("design-generate-form").emit("submit");await flush();
+    const rerun=JSON.parse(requests.filter(r=>r.method==="POST").at(-1).body);
+    assert.equal(rerun.original_dataset_id,data.id);assert.equal(rerun.problem,undefined);
   } finally {
     for(const name of names){const descriptor=previous.get(name);if(descriptor)Object.defineProperty(globalThis,name,descriptor);else delete globalThis[name];}
   }

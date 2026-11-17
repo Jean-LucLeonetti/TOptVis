@@ -151,7 +151,7 @@ def create_app(*, training_root: Path | None = None, regression_root: Path | Non
         return request.model_dump(mode="json"), resolve_configuration(request)
 
     app.include_router(create_regression_router(manager, regression_root, resolve_problem=resolve_problem))
-    app.include_router(create_design_regression_router(manager, design_regression_root, regression_root))
+    app.include_router(create_design_regression_router(manager, design_regression_root, regression_root, resolve_problem=resolve_problem))
     static = Path(__file__).with_name("static")
     app.mount("/static", StaticFiles(directory=static), name="static")
 
@@ -173,6 +173,7 @@ def create_app(*, training_root: Path | None = None, regression_root: Path | Non
                 "rom_training_supported": True,
                 "regression_supported": True,
                 "design_regression_supported": True,
+                "cross_case_designs_supported": True,
                 "topology_regression_supported": True,
                 "regression_problem_import_supported": True,
                 "rom_validation_supported": True,

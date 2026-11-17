@@ -6,7 +6,7 @@ const el=id=>document.getElementById(id), generate=el("design-generate-form"), f
 const input=(form,name)=>form.elements.namedItem(name);
 const number=value=>Number.isFinite(value) ? value.toLocaleString("en",{maximumFractionDigits:3}) : "Unavailable";
 const percent=value=>Number.isFinite(value) ? `${(value*100).toFixed(2)}%` : "—";
-const state={dataset:null,reports:{},models:new Map(),busy:false,externalBusy:false,ready:false,runId:null,drafts:new Map(),checks:new Map(),history:[],active:false};
+const state={dataset:null,reports:{},models:new Map(),busy:false,externalBusy:false,ready:false,runId:null,problem:null,originalDatasetId:null,crossSupported:false,drafts:new Map(),checks:new Map(),history:[],active:false};
 const learning=createTrainingChart("design");
 const selected=()=>state.models.get(el("design-model").value);
 const reference=()=>state.dataset?.cases.find(item=>String(item.index)===el("design-case").value);
@@ -26,7 +26,10 @@ function controls() {
   const locked=state.busy || state.externalBusy || !state.ready;
   el("design-generate-settings").disabled=locked;
   el("design-fit-settings").disabled=locked || !state.dataset;
-  el("design-generate").disabled=locked || !input(generate,"source_id").value;
+  const cross=input(generate,"generation_mode").value==="cross";
+  el("design-generate").disabled=locked || (cross && !state.crossSupported) || (!input(generate,"source_id").value && !(cross && (state.problem || state.originalDatasetId)));
+  el("design-use-current").disabled=locked;
+  input(generate,"source_id").required=!(cross && (state.problem || state.originalDatasetId));
   el("design-fit").disabled=locked || !state.dataset;
   el("design-stop").disabled=!state.busy || !state.runId;
   for(const id of ["design-dataset","design-refresh"]) el(id).disabled=state.busy;
@@ -34,6 +37,12 @@ function controls() {
   el("design-model").disabled=state.busy || !state.models.size;
   for(const id of ["design-element","design-value","design-apply","design-reset"]) el(id).disabled=state.busy || !density();
   el("design-evaluate").disabled=locked || !density();
+}
+function generationMode() {
+  const cross=input(generate,"generation_mode").value==="cross";
+  el("design-cross-options").hidden=!cross;el("design-source-label").textContent=cross ? "Original case" : "Base designs";
+  for(const field of el("design-cross-options").querySelectorAll("input")) field.disabled=!cross;
+  controls();
 }
 function method() {
   const current=input(fit,"method").value;
@@ -43,6 +52,7 @@ function method() {
 }
 function preview() {
   const item=reference(), values=density(), fitted=selected(), config=state.dataset?.fixed_config;
+  const family=state.dataset?.families?.find(f=>String(f.index)===String(item?.family));
   const edited=state.drafts.has(item?.index), check=state.checks.get(item?.index);
   const actual=check?.compliance ?? (!edited ? item?.compliance : null);
   let predicted=null;
@@ -54,8 +64,10 @@ function preview() {
   el("design-density-empty").hidden=!!values;
   el("design-case-note").textContent=item ? `Family ${item.family} · ${item.variant===0 ? "Base design" : `Variation ${item.variant}`} · ${use(fitted?.report,item.index)}${edited ? " · Edited" : ""}` : "";
   el("design-check-note").textContent=check ? `Equilibrium residual ${check.residual.toExponential(2)}. ${state.dataset.source_robust ? "Nominal material checked." : ""}` : edited ? "Edited design: check structure to obtain its actual objective." : "";
+  if(family) el("design-case-note").textContent+=` · ${family.name} · ${family.converged ? "Converged" : family.stop_reason || "Unfinished"}${family.feasible===false ? " · Source constraints unmet" : ""}`;
+  el("design-setup-view").hidden=!state.dataset?.families;
   el("design-element").max=values?.length || 1;
-  if(config && el("design-density").getClientRects().length) drawTopology(el("design-density"),{...config,filter_radius:0,max_solid_size:0,max_void_size:0},values);
+  if(config && el("design-density").getClientRects().length) drawTopology(el("design-density"),{...(el("design-view-setup").value==="source" && family?.config ? family.config : config),filter_radius:0,max_solid_size:0,max_void_size:0},values);
   const connection=check || (!edited ? item : null);
   if(connection?.connection_constraints) {
     const pass=Object.values(connection.connection_constraints).every(value=>value<=(state.dataset.fixed_config.feasibility_tolerance ?? 1e-4)), path=Object.keys(connection.connection_constraints).every(key=>connection.connection_connected?.[key]===true);
@@ -121,7 +133,8 @@ function render() {
   } else el("design-fit-note").textContent="At least three independent base designs are needed.";
   const data=state.dataset;
   el("design-dataset-note").textContent=data ? `${data.cases.length} / ${data.expected_cases} cases · ${data.family_count} base designs · ${data.status}` : "";
-  el("design-prediction-title").textContent=data?.objective_quantity==="elastic_work" ? "Elastic work prediction" : "Compliance prediction";
+  const objective=data?.objective_quantity==="elastic_work" ? "elastic work" : "compliance";
+  el("design-prediction-title").textContent=data?.source_kind==="cross_cases" ? `Original-case ${objective} prediction` : `${objective[0].toUpperCase()+objective.slice(1)} prediction`;
   el("design-downloads").hidden=!data;
   if(data) el("design-download-data").href=`/api/design-regression/${data.id}/artifacts/dataset`;
   el("design-download-models").hidden=!fitted;
@@ -136,15 +149,23 @@ function selectCase() {
 async function load(id) {
   if(!id) {state.dataset=null;state.reports={};state.drafts.clear();state.checks.clear();render();return;}
   const result=await json(await fetch(`/api/design-regression/${id}`));
-  if(state.dataset?.id!==id) {state.drafts.clear();state.checks.clear();}
+  if(state.dataset?.id!==id) {
+    state.drafts.clear();state.checks.clear();
+    if(result.dataset.source_kind==="cross_cases") {
+      state.problem=null;state.originalDatasetId=id;input(generate,"source_id").value="";
+      input(generate,"generation_mode").value="cross";
+      for(const [key,value] of Object.entries(result.dataset.settings)) if(input(generate,key)) input(generate,key).value=value;
+      el("design-original-note").textContent="Saved original optimisation setup selected";generationMode();
+    }
+  }
   state.dataset=result.dataset;state.reports=result.reports;
-  const failures=result.dataset.cases.filter(item=>item.status==="failed");
+  const failures=[...result.dataset.cases.filter(item=>item.status==="failed"),...(result.dataset.families || []).filter(item=>item.status==="failed")];
   const issues=[...Object.values(result.errors),...(failures.length ? [`${failures.length} structural evaluations failed. ${failures[0].message}`] : [])];
   error(issues.join(" "));render();selectCase();
 }
 async function refresh(autoload=false) {
   const [designs,sources,health]=await Promise.all([fetch("/api/design-regression/datasets").then(json),fetch("/api/regression/datasets").then(json),fetch("/api/health").then(json)]);
-  state.ready=!!health.design_regression_supported;
+  state.ready=!!health.design_regression_supported;state.crossSupported=!!health.cross_case_designs_supported;
   if(!state.busy) state.externalBusy=!!health.running;
   const saved=state.dataset?.id || el("design-dataset").value;
   options(el("design-dataset"),[["","New experiment"],...designs.datasets.map(d=>[d.id,`${d.id.slice(0,8)} · ${d.case_count} cases`])],saved);
@@ -168,6 +189,7 @@ async function run(path,payload,kind) {
       const event=JSON.parse(line);
       if(event.event==="error") throw new Error(event.message);
       if(event.event==="started") {state.runId=event.run_id;datasetId=event.dataset_id;controls();}
+      if(event.event==="design_optimization") el("design-status").textContent=`Optimising case ${event.family+1} / ${event.family_count} · iteration ${event.iteration} / ${event.max_iterations}`;
       if(event.event==="design_case") el("design-status").textContent=`Evaluated ${event.completed_cases} / ${event.case_count} designs`;
       if(event.event==="neural_training") {state.history.push(event);learning.update(state.history);}
       if(event.event==="design_evaluation") state.checks.set(reference().index,event.evaluation);
@@ -195,8 +217,12 @@ async function run(path,payload,kind) {
 }
 generate.addEventListener("submit",event=>{
   event.preventDefault();if(state.busy || state.externalBusy || !generate.reportValidity()) return;
-  const payload=Object.fromEntries(["variants","amplitude","seed"].map(key=>[key,Number(input(generate,key).value)]));payload.source_id=input(generate,"source_id").value;
-  run("/api/design-regression/generate",payload,"generate");
+  const payload=Object.fromEntries(["variants","amplitude","seed"].map(key=>[key,Number(input(generate,key).value)]));  const cross=input(generate,"generation_mode").value==="cross";
+  if(cross && state.problem) payload.problem=state.problem;
+  else if(cross && state.originalDatasetId) payload.original_dataset_id=state.originalDatasetId;
+  else payload.source_id=input(generate,"source_id").value;
+  if(cross) for(const key of ["case_count","max_iterations"]) payload[key]=Number(input(generate,key).value);
+  run(`/api/design-regression/${cross ? "cross-cases" : "generate"}`,payload,"generate");
 });
 fit.addEventListener("submit",event=>{
   event.preventDefault();if(state.busy || state.externalBusy || !state.dataset || !fit.reportValidity()) return;
@@ -213,7 +239,16 @@ fit.addEventListener("submit",event=>{
   run(`/api/design-regression/${state.dataset.id}/fit`,payload,"fit");
 });
 input(fit,"method").addEventListener("change",method);
-input(generate,"source_id").addEventListener("change",controls);
+input(generate,"source_id").addEventListener("change",()=>{state.problem=null;state.originalDatasetId=null;el("design-original-note").textContent="";controls();});
+input(generate,"generation_mode").addEventListener("change",generationMode);
+el("design-use-current").addEventListener("click",()=>{
+  let received=false;
+  document.dispatchEvent(new CustomEvent("designregressionuseproblem",{detail:{accept:problem=>{
+    received=true;state.problem=problem;state.originalDatasetId=null;input(generate,"source_id").value="";el("design-original-note").textContent="Current optimisation setup selected";error();controls();
+  },reject:message=>{received=true;error(message);}}}));
+  if(!received) error("The optimisation setup is unavailable; select a saved experiment");
+});
+el("design-view-setup").addEventListener("change",preview);
 el("design-refresh").addEventListener("click",()=>refresh().catch(e=>error(e.message)));
 el("design-dataset").addEventListener("change",()=>load(el("design-dataset").value).catch(e=>error(e.message)));
 el("design-model").addEventListener("change",render);
@@ -235,4 +270,4 @@ el("design-stop").addEventListener("click",async()=>{try {await json(await fetch
 document.addEventListener("solveractivity",event=>{if(event.detail.workspace!=="design-regression") {state.externalBusy=event.detail.running;controls();}});
 document.addEventListener("regressionviewchange",event=>{state.active=event.detail==="design";if(state.active) {render();if(!state.busy) refresh(true).catch(e=>error(e.message));}});
 new ResizeObserver(()=>{if(state.active) {chart();preview();}}).observe(el("design-chart").parentElement);
-method();controls();
+method();generationMode();controls();

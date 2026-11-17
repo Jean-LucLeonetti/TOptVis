@@ -65,6 +65,15 @@ def source_designs(data):
     return config, bases
 
 
+def perturbed_density(base, config, amplitude, generator):
+    coarse=torch.rand((1,1,min(6,config.ny),min(12,config.nx)),generator=generator,dtype=torch.float64)*2-1
+    noise=F.interpolate(coarse,size=(config.ny,config.nx),mode="bilinear",align_corners=False).numpy().ravel()
+    shift=float(torch.rand((),generator=generator))*.5-.25
+    density=np.clip(base+amplitude*(noise-noise.mean()+shift),0,1)
+    fixed=region_densities(config.non_design_regions,config.nx,config.ny)
+    return np.where(np.isfinite(fixed),fixed,density)
+
+
 def generate_designs(source_directory, directory, settings, *, emit=lambda event: None, stop_requested=lambda: False):
     from .problem import CantileverProblem
 
@@ -95,10 +104,7 @@ def generate_designs(source_directory, directory, settings, *, emit=lambda event
                 if stop_requested(): break
                 density = base.copy()
                 if variant:
-                    coarse = torch.rand((1,1,min(6,config.ny),min(12,config.nx)),generator=generator,dtype=torch.float64)*2-1
-                    noise = F.interpolate(coarse,size=(config.ny,config.nx),mode="bilinear",align_corners=False).numpy().ravel()
-                    shift = float(torch.rand((),generator=generator))*.5-.25
-                    density = np.clip(base+settings.amplitude*(noise-noise.mean()+shift),0,1)
+                    density = perturbed_density(base,config,settings.amplitude,generator)
                 density[mask] = fixed[mask]
                 index = len(data["cases"])
                 case = {"index":index,"family":str(family),"variant":variant,"density":density.tolist()}

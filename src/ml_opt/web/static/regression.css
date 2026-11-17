@@ -107,3 +107,6 @@
 .design-values strong {display:block;color:var(--ink);font-size:18px;margin-top:6px;font-variant-numeric:tabular-nums}
 #design-density {cursor:crosshair}
 @media(max-width:700px) {#design-model,#design-case{width:150px}.design-workspace .page-heading{flex-wrap:wrap;gap:12px}.design-workspace .panel-heading{flex-wrap:wrap}}
+
+#design-cross-options {margin-bottom:18px}
+#design-view-setup select {width:170px}

@@ -140,7 +140,7 @@ function drawResult(model={...state.model,display_load_case:boundaryEditor?.acti
 }
 function updateConnectionView() {
   const model=state.runConfig || state.model, count=model?.connection_targets?.length || 0;
-  byId("connection-view").hidden=!count;
+  byId("connection-view").hidden=!count;byId("model-view").dataset.connections=String(!!count);
   const select=byId("connection-display"), previous=select.value;
   if(select.options.length!==count+1) {
     select.replaceChildren(new Option("Material density","density"),...Array.from({length:count},(_,i)=>new Option(`Temperature · target ${i+1}`,`target-${i+1}`)));
@@ -447,6 +447,11 @@ boundaryEditor = new BoundaryEditor({canvas: modelCanvas, getModel: () => state.
   onChange: () => updateModel(), onError: showError, onOpen: () => selectPanel("panel-load"), redraw});
 updateLabels(); clearResult(); redraw();
 initialiseReferences();
+document.addEventListener("designregressionuseproblem",event=>{
+  if(state.running || state.externalBusy) {event.detail.reject("Finish the active job before selecting its setup");return;}
+  if(!form.checkValidity() || boundaryEditor.validationError) {event.detail.reject(boundaryEditor.validationError || "Correct the optimisation settings first");return;}
+  event.detail.accept(structuredClone(state.model));
+});
 projectIO = new ProjectIO({isRunning: () => state.running, onError: showError,
   getModel: () => {
     if (!state.running && !form.reportValidity()) throw new Error("Correct the model inputs before saving.");

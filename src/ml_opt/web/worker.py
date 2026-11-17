@@ -39,7 +39,7 @@ def worker_loop(commands, messages, cancel, ready) -> None:
                                                "regression_topology_fit", "regression_topology_evaluate"):
                 field_pool.clear()
                 run_regression(configuration, _RunMessages(messages, run_id), cancel)
-            elif configuration.get("task") in ("design_generate", "design_fit", "design_evaluate"):
+            elif configuration.get("task") in ("design_generate", "design_cross_generate", "design_fit", "design_evaluate"):
                 field_pool.clear()
                 run_design_regression(configuration, _RunMessages(messages, run_id), cancel)
             elif configuration.get("task") in ("rom_snapshots", "rom_basis", "rom_validation"):
@@ -105,9 +105,14 @@ def run_design_regression(configuration, messages, cancel):
     try:
         stopped = lambda: cancel.is_set() or _parent_gone()
         task = configuration["task"]
-        identifier = messages.run_id if task == "design_generate" else configuration["dataset_id"]
+        identifier = messages.run_id if task in ("design_generate","design_cross_generate") else configuration["dataset_id"]
         directory = Path(configuration["root"]) / identifier
-        if task == "design_generate":
+        if task == "design_cross_generate":
+            from ..cross_case_designs import CrossCaseSettings,generate_cross_designs
+            result=generate_cross_designs(CantileverConfig(**configuration["configuration"]),directory,
+                CrossCaseSettings(**configuration["settings"]),emit=messages.put,stop_requested=stopped)
+            cancelled=result["status"]=="cancelled"
+        elif task == "design_generate":
             result = generate_designs(configuration["source_directory"], directory,
                 DesignSettings(**configuration["settings"]), emit=messages.put, stop_requested=stopped)
             cancelled = result["status"] == "cancelled"
