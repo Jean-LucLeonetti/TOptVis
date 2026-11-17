@@ -39,6 +39,9 @@ def worker_loop(commands, messages, cancel, ready) -> None:
                                                "regression_topology_fit", "regression_topology_evaluate"):
                 field_pool.clear()
                 run_regression(configuration, _RunMessages(messages, run_id), cancel)
+            elif configuration.get("task") in ("design_generate", "design_fit", "design_evaluate"):
+                field_pool.clear()
+                run_design_regression(configuration, _RunMessages(messages, run_id), cancel)
             elif configuration.get("task") in ("rom_snapshots", "rom_basis", "rom_validation"):
                 field_pool.clear()
                 run_training(configuration, _RunMessages(messages, run_id), cancel)
@@ -95,6 +98,33 @@ def run_regression(configuration, messages, cancel):
     except Exception as error:
         traceback.print_exc()
         messages.put({"event": "error", "message": str(error) or type(error).__name__})
+
+
+def run_design_regression(configuration, messages, cancel):
+    from ..design_regression import DesignSettings, generate_designs, fit_design_models, evaluate_design
+    try:
+        stopped = lambda: cancel.is_set() or _parent_gone()
+        task = configuration["task"]
+        identifier = messages.run_id if task == "design_generate" else configuration["dataset_id"]
+        directory = Path(configuration["root"]) / identifier
+        if task == "design_generate":
+            result = generate_designs(configuration["source_directory"], directory,
+                DesignSettings(**configuration["settings"]), emit=messages.put, stop_requested=stopped)
+            cancelled = result["status"] == "cancelled"
+        elif task == "design_fit":
+            result = fit_design_models(directory, **configuration["options"], emit=messages.put,
+                stop_requested=stopped, allow_interrupted=True)
+            cancelled = result is None
+        else:
+            result = evaluate_design(directory, configuration["density"], stop_requested=stopped)
+            cancelled = result is None
+            if result is not None:
+                messages.put({"event":"design_evaluation", "evaluation":result})
+        messages.put({"event":"complete", "dataset_id":identifier,
+                      "stop_reason":"cancelled" if cancelled else "complete"})
+    except Exception as error:
+        traceback.print_exc()
+        messages.put({"event":"error", "message":str(error) or type(error).__name__})
 
 
 def run_training(configuration, messages, cancel):

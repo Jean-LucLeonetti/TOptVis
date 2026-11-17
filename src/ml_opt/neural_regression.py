@@ -77,7 +77,13 @@ def predict_network(model, volumes):
     values = np.asarray(volumes, dtype=float)
     if not np.all(np.isfinite(values)):
         raise ValueError("Prediction volumes must be finite")
-    inputs = torch.tensor(np.atleast_1d(values).reshape(-1, 1), dtype=torch.float64)
+    if model.get("input_kind") == "density":
+        single = values.ndim == 1
+        batch = values[None, :] if single else values
+        inputs = torch.tensor(batch[:, model["input_indices"]], dtype=torch.float64)
+    else:
+        single = values.ndim == 0
+        inputs = torch.tensor(np.atleast_1d(values).reshape(-1, 1), dtype=torch.float64)
     weights = model["weights"]
     with torch.inference_mode():
         x = (inputs-model["input_offset"])/model["input_scale"]
@@ -93,9 +99,63 @@ def predict_network(model, volumes):
     if model["target"] == "topology":
         full = np.tile(np.asarray(model["fixed_density"]), (len(output), 1))
         full[:, model["output_indices"]] = output
-        return full[0] if values.ndim == 0 else full
+        return full[0] if single else full
     output = output[:, 0]
-    return float(output[0]) if values.ndim == 0 else output
+    return float(output[0]) if single else output
+
+
+def train_network(x, y, train, validation, *, settings, output_activation="linear", progress_target="compliance",
+                  emit=lambda event: None, stop_requested=lambda: False):
+    """Shared one-hidden-layer trainer for scalar or full-design inputs."""
+    x_train, y_train, x_val, y_val = x[train], y[train], x[validation], y[validation]
+    history, best, best_epoch, best_loss = [], None, 0, float("inf")
+    started = perf_counter()
+    previous_threads = torch.get_num_threads()
+    try:
+        torch.set_num_threads(1)
+        with torch.random.fork_rng(devices=[]):
+            torch.manual_seed(settings.network_seed)
+            hidden = nn.Linear(x.shape[1], settings.neurons, dtype=torch.float64)
+            output = nn.Linear(settings.neurons, y.shape[1], dtype=torch.float64)
+            network = nn.Sequential(hidden, nn.Tanh(), output, *([nn.Sigmoid()] if output_activation == "sigmoid" else []))
+            optimiser = torch.optim.Adam(network.parameters(), lr=settings.learning_rate)
+            stride = max(1, math.ceil(settings.epochs/200))
+            best_row = None
+            for epoch in range(settings.epochs+1):
+                if stop_requested():
+                    return None
+                if epoch:
+                    network.train(); optimiser.zero_grad(set_to_none=True)
+                    loss = nn.functional.mse_loss(network(x_train), y_train)
+                    # L2 on weight matrices only, using mean squared error units.
+                    penalty = hidden.weight.square().sum() + output.weight.square().sum()
+                    (loss + settings.weight_penalty*penalty).backward()
+                    optimiser.step()
+                network.eval()
+                with torch.inference_mode():
+                    training_loss = float(nn.functional.mse_loss(network(x_train), y_train))
+                    validation_loss = float(nn.functional.mse_loss(network(x_val), y_val))
+                if not math.isfinite(training_loss) or not math.isfinite(validation_loss):
+                    raise ValueError("Network training diverged; reduce the learning rate")
+                row = {"epoch": epoch, "train_loss": training_loss, "validation_loss": validation_loss,
+                       "elapsed_seconds": perf_counter()-started}
+                if validation_loss < best_loss:
+                    best_loss, best_epoch, best_row = validation_loss, epoch, row
+                    best = {name: parameter.detach().clone() for name, parameter in network.state_dict().items()}
+                if epoch % stride == 0 or epoch == settings.epochs:
+                    history.append(row)
+                    emit({"event": "neural_training", "target": progress_target, "epochs": settings.epochs, **row})
+            if all(row["epoch"] != best_epoch for row in history):
+                history.append(best_row); history.sort(key=lambda row: row["epoch"])
+            network.load_state_dict(best)
+            weights = {"hidden_weight": hidden.weight.detach().tolist(), "hidden_bias": hidden.bias.detach().tolist(),
+                       "output_weight": output.weight.detach().tolist(), "output_bias": output.bias.detach().tolist()}
+    finally:
+        torch.set_num_threads(previous_threads)
+    return {"kind": "neural_network", "activation": "tanh", "output_activation": output_activation,
+            "neurons": settings.neurons, "weights": weights, "best_epoch": best_epoch,
+            "best_validation_loss": best_loss, "training_history": history,
+            "training_seconds": perf_counter()-started}
 
 
 def fit_neural_models(directory, *, target, test_fraction=.25, seed=42, include_unconverged=False,
@@ -129,58 +189,13 @@ def fit_neural_models(directory, *, target, test_fraction=.25, seed=42, include_
     x = torch.tensor(((volumes-offset)/scale)[:, None], dtype=torch.float64)
     y = torch.tensor((targets-target_offset)/target_scale, dtype=torch.float64)
     # Avoid touching test targets during fitting or checkpoint selection.
-    x_train, y_train, x_val, y_val = x[train], y[train], x[validation], y[validation]
-    history, best, best_epoch, best_loss = [], None, 0, float("inf")
-    started = perf_counter()
-    previous_threads = torch.get_num_threads()
-    try:
-        torch.set_num_threads(1)
-        with torch.random.fork_rng(devices=[]):
-            torch.manual_seed(settings.network_seed)
-            hidden = nn.Linear(1, settings.neurons, dtype=torch.float64)
-            output = nn.Linear(settings.neurons, targets.shape[1], dtype=torch.float64)
-            network = nn.Sequential(hidden, nn.Tanh(), output, *([nn.Sigmoid()] if target == "topology" else []))
-            optimiser = torch.optim.Adam(network.parameters(), lr=settings.learning_rate)
-            stride = max(1, math.ceil(settings.epochs/200))
-            best_row = None
-            for epoch in range(settings.epochs+1):
-                if stop_requested():
-                    return None
-                if epoch:
-                    network.train(); optimiser.zero_grad(set_to_none=True)
-                    loss = nn.functional.mse_loss(network(x_train), y_train)
-                    # L2 on weight matrices only, using mean squared error units.
-                    penalty = hidden.weight.square().sum() + output.weight.square().sum()
-                    (loss + settings.weight_penalty*penalty).backward()
-                    optimiser.step()
-                network.eval()
-                with torch.inference_mode():
-                    training_loss = float(nn.functional.mse_loss(network(x_train), y_train))
-                    validation_loss = float(nn.functional.mse_loss(network(x_val), y_val))
-                if not math.isfinite(training_loss) or not math.isfinite(validation_loss):
-                    raise ValueError("Network training diverged; reduce the learning rate")
-                row = {"epoch": epoch, "train_loss": training_loss, "validation_loss": validation_loss,
-                       "elapsed_seconds": perf_counter()-started}
-                if validation_loss < best_loss:
-                    best_loss, best_epoch, best_row = validation_loss, epoch, row
-                    best = {name: parameter.detach().clone() for name, parameter in network.state_dict().items()}
-                if epoch % stride == 0 or epoch == settings.epochs:
-                    history.append(row)
-                    emit({"event": "neural_training", "target": target, "epochs": settings.epochs, **row})
-            if all(row["epoch"] != best_epoch for row in history):
-                history.append(best_row); history.sort(key=lambda row: row["epoch"])
-            network.load_state_dict(best)
-            weights = {"hidden_weight": hidden.weight.detach().tolist(), "hidden_bias": hidden.bias.detach().tolist(),
-                       "output_weight": output.weight.detach().tolist(), "output_bias": output.bias.detach().tolist()}
-    finally:
-        torch.set_num_threads(previous_threads)
-    model = {"kind": "neural_network", "target": target, "activation": "tanh",
-             "output_activation": "sigmoid" if target == "topology" else "linear",
-             "neurons": settings.neurons, "weights": weights,
-             "input_offset": offset, "input_scale": scale,
-             "target_offset": target_offset, "target_scale": target_scale,
-             "best_epoch": best_epoch, "best_validation_loss": best_loss,
-             "training_history": history, "training_seconds": perf_counter()-started}
+    model = train_network(x, y, train, validation, settings=settings,
+        output_activation="sigmoid" if target == "topology" else "linear", progress_target=target,
+        emit=emit, stop_requested=stop_requested)
+    if model is None:
+        return None
+    model.update(target=target, input_offset=offset, input_scale=scale,
+                 target_offset=target_offset, target_scale=target_scale)
     if target == "topology":
         model.update(output_indices=indices.tolist(), fixed_density=np.nan_to_num(fixed).tolist())
     predicted = predict_network(model, volumes)

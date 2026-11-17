@@ -255,11 +255,13 @@
           <div id="regression-menu" class="regression-menu" role="menu" aria-label="Regression views" hidden>
             <button type="button" role="menuitemradio" aria-checked="true" data-regression-view="compliance" tabindex="-1">Compliance</button>
             <button type="button" role="menuitemradio" aria-checked="false" data-regression-view="topology" tabindex="-1">Topology</button>
+            <button type="button" role="menuitemradio" aria-checked="false" data-regression-view="design" tabindex="-1">Design → compliance</button>
           </div>
         </div>
         <button id="tab-rom-training" class="ml-method-tab" type="button" role="tab" aria-selected="false" aria-controls="workspace-rom-training" data-method="rom" tabindex="-1">Reduced models</button>
       </nav>
       <section id="workspace-regression" class="ml-method-panel" role="tabpanel" aria-labelledby="tab-regression" tabindex="0">
+        <div id="reg-existing-view" class="design-workspace">
         <div class="page-heading">
           <h1 id="reg-title">Regression · Compliance</h1>
           <div class="run-actions">
@@ -433,6 +435,53 @@
               <div class="reg-table-wrap"><table class="reg-table"><thead><tr><th scope="col">Quantity</th><th scope="col">Prediction</th><th scope="col">Reference</th></tr></thead><tbody id="top-evaluation"></tbody></table></div>
             </section>
             <div class="reg-downloads"><a id="top-download-models" hidden>Download topology models</a></div>
+          </div>
+        </div>
+        </div>
+        <div id="reg-design-view" class="design-workspace" hidden>
+          <div class="page-heading"><h1>Regression · Design → compliance</h1><div class="run-actions"><span id="design-status" role="status">Ready</span><button id="design-stop" class="button secondary" type="button" disabled>Stop</button><button id="design-generate" class="button primary" type="submit" form="design-generate-form" disabled>Generate dataset</button></div></div>
+          <div id="design-error" class="error-banner" role="alert" hidden></div>
+          <div class="reg-workspace">
+            <aside class="panel reg-settings">
+              <div class="controls-title"><h2>Dataset</h2></div>
+              <div class="control-section reg-saved"><label>Saved experiment<select id="design-dataset"><option value="">New experiment</option></select></label><button id="design-refresh" class="button secondary" type="button">Refresh</button><p id="design-dataset-note" class="model-message"></p></div>
+              <form id="design-generate-form" class="control-section"><fieldset id="design-generate-settings">
+                <label class="reg-order">Base designs<select name="source_id" required><option value="">Select a saved regression dataset</option></select></label>
+                <div class="input-grid"><label>Variations per design<input name="variants" type="number" min="0" step="1" value="4" required></label><label>Perturbation size<input name="amplitude" type="number" min="0" max="1" step="any" value="0.2" required></label><label>Sampling seed<input name="seed" type="number" min="0" max="4294967295" step="1" value="42" required></label></div>
+              </fieldset></form>
+              <div class="controls-title"><h2>Training</h2></div>
+              <form id="design-fit-form" class="control-section"><fieldset id="design-fit-settings">
+                <label class="reg-order">Fitting method<select name="method"><option value="ols">Polynomial regression</option><option value="ridge" selected>Ridge regression</option><option value="neural">Neural network</option></select></label>
+                <label id="design-order-options" class="reg-order">Maximum polynomial order<input name="max_degree" type="number" min="1" step="1" value="2" required></label>
+                <label id="design-ridge-options" class="reg-order">Ridge penalty (α)<input name="ridge_alpha" type="number" min="0" step="any" value="0.01" required></label>
+                <div id="design-neural-options" class="input-grid reg-neural-options" hidden><label>Hidden neurons<input name="neurons" type="number" min="1" step="1" value="8" required disabled></label><label>Epochs<input name="epochs" type="number" min="1" step="1" value="2000" required disabled></label><label>Learning rate<input name="learning_rate" type="number" min="0" step="any" value="0.0001" required disabled></label><label>Weight penalty<input name="weight_penalty" type="number" min="0" step="any" value="0" required disabled></label><label>Network seed<input name="network_seed" type="number" min="0" max="4294967295" step="1" value="42" required disabled></label></div>
+                <div class="input-grid"><label>Test families (%)<input name="test_percent" type="number" min="10" max="50" step="1" value="25" required></label><label>Validation families (%)<input name="validation_percent" type="number" min="10" max="50" step="1" value="20" required></label><label>Split seed<input name="seed" type="number" min="0" max="4294967295" step="1" value="42" required></label></div>
+                <label class="reg-check"><input name="log_target" type="checkbox" checked>Fit log objective</label><button id="design-fit" class="button primary" type="submit" disabled>Train models</button>
+              </fieldset></form>
+              <details class="reg-help control-section"><summary>About this experiment</summary>
+                <p>Input: the physical density of every designable element. Target: compliance under the saved geometry, supports, material and loads. Prescribed motion uses elastic work instead.</p>
+                <p>Generate re-evaluates each base design and its smooth density variations. Fixed solid and void regions stay unchanged. The physical density is analysed directly, without filtering or projection. Robust sources use nominal material, rather than their original worst-case objective.</p>
+                <p>Whole base-design families stay together in training, validation or test. Duplicate densities are also kept together. All methods use the same split settings. Validation selects the NN checkpoint; use it to choose polynomial order and penalty too. Reserve test scores for final evaluation.</p>
+                <p>Polynomial regression includes all cross terms through the chosen order. A normalised polynomial kernel avoids storing an expanded feature matrix. Densities are scaled to [−1, 1]; K(r,s) = ((1 + mean((2r−1)(2s−1)))/2)<sup>p</sup>. This weights the monomial basis. Least squares uses the minimum-norm solution when coefficients are underdetermined. Ridge penalises nonconstant coefficients in this weighted basis, with an unpenalised intercept. There is no fixed order cap.</p>
+                <p>The NN uses the existing tanh hidden layer and Adam trainer. Log fitting learns log compliance and exponentiates predictions. Training-target normalisation uses fitting cases only. Errors are reported on the physical objective scale.</p>
+                <p>The volume-only baseline tests whether the full density map learns more than material quantity. Predictions apply to this fixed mesh and structural setup. Edited designs may be outside the training distribution; check their actual objective with the structural solver.</p>
+                <a href="https://scikit-learn.org/stable/modules/kernel_ridge.html" target="_blank" rel="noopener noreferrer">Polynomial-kernel regression reference</a>
+              </details>
+            </aside>
+            <div class="reg-results">
+              <section class="panel reg-chart-panel"><div class="panel-heading"><h2 id="design-prediction-title">Compliance prediction</h2><label class="reg-model-label">Model<select id="design-model" disabled></select></label></div>
+                <div class="reg-chart-wrap"><svg id="design-chart" viewBox="0 0 800 350" role="group" aria-label="Predicted versus actual compliance. Select a point to inspect its design."></svg><p id="design-chart-empty" class="design-empty">Generate a dataset and train a model to compare predictions.</p></div>
+                <div class="reg-legend"><span><i class="reg-dot reg-train"></i>Training</span><span><i class="reg-dot reg-validation"></i>Validation</span><span><i class="reg-dot reg-test"></i>Test</span><label><input id="design-log-axis" type="checkbox" checked>Log axes</label></div><p id="design-axis-note" class="reg-note" role="status" hidden></p>
+              </section>
+              <section id="design-learning-panel" class="panel" hidden><div class="panel-heading"><h2>Neural network training</h2></div><svg id="design-learning-chart" class="network-learning-chart" viewBox="0 0 720 250" role="img" aria-label="Training and validation loss by epoch"></svg><div class="reg-legend"><span><i class="reg-dot reg-train"></i>Training</span><span><i class="reg-dot reg-validation"></i>Validation</span></div><p id="design-learning-note" class="reg-note" role="status"></p></section>
+              <section class="panel viewer-panel"><div class="panel-heading"><h2>Inspect design</h2><label class="reg-case-label">Case<select id="design-case" disabled></select></label></div>
+                <div class="canvas-wrap top-canvas-wrap"><canvas id="design-density" role="img" aria-label="Selected physical density. Click an element to select it for editing."></canvas><p id="design-density-empty" class="design-empty">No design selected</p></div>
+                <form id="design-edit-form" class="design-edit"><label>Element<input id="design-element" type="number" min="1" step="1" value="1" required></label><label>Density<input id="design-value" type="number" min="0" max="1" step="any" value="1" required></label><button id="design-apply" class="button secondary" type="submit" disabled>Apply density</button><button id="design-reset" class="button secondary" type="button" disabled>Reset design</button><button id="design-evaluate" class="button secondary" type="button" disabled>Check structure</button></form>
+                <p id="design-case-note" class="reg-note" role="status"></p><div class="design-values"><span>Prediction <strong id="design-prediction">Unavailable</strong></span><span>Actual <strong id="design-actual">Unavailable</strong></span><span>Relative error <strong id="design-relative">Unavailable</strong></span><span>Material volume <strong id="design-volume">Unavailable</strong></span></div><p id="design-check-note" class="reg-note" role="status"></p>
+              </section>
+              <section class="panel"><div class="panel-heading"><h2>Model comparison</h2></div><p id="design-fit-note" class="reg-note">At least three independent base designs are needed.</p><div class="reg-table-wrap"><table class="reg-table"><caption class="reg-caption">Mean absolute percentage error on design families</caption><thead><tr><th scope="col">Model</th><th scope="col">Training</th><th scope="col">Validation</th><th scope="col">Test</th></tr></thead><tbody id="design-scores"></tbody></table></div></section>
+              <div id="design-downloads" class="reg-downloads" hidden><a id="design-download-data">Download dataset</a><a id="design-download-models" hidden>Download fitted models</a></div>
+            </div>
           </div>
         </div>
       </section>

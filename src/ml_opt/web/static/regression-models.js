@@ -1,7 +1,8 @@
 // Portable neural weights use the same tanh/linear/sigmoid forward map as PyTorch.
 export function predictNeural(model, volume) {
-  const x=(volume-model.input_offset)/model.input_scale, w=model.weights;
-  const hidden=w.hidden_weight.map((row,i)=>Math.tanh(row[0]*x+w.hidden_bias[i]));
+  const input=model.input_kind==="density" ? model.input_indices.map(i=>volume[i]) : [volume];
+  const x=input.map(value=>(value-model.input_offset)/model.input_scale), w=model.weights;
+  const hidden=w.hidden_weight.map((row,i)=>Math.tanh(row.reduce((sum,weight,j)=>sum+weight*x[j],w.hidden_bias[i])));
   const values=w.output_weight.map((row,i)=>{
     let value=row.reduce((sum,weight,j)=>sum+weight*hidden[j],w.output_bias[i]);
     if(model.output_activation==="sigmoid") value=value>=0 ? 1/(1+Math.exp(-value)) : Math.exp(value)/(1+Math.exp(value));

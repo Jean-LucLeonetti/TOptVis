@@ -110,6 +110,8 @@ function rememberFitOptions() {
 }
 
 function selectView(view) {
+  el("reg-existing-view").hidden=view==="design";
+  el("reg-design-view").hidden=view!=="design";
   if(!["compliance","topology"].includes(view) || view===state.mode) return;
   rememberFitOptions();
   state.mode=view;restoreFitOptions();

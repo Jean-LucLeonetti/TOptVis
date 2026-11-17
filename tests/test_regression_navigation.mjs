@@ -10,7 +10,7 @@ class Element {
   focus(){Element.focused=this;}
 }
 
-test("Regression dropdown routes both views and supports keyboard, history, and legacy links",async()=>{
+test("Regression dropdown routes all three views and supports keyboard, history, and legacy links",async()=>{
   const names=["document","window","location","history","CustomEvent"];
   const previous=new Map(names.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]));
   const optimisation=new Element("Optimisation",{workspace:"cantilever-2d"},"workspace-cantilever");
@@ -19,7 +19,8 @@ test("Regression dropdown routes both views and supports keyboard, history, and 
   const rom=new Element("Reduced models",{method:"rom"},"workspace-rom-training");
   const compliance=new Element("Compliance",{regressionView:"compliance"});
   const topology=new Element("Topology",{regressionView:"topology"});
-  const menu=new Element();menu.hidden=true;menu.querySelectorAll=()=>[compliance,topology];
+  const design=new Element("Design → compliance",{regressionView:"design"});
+  const menu=new Element();menu.hidden=true;menu.querySelectorAll=()=>[compliance,topology,design];
   const nodes=new Map([["tab-regression",regression],["regression-menu",menu],
     ...["workspace-cantilever","workspace-ml","workspace-regression","workspace-rom-training"].map(id=>[id,new Element()])]);
   const documentEvents=new Map(),windowEvents=new Map(),viewEvents=[];
@@ -47,6 +48,9 @@ test("Regression dropdown routes both views and supports keyboard, history, and 
     regression.emit("click");topology.emit("click");
     optimisation.emit("click");ml.emit("click");assert.equal(location.hash,"#ml/regression/topology");
     regression.emit("click");documentEvents.get("click")({target:{closest:()=>null}});assert.equal(menu.hidden,true);
+    regression.emit("click");compliance.emit("keydown","End");assert.equal(Element.focused,design);
+    design.emit("click");assert.equal(location.hash,"#ml/regression/design");assert.equal(viewEvents.at(-1),"design");
+    assert.match(document.title,/Design → compliance/);assert.equal(design.attrs["aria-checked"],"true");
     location.hash="#ml/regression";windowEvents.get("hashchange")();assert.equal(viewEvents.at(-1),"compliance");
     location.hash="#rom-training";windowEvents.get("hashchange")();assert.equal(nodes.get("workspace-rom-training").hidden,false);
   } finally {

@@ -15,6 +15,7 @@ from ..config import CantileverConfig
 from .jobs import RunManager
 from .rom import create_rom_router, selected_basis_path
 from .regression import create_regression_router
+from .design_regression import create_design_regression_router
 from ..rom.solver import load_basis
 from .streams import stream_job
 from .runtime import source_revision
@@ -109,9 +110,11 @@ class RunRequest(BaseModel):
         return CantileverConfig(**self.model_dump(exclude={"rom_training_id"}), rom_basis_path=rom_basis_path)
 
 
-def create_app(*, training_root: Path | None = None, regression_root: Path | None = None) -> FastAPI:
+def create_app(*, training_root: Path | None = None, regression_root: Path | None = None,
+               design_regression_root: Path | None = None) -> FastAPI:
     training_root = (training_root or Path(__file__).resolve().parents[3] / "outputs" / "rom-training").resolve()
     regression_root = (regression_root or training_root.parent / "regression").resolve()
+    design_regression_root = (design_regression_root or regression_root.parent / "design-regression").resolve()
     manager = RunManager()
     # Capture at startup; recomputing in /health would misidentify old imported code.
     revision = source_revision()
@@ -142,6 +145,7 @@ def create_app(*, training_root: Path | None = None, regression_root: Path | Non
         return request.model_dump(mode="json"), resolve_configuration(request)
 
     app.include_router(create_regression_router(manager, regression_root, resolve_problem=resolve_problem))
+    app.include_router(create_design_regression_router(manager, design_regression_root, regression_root))
     static = Path(__file__).with_name("static")
     app.mount("/static", StaticFiles(directory=static), name="static")
 
@@ -161,6 +165,7 @@ def create_app(*, training_root: Path | None = None, regression_root: Path | Non
                 "gcmma_inner_limit_supported": True,
                 "rom_training_supported": True,
                 "regression_supported": True,
+                "design_regression_supported": True,
                 "topology_regression_supported": True,
                 "regression_problem_import_supported": True,
                 "rom_validation_supported": True,

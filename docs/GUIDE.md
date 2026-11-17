@@ -613,6 +613,93 @@ This direct per-element polynomial model is an introductory baseline. For a
 research example that regresses compressed topology representations, see
 [Garayalde et al., Real-time topology optimization via learnable mappings](https://arxiv.org/abs/2311.08473).
 
+### Predicting compliance from a design
+
+Choose **Regression → Design → compliance**. This experiment maps the full
+physical density field to its structural objective, with the mesh, geometry,
+material, supports and loads fixed. It is separate from volume-to-compliance and
+volume-to-topology regression.
+
+1. Select an existing regression dataset as **Base designs**. Generate at least
+   three distinct designs in the existing views first if none are saved.
+2. Set the number and size of density variations, then **Generate dataset**.
+   The original designs and their smooth, bounded perturbations are all solved
+   afresh. Fixed solid and void regions stay unchanged.
+3. Train polynomial regression, ridge, or the existing one-hidden-layer tanh NN.
+   Artifacts for all three methods coexist. Compare training and validation
+   errors; keep test results for final assessment.
+4. Select points in the actual-versus-predicted plot to inspect their designs.
+   Click the density canvas or enter an element number, change its density and
+   **Apply density**. Prediction updates immediately. **Check structure** obtains
+   the edited field's actual objective; **Reset design** restores the saved case.
+   Edits and checks are temporary and never change training labels.
+
+Generation evaluates physical densities directly, with no second filter or
+projection. Robust sources are evaluated as nominal material, rather than using
+the original worst-field label. ROM sources are re-evaluated with the existing
+full structural solver. Multiple load cases retain their saved combination.
+Prescribed motion predicts elastic work. These evaluations measure the objective;
+they do not certify the optimisation constraints or optimality.
+
+All variations of one base design form a family. The test share is drawn from
+whole families, and the validation share from the remaining families. At least
+one family remains in each partition. Exact duplicate densities unite families,
+so they cannot cross a partition. Polynomial, ridge and NN fits use identical
+partitions for identical settings; the NN selects its checkpoint using validation
+loss only. The comparison explicitly flags saved models with different splits.
+The training-mean and volume-only linear baselines use fitting cases only.
+
+**Fit log objective**, enabled by default, fits `log(C)` and exponentiates the
+prediction. This keeps predictions positive and reduces domination by very soft
+structures. NN target standardisation also uses fitting cases only. All reported
+errors, including percentage error, refer to the physical objective. Without log
+fitting, unconstrained predictions can be nonpositive; log plots omit those
+points, while the linear plot and score table retain them.
+
+For `m` designable elements, an explicit polynomial expansion can contain
+`binomial(m+p,p)` features. The implementation evaluates the equivalent weighted
+polynomial basis through its sample Gram matrix in PyTorch:
+
+\[
+K_p(r,s)=\left(\frac{1+\frac{1}{m}\sum_{j=1}^{m}(2r_j-1)(2s_j-1)}{2}\right)^p.
+\]
+
+This includes all element cross terms through order `p`. The binomial expansion
+sets the monomial weights, so its ridge penalty has a different scale from the
+one-dimensional volume experiment. Both features and targets are centred to
+leave an intercept unpenalised. Polynomial least squares uses an eigendecomposition
+pseudoinverse and the minimum feature-norm solution when underdetermined; ridge
+uses `(K_centred + α I)⁻¹`. `α = 0` gives the same least-squares solution. The
+number of polynomial features may exceed the number of designs, with no fixed
+order cap. High orders can become numerically indistinguishable or overfit; a
+larger order does not establish better generalisation. Memory grows quadratically
+with the number of training samples instead of the expanded feature count.
+
+The NN consumes every designable density, scaled to `[-1,1]`, using the existing
+float64 PyTorch tanh/linear network and Adam trainer. The initial learning rate
+is smaller here because every element contributes an input. No image-convolution model
+or additional numerical framework is introduced. Portable JSON inference in the
+browser matches the Python model. All methods are tied to the original mesh and
+structural setup; a changed load, support or mesh requires a new experiment.
+
+Design experiments are saved under `outputs/design-regression/<id>/`, with
+`dataset.json` and independent `models-ols.json`, `models-ridge.json` and
+`models-neural.json` artifacts. Refresh/restart restores datasets and models.
+Cancelled generation keeps completed cases; cancelled fitting preserves the
+previous artifact. Dataset fingerprints reject stale model files.
+
+API: `POST /api/design-regression/generate` accepts `source_id`, `variants`,
+`amplitude` and `seed`. `POST /api/design-regression/<id>/fit` accepts the existing
+regression fitting options plus `log_target`; `include_unconverged` is irrelevant
+because all labels here are direct structural evaluations. `POST
+/api/design-regression/<id>/evaluate` accepts the full `density` list. All use the
+shared cancellable worker and NDJSON streams. Evaluation emits a
+`design_evaluation` event. Dataset/model downloads are exposed under
+`/api/design-regression/<id>/artifacts/`.
+
+Method references: [polynomial kernel](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.pairwise.polynomial_kernel.html)
+and [kernel ridge regression](https://scikit-learn.org/stable/modules/kernel_ridge.html).
+
 ## Offline ROM training
 
 Open **Machine learning** and select **Reduced models** and use the left-side **Geometry**, **Loads**, **Material**,

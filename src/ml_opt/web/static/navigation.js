@@ -21,7 +21,7 @@ function openMenu() {
 function selectWorkspace(route, {focus = false, updateHistory = false, methodFocus = false} = {}) {
   // Keep links to the original standalone ROM workspace working.
   const [name, method, view] = (route === "rom-training" ? "ml/rom" : route).split("/");
-  if(method==="regression") regressionView=view==="topology" ? "topology" : "compliance";
+  if(method==="regression") regressionView=["topology","design"].includes(view) ? view : "compliance";
   const active = workspaces.get(name) || tabs[0];
   activeMethod = methods.get(method) || activeMethod;
   for (const tab of tabs) {
@@ -37,7 +37,7 @@ function selectWorkspace(route, {focus = false, updateHistory = false, methodFoc
     document.getElementById(tab.getAttribute("aria-controls")).hidden = !selected;
   }
   const isML = active.dataset.workspace === "ml";
-  const methodLabel=activeMethod.dataset.method==="regression" ? `Regression · ${regressionView==="topology" ? "Topology" : "Compliance"}` : activeMethod.textContent.trim();
+  const methodLabel=activeMethod.dataset.method==="regression" ? `Regression · ${({topology:"Topology",design:"Design → compliance",compliance:"Compliance"})[regressionView]}` : activeMethod.textContent.trim();
   const label = `${active.textContent.trim()}${isML ? ` · ${methodLabel}` : ""}`;
   document.title = `TOptVis · ${label}`;
   if (focus) (methodFocus ? activeMethod : active).focus();

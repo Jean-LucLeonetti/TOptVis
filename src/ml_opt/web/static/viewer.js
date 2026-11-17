@@ -258,3 +258,13 @@ export function pickNode(canvas, model, event) {
   return {x: clamp(Math.round((x - view.left) / view.w * model.nx), 0, model.nx),
           y: clamp(Math.round((view.top + view.h - y) / view.h * model.ny), 0, model.ny)};
 }
+
+// Element indexing follows drawTopology, with the first row at the bottom.
+export function pickElement(canvas, model, event) {
+  const {width,height,left,top,w,h} = surface(canvas,model,false);
+  const rect=canvas.getBoundingClientRect();
+  const x=(event.clientX-rect.left)*width/rect.width;
+  const y=(event.clientY-rect.top)*height/rect.height;
+  if(x<left || x>=left+w || y<top || y>=top+h) return null;
+  return Math.min(model.ny-1,Math.floor((top+h-y)/h*model.ny))*model.nx+Math.floor((x-left)/w*model.nx);
+}
