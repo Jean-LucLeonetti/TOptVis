@@ -12,6 +12,7 @@ export class BoundaryEditor {
     this.regions = []; this.editingRegion = null;
     this.connections = []; this.editingConnection = null;
     this.assignmentContext=null;this.assignmentKinds={boundaries:"fixed",connections:"connection_anchor"};
+    this.selectionStates={boundaries:null,connections:null};
     this.cases = [{id:"case-1",name:"Load case 1",weight:1}]; this.activeCase = "case-1"; this.results = {};
     byId("load-aggregation").value = "weighted"; byId("boundary-components").value = "xy";
     this.mode = "point"; this.editing = null; this.drag = null; this.suppressClick = false;
@@ -99,16 +100,25 @@ export class BoundaryEditor {
   }
 
   setPanel(panelId) {
+    if(!["panel-load","panel-constraints"].includes(panelId)) return;
     const context=panelId==="panel-constraints" ? "connections" : "boundaries";
     if(context===this.assignmentContext) return;
     const select=byId("boundary-kind");
-    if(this.assignmentContext) this.assignmentKinds[this.assignmentContext]=select.value;
+    if(this.assignmentContext) {
+      this.assignmentKinds[this.assignmentContext]=select.value;
+      this.selectionStates[this.assignmentContext]={mode:this.mode,selection:structuredClone(this.selection),cursor:{...this.cursor}};
+    }
     this.assignmentContext=context;this.editing=this.editingRegion=this.editingConnection=null;
-    this.anchor=this.drag=null;
+    this.anchor=this.drag=this.hover=null;
+    const saved=this.selectionStates[context];
+    this.mode=saved?.mode || "point";this.selection=structuredClone(saved?.selection || null);
+    if(saved) this.cursor={...saved.cursor};
     const choices=context==="connections" ? [["connection_anchor","Connection anchor"],["connection_target","Connection target"]] :
       [["fixed","Fixed support"],["restrain_x","Restrain x"],["restrain_y","Restrain y"],["displacement","Prescribed displacement"],["force","Force"],["solid","Non-design: solid"],["void","Non-design: void"]];
     select.replaceChildren(...choices.map(([value,label])=>{const option=document.createElement("option");option.value=value;option.textContent=label;return option;}));
     select.value=this.assignmentKinds[context];
+    byId("mesh-selection-title").textContent=context==="connections" ? "Connection nodes" : "Selection";
+    byId("mesh-assignment-label").textContent=context==="connections" ? "Connection role" : "Assignment";
     byId(context==="connections" ? "connection-selection-slot" : "boundary-selection-slot").append(byId("mesh-assignment-editor"));
     if(context==="connections" && this.connections.length) byId("connection-constraints").open=true;
     this.render();
@@ -141,6 +151,7 @@ export class BoundaryEditor {
     this.editing = null; this.onChange(); this.render(); this.redraw();
   }
   loadModel(model) {
+    this.selectionStates={boundaries:null,connections:null};
     this.conditions = structuredClone(model.boundary_conditions || null);
     this.regions = structuredClone(model.non_design_regions || []);
     this.connections = [...(model.connection_anchors || []).map(selection=>({kind:"connection_anchor",selection:structuredClone(selection)})),
@@ -247,7 +258,8 @@ export class BoundaryEditor {
     for (const tool of this.tools) { tool.setAttribute("aria-pressed", String(tool.dataset.selectionMode === this.mode)); tool.disabled = running || (region && tool.dataset.selectionMode !== "surface"); }
     byId("selection-clear").disabled = running || (!this.selection && !this.anchor);
     byId("boundary-apply").disabled = running || !this.selection;
-    byId("boundary-apply").textContent = this.editing === null && this.editingRegion === null && this.editingConnection === null ? "Assign" : "Update";
+    const action=this.editing === null && this.editingRegion === null && this.editingConnection === null ? "Assign" : "Update";
+    byId("boundary-apply").textContent=this.assignmentContext==="connections" ? `${action} ${byId("boundary-kind").value==="connection_anchor" ? "anchor" : "target"}` : action;
     byId("boundary-reset").disabled = running || (this.conditions === null && this.cases.length === 1);
     byId("selection-end-fields").hidden = this.mode === "point";
     byId("boundary-force-fields").hidden = byId("boundary-kind").value !== "force";

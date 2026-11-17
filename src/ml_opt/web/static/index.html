@@ -68,7 +68,12 @@
               <label class="case-settings">Objective<select id="load-aggregation" form="boundary-editor-form"><option value="weighted">Weighted mean</option><option value="worst">Worst case</option></select></label>
               <output id="case-result" class="model-message"></output>
               <div id="boundary-selection-slot"><div id="mesh-assignment-editor">
-              <div class="filter-divider"></div><h3>Selection</h3>
+              <div class="filter-divider"></div><h3 id="mesh-selection-title">Selection</h3>
+            <div class="selection-tools" role="group" aria-label="Mesh selection">
+              <button type="button" data-selection-mode="point" aria-pressed="true" title="Select a node. Arrow keys move; Enter selects.">Point</button>
+              <button type="button" data-selection-mode="line" aria-pressed="false" title="Drag along a mesh row or column, or select two endpoints.">Line</button>
+              <button type="button" data-selection-mode="surface" aria-pressed="false" title="Drag a rectangle, or select two opposite corners.">Surface</button>
+            </div>
               <div class="input-grid">
                 <label>Start column<input id="selection-x0" form="boundary-editor-form" type="number" min="0" max="60" step="1" value="0"></label>
                 <label>Start row<input id="selection-y0" form="boundary-editor-form" type="number" min="0" max="20" step="1" value="0"></label>
@@ -78,8 +83,9 @@
                 <label>End row<input id="selection-y1" form="boundary-editor-form" type="number" min="0" max="20" step="1" value="0"></label>
               </div>
               <button id="boundary-select-coordinates" type="button" class="button secondary boundary-select">Select nodes</button>
+              <div class="selection-actions"><output id="selection-count" role="status"></output><button id="selection-clear" class="text-button" type="button" disabled>Clear selection</button></div>
               <div class="filter-divider"></div>
-              <label>Assignment<select id="boundary-kind" form="boundary-editor-form"><option value="fixed">Fixed support</option><option value="restrain_x">Restrain x</option><option value="restrain_y">Restrain y</option><option value="displacement">Prescribed displacement</option><option value="force">Force</option><option value="solid">Non-design: solid</option><option value="void">Non-design: void</option></select></label>
+              <label><span id="mesh-assignment-label">Assignment</span><select id="boundary-kind" form="boundary-editor-form"><option value="fixed">Fixed support</option><option value="restrain_x">Restrain x</option><option value="restrain_y">Restrain y</option><option value="displacement">Prescribed displacement</option><option value="force">Force</option><option value="solid">Non-design: solid</option><option value="void">Non-design: void</option></select></label>
               <div id="boundary-displacement-fields" hidden><label>Components<select id="boundary-components" form="boundary-editor-form"><option value="xy">Both directions</option><option value="x">Horizontal</option><option value="y">Vertical</option></select></label><div class="input-grid case-settings"><label>Horizontal motion<input id="boundary-ux" form="boundary-editor-form" type="number" step="any" value="0" required disabled></label><label>Vertical motion<input id="boundary-uy" form="boundary-editor-form" type="number" step="any" value="0" required disabled></label></div></div>
               <div id="boundary-force-fields" class="input-grid" hidden>
                 <label>Total force<input id="boundary-magnitude" form="boundary-editor-form" type="number" min="0.000001" max="1000000" step="any" value="1" required disabled></label>
@@ -205,14 +211,10 @@
       <div class="viewers" id="model-view">
         <section class="panel viewer-panel" aria-labelledby="model-title">
           <div class="panel-heading mesh-heading"><h2 id="model-title">Design domain</h2>
-            <div class="selection-tools" role="group" aria-label="Mesh selection">
-              <button type="button" data-selection-mode="point" aria-pressed="true" title="Select a node. Arrow keys move; Enter selects.">Point</button>
-              <button type="button" data-selection-mode="line" aria-pressed="false" title="Drag along a mesh row or column, or select two endpoints.">Line</button>
-              <button type="button" data-selection-mode="surface" aria-pressed="false" title="Drag a rectangle, or select two opposite corners.">Surface</button>
-            </div>
+
           </div>
           <div class="canvas-wrap model-wrap"><canvas id="model-canvas" tabindex="0" role="img" aria-label="Editable mesh. Select a point, line, or surface to assign supports, forces, or non-design regions. Arrow keys move the cursor; Enter selects; Escape clears."></canvas></div>
-          <div class="viewer-footer"><div class="legend"><span><i class="legend-support"></i>Supports</span><span><i class="legend-load"></i>Forces</span><span id="connection-anchor-legend" hidden><i class="legend-connection-anchor"></i>Connection anchor</span><span id="connection-target-legend" hidden><i class="legend-connection-target"></i>Connection target</span><span id="filter-legend"><i class="legend-filter"></i>Filter length</span><span id="fixed-solid-legend" hidden><i class="legend-fixed-solid"></i>Fixed solid</span><span id="fixed-void-legend" hidden><i class="legend-fixed-void"></i>Fixed void</span></div><div class="selection-actions"><output id="selection-count" role="status"></output><button id="selection-clear" class="text-button" type="button" disabled>Clear selection</button></div></div>
+          <div class="viewer-footer"><div class="legend"><span><i class="legend-support"></i>Supports</span><span><i class="legend-load"></i>Forces</span><span id="connection-anchor-legend" hidden><i class="legend-connection-anchor"></i>Connection anchor</span><span id="connection-target-legend" hidden><i class="legend-connection-target"></i>Connection target</span><span id="filter-legend"><i class="legend-filter"></i>Filter length</span><span id="fixed-solid-legend" hidden><i class="legend-fixed-solid"></i>Fixed solid</span><span id="fixed-void-legend" hidden><i class="legend-fixed-void"></i>Fixed void</span></div></div>
         </section>
         <section class="panel viewer-panel topology-panel" aria-labelledby="topology-title">
           <div class="panel-heading"><div><h2 id="topology-title">Topology</h2></div><span class="status-badge" id="run-status" data-status="ready"><i></i>Ready</span></div>

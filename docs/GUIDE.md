@@ -952,7 +952,10 @@ CLI: `--volume-constraint lt|gt|eq`.
 ### Connections through pseudo-temperature
 
 In **Optimisation → Constraints → Connections**, select points, lines or surfaces
-and assign a **Connection anchor** and one or more **Connection targets**. These are
+and assign a **Connection anchor** and one or more **Connection targets**. The
+**Point / Line / Surface** selector, node-coordinate fields, **Select nodes** and
+assignment buttons are all inside Connections. Select a role, choose the nodes,
+then **Assign anchor** or **Assign target**. These are
 independent of the mechanical supports and forces. Each target must conduct unit
 total heat to at least one selected anchor. Additional anchors act as alternative
 sinks; they are not required to connect to one another. Only selected targets are

@@ -269,3 +269,7 @@ input[type=range]:disabled {cursor:default}
 
 .connection-constraints>summary {cursor:pointer;font-size:15px;font-weight:600;color:var(--ink)}
 .connection-constraints #mesh-assignment-editor {margin-top:16px}
+
+#mesh-assignment-editor .selection-tools {display:flex;margin-bottom:16px}
+#mesh-assignment-editor .selection-tools button {flex:1;font-size:14px;padding:0 10px}
+#mesh-assignment-editor .selection-actions {margin-top:10px;font-size:14px}

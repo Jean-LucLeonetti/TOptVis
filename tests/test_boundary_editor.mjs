@@ -142,13 +142,17 @@ test("selection, assignment, editing, deletion, keyboard control, and run lockin
   assert.ok(!node("boundary-kind").children.some(option=>option.value.startsWith("connection_")));
   editor.setPanel("panel-constraints");
   assert.deepEqual(node("boundary-kind").children.map(option=>option.value),["connection_anchor","connection_target"]);
+  assert.equal(editor.mode,"point");
+  assert.equal(node("mesh-selection-title").textContent,"Connection nodes");
   assert.equal(node("connection-selection-slot").children.at(-1),node("mesh-assignment-editor"));
   node("boundary-kind").value="connection_anchor";node("boundary-kind").emit("change");tools[0].emit("click");
-  editor.choose({x:0,y:4});node("boundary-apply").emit("click");
+  node("selection-x0").value="0";node("selection-y0").value="4";node("boundary-select-coordinates").emit("click");
+  assert.equal(node("boundary-apply").textContent,"Assign anchor");node("boundary-apply").emit("click");
   assert.equal(editor.connections.length,1);assert.match(editor.validationError,/target/);
   assert.equal(opened,"panel-constraints");assert.equal(node("connection-constraints").open,true);
   node("boundary-kind").value="connection_target";node("boundary-kind").emit("change");
-  editor.choose({x:16,y:4});node("boundary-apply").emit("click");
+  node("selection-x0").value="16";node("selection-y0").value="4";node("boundary-select-coordinates").emit("click");
+  assert.equal(node("boundary-apply").textContent,"Assign target");node("boundary-apply").emit("click");
   assert.equal(editor.connections.length,2);assert.equal(editor.validationError,"");
   node("connection-list").children[1].children[0].emit("click");editor.choose({x:16,y:6});node("boundary-apply").emit("click");
   assert.deepEqual(editor.connections[1].selection.start,[1,.75]);
@@ -161,6 +165,7 @@ test("selection, assignment, editing, deletion, keyboard control, and run lockin
   editor.choose({x:8,y:4});assert.equal(opened,"panel-load");
   assert.equal(node("boundary-selection-slot").children.at(-1),node("mesh-assignment-editor"));
   editor.setPanel("panel-constraints");assert.equal(node("boundary-kind").value,"connection_target");
+  assert.equal(editor.mode,"point");editor.setPanel("panel-geometry");assert.equal(editor.assignmentContext,"connections");
   editor.choose({x:16,y:4});assert.equal(opened,"panel-constraints");
   delete globalThis.document;
   delete globalThis.window;
