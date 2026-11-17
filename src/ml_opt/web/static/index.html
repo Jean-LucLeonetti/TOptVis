@@ -294,9 +294,17 @@
             <div class="controls-title"><h2>Training</h2></div>
             <form id="reg-fit-form" class="control-section">
               <fieldset id="reg-fit-settings">
-                <label class="reg-order">Maximum polynomial order<input name="max_degree" type="number" min="1" step="1" value="2" required></label>
-                <label class="reg-order">Fitting method<select name="method"><option value="ols">Ordinary least squares</option><option value="ridge">Ridge regression</option></select></label>
+                <label id="reg-polynomial-options" class="reg-order">Maximum polynomial order<input name="max_degree" type="number" min="1" step="1" value="2" required></label>
+                <label class="reg-order">Fitting method<select name="method"><option value="ols">Ordinary least squares</option><option value="ridge">Ridge regression</option><option value="neural">Neural network</option></select></label>
                 <label id="reg-ridge-options" class="reg-order" hidden>Ridge penalty (α)<input name="ridge_alpha" type="number" min="0" step="any" value="0.01" required disabled></label>
+                <div id="reg-neural-options" class="input-grid reg-neural-options" hidden>
+                  <label>Hidden neurons<input name="neurons" type="number" min="1" step="1" value="8" required disabled></label>
+                  <label>Epochs<input name="epochs" type="number" min="1" step="1" value="2000" required disabled></label>
+                  <label>Learning rate<input name="learning_rate" type="number" min="0" step="any" value="0.01" required disabled></label>
+                  <label>Weight penalty<input name="weight_penalty" type="number" min="0" step="any" value="0" required disabled></label>
+                  <label>Network seed<input name="network_seed" type="number" min="0" max="4294967295" step="1" value="42" required disabled></label>
+                  <label>Validation share (%)<input name="validation_percent" type="number" min="10" max="50" step="1" value="20" required disabled></label>
+                </div>
                 <div class="input-grid">
                   <label>Test share (%)<input name="test_percent" type="number" min="10" max="50" step="1" value="25" required></label>
                   <label>Split seed<input name="seed" type="number" min="0" max="4294967295" step="1" value="42" required></label>
@@ -315,15 +323,19 @@
               <p>Test cases are kept out of fitting; their errors measure interpolation on unseen volumes. The range endpoints stay in training. All orders use the same split. The baseline always predicts the training mean.</p>
               <p>Higher orders can fit the training data more closely while predicting unseen cases less accurately (overfitting). Compare training and test errors. Predictions do not guarantee physical validity or generate a topology.</p>
               <p>Convergence means the solver met its stopping criteria, not that a global optimum was certified. Feasibility checks every active constraint. Unfinished feasible runs are excluded unless explicitly included. Cancelled, failed and infeasible runs are always excluded.</p>
+              <p>The neural network has one tanh hidden layer and trains with Adam. Validation cases are taken from the non-test cases, keeping the volume endpoints in training. The saved weights use the epoch with lowest validation loss; test cases never select weights. Training curves show mean squared error: normalised objective for compliance, physical density on designable elements for topology. Neural and polynomial artifacts are saved separately.</p>
+              <p>Topology outputs use a sigmoid and restore fixed regions exactly. A valid density range does not guarantee volume feasibility, connectivity or structural performance. Compliance outputs may be nonphysical outside the learned range. Compare models on identical test cases, and reserve test results for final evaluation when tuning settings.</p>
               <a href="https://scikit-learn.org/stable/modules/linear_model.html#ordinary-least-squares" target="_blank" rel="noopener noreferrer">Least-squares method reference</a>
             </details>
             <details id="reg-topology-help" class="reg-help control-section" hidden>
               <summary>About topology regression</summary>
-              <p>Input: permitted material volume. Output: one physical density per element on this fixed mesh. Each element gets its own polynomial, fitted using the training cases only.</p>
+              <p>Input: permitted material volume. Output: one physical density per element on this fixed mesh. Polynomials fit each element independently. The neural network shares one hidden layer across designable outputs.</p>
               <p>The saved experiment is shared with compliance regression. Training and test cases use the same split settings; endpoints stay in training. Density error is the mean absolute difference on a scale from 0 to 1.</p>
               <p>There is no fixed polynomial-order cap. Ordinary least squares requires enough independent training cases. Ridge penalises nonconstant coefficients in the scaled-volume basis, leaving the intercept free. A positive penalty allows more coefficients than training cases; α = 0 is ordinary least squares. Neither higher orders nor ridge guarantee better test accuracy.</p>
               <p>Predictions are clipped to [0, 1], with fixed solid and void regions preserved. Clipping does not enforce the volume target, connectivity or size constraints. The difference view compares matching volumes only.</p>
               <p>Check structure evaluates the predicted physical density directly, without filtering or projecting it again. For robust datasets, it checks nominal material only. It does not certify the original robust constraints. This experiment does not initialise or run optimisation.</p>
+              <p>The neural network has one tanh hidden layer and trains with Adam. Validation cases are taken from the non-test cases, keeping the volume endpoints in training. The saved weights use the epoch with lowest validation loss; test cases never select weights. Training curves show mean squared error: normalised objective for compliance, physical density on designable elements for topology. Neural and polynomial artifacts are saved separately.</p>
+              <p>Topology outputs use a sigmoid and restore fixed regions exactly. A valid density range does not guarantee volume feasibility, connectivity or structural performance. Compliance outputs may be nonphysical outside the learned range. Compare models on identical test cases, and reserve test results for final evaluation when tuning settings.</p>
               <a href="https://arxiv.org/abs/2311.08473" target="_blank" rel="noopener noreferrer">Research: regression of topology representations</a>
             </details>
           </aside>
@@ -339,6 +351,7 @@
               </div>
               <div id="reg-legend" class="reg-legend" hidden>
                 <span><i class="reg-dot reg-train"></i><span id="reg-train-label">Reference</span></span>
+                <span id="reg-validation-legend" hidden><i class="reg-dot reg-validation"></i>Validation</span>
                 <span id="reg-test-legend"><i class="reg-dot reg-test"></i>Test</span>
                 <span id="reg-excluded-legend"><i class="reg-dot reg-excluded"></i>Excluded</span>
                 <span id="reg-curve-legend"><i class="reg-line"></i>Prediction</span>
@@ -349,12 +362,18 @@
                 <div class="reg-prediction"><span><span id="reg-prediction-label">Predicted compliance</span> <strong id="reg-prediction">Unavailable</strong></span><span id="reg-prediction-note" role="status">Train a model to explore predictions.</span></div>
               </div>
             </section>
+            <section id="reg-learning-panel" class="panel" hidden>
+              <div class="panel-heading"><h2>Neural network training</h2></div>
+              <svg id="reg-learning-chart" class="network-learning-chart" viewBox="0 0 720 250" role="img" aria-label="Training and validation loss by epoch"></svg>
+              <div class="reg-legend"><span><i class="reg-dot reg-train"></i>Training</span><span><i class="reg-dot reg-validation"></i>Validation</span></div>
+              <p id="reg-learning-note" class="reg-note" role="status"></p>
+            </section>
             <div class="reg-bottom-grid">
               <section class="panel reg-evaluation">
                 <div class="panel-heading"><h2>Model comparison</h2></div>
                 <p id="reg-fit-note" class="reg-note">At least six eligible cases are needed for training.</p>
                 <div class="reg-table-wrap">
-                  <table class="reg-table"><caption class="reg-caption">Mean absolute percentage error on the saved split</caption><thead><tr><th scope="col">Model</th><th scope="col">Training</th><th scope="col">Test</th></tr></thead><tbody id="reg-scores"><tr><td colspan="3">No fitted models</td></tr></tbody></table>
+                  <table class="reg-table"><caption class="reg-caption">Mean absolute percentage error on the saved split</caption><thead><tr><th scope="col">Model</th><th scope="col">Training</th><th scope="col">Validation</th><th scope="col">Test</th></tr></thead><tbody id="reg-scores"><tr><td colspan="4">No fitted models</td></tr></tbody></table>
                 </div>
                 <dl id="reg-coefficients" class="reg-coefficients"></dl>
                 <dl class="reg-timings"><div><dt>Data generation</dt><dd id="reg-generation-time">Unavailable</dd></div><div><dt>Model training</dt><dd id="reg-training-time">Unavailable</dd></div><div><dt>Prediction (201 values)</dt><dd id="reg-prediction-time">Unavailable</dd></div></dl>
@@ -380,6 +399,12 @@
                 <p id="top-prediction-note" class="model-message" role="status">Train topology models to explore predictions.</p>
               </div>
             </section>
+            <section id="top-learning-panel" class="panel" hidden>
+              <div class="panel-heading"><h2>Neural network training</h2></div>
+              <svg id="top-learning-chart" class="network-learning-chart" viewBox="0 0 720 250" role="img" aria-label="Training and validation loss by epoch"></svg>
+              <div class="reg-legend"><span><i class="reg-dot reg-train"></i>Training</span><span><i class="reg-dot reg-validation"></i>Validation</span></div>
+              <p id="top-learning-note" class="reg-note" role="status"></p>
+            </section>
             <div class="top-view-grid">
               <section class="panel viewer-panel">
                 <div class="panel-heading"><h2>Predicted topology</h2></div>
@@ -400,7 +425,7 @@
             <section class="panel">
               <div class="panel-heading"><h2>Model comparison</h2></div>
               <p id="top-fit-note" class="reg-note">At least six eligible cases with saved density fields are needed.</p>
-              <div class="reg-table-wrap"><table class="reg-table"><caption class="reg-caption">Mean absolute density error after clipping, from 0 to 1</caption><thead><tr><th scope="col">Model</th><th scope="col">Training</th><th scope="col">Test</th></tr></thead><tbody id="top-scores"></tbody></table></div>
+              <div class="reg-table-wrap"><table class="reg-table"><caption class="reg-caption">Mean absolute density error after clipping, from 0 to 1</caption><thead><tr><th scope="col">Model</th><th scope="col">Training</th><th scope="col">Validation</th><th scope="col">Test</th></tr></thead><tbody id="top-scores"></tbody></table></div>
             </section>
             <section class="panel">
               <div class="panel-heading"><h2>Structural check</h2><button id="top-evaluate" class="button secondary" type="button" disabled>Check structure</button></div>

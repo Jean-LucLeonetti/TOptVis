@@ -435,8 +435,9 @@ API: `GET /api/regression/datasets`, `POST /api/regression/generate`,
 `GET /api/regression/<id>/artifacts/{dataset,models}`.
 The fit request accepts `degrees` (distinct positive integers), defaulting to
 `[1, 2]`; there is no maximum list length or fixed order limit. The interface
-requests every order up to the chosen maximum. `method` is `"ols"` (default) or
-`"ridge"`; `ridge_alpha` is finite and nonnegative, defaulting to 0.01.
+requests every order up to the chosen maximum for polynomial fits. `method` is
+`"ols"` (default), `"ridge"` or `"neural"`; `ridge_alpha` is finite and nonnegative,
+defaulting to 0.01. Neural fitting has separate controls and artifacts below.
 Generation and fitting stream NDJSON; `POST /api/run/<job-id>/stop` cancels either task. Existing job exclusion and
 disconnect cancellation apply. Python entry points live in `ml_opt.regression`.
 
@@ -477,6 +478,83 @@ mean-training baseline remain independent of the chosen method. Cancellation
 preserves the previous saved artifact.
 
 Method reference: [ridge regression](https://scikit-learn.org/stable/modules/linear_model.html#ridge-regression-and-classification).
+
+### Neural-network regression
+
+In **Regression → Compliance** or **Regression → Topology**, select **Fitting
+method → Neural network**. Both use a fully connected PyTorch network with one
+tanh hidden layer. Controls are hidden-neuron count (default 8), epochs (2000),
+learning rate (0.01), weight penalty (0), network seed (42), and validation share
+(20% of the cases remaining after test selection). Training is deterministic
+full-batch Adam on CPU float64 tensors. An epoch is one optimiser update through
+all fitting cases; epoch zero records the untrained network.
+
+The test split uses the same whole-case selection as polynomial and ridge
+regression. Validation cases are then selected only from the non-test cases,
+keeping both volume endpoints in fitting. All three sets are disjoint. The input
+range and compliance target mean/standard deviation are computed from fitting
+cases only. Validation targets choose the saved checkpoint; test targets never
+select weights, scaling or epochs. The interface marks validation cases
+separately. The validation share refers to non-test cases, rather than the full
+dataset. Six eligible cases remain the minimum for this introductory experiment.
+
+Compliance predicts one scalar objective, using a linear output and training
+normalised objective MSE. The label remains elastic work for prescribed-motion
+datasets. Topology predicts all designable physical densities using shared hidden
+features and sigmoid outputs. Fixed solid and void elements are restored exactly
+and are omitted from the fitting loss. Topology training curves show mean squared
+physical-density error over designable elements; final density accuracy metrics
+include the full mesh. The optional weight penalty adds its coefficient times
+the sum of squared hidden/output weight matrices to training MSE; biases are not
+penalised. These MSE units differ from ridge's sum-of-squares objective.
+
+Live training and validation curves retain up to roughly 200 sampled epochs,
+plus the best validation epoch. Training runs for the requested number of epochs
+and saves the weights with the lowest validation loss, including epoch zero when
+appropriate. The dashed line marks that selected epoch. The displayed final
+training/validation/test errors use the selected weights, whereas the curves
+show the full training trajectory. Reducing validation loss, rather than using
+test error to choose settings, avoids adapting the model to its final test set.
+
+Polynomial/ridge and neural artifacts remain separate. The model selector keeps
+both available, and training a network does not overwrite polynomial results.
+Selecting a model updates its split labels, baseline, metrics and download link.
+Comparison tables report each model's saved training, validation and test errors.
+Matching test-share/split-seed settings give identical final test cases; a warning
+appears when saved test splits differ. Neural fitting reserves additional
+validation cases, so its fitting set is smaller than polynomial training under
+the same outer split. Choosing many settings by repeatedly inspecting the test
+column still risks test-set overfitting.
+
+Compliance curves and topology previews evaluate the exported network weights
+locally in the browser. Python inference uses the same tanh/linear/sigmoid map;
+round-trip tests compare both implementations. Topology predictions can be checked
+with **Check structure**, preserving the existing nominal-field PETSc analysis
+and constraint checks. Sigmoid bounds do not guarantee volume feasibility,
+connectivity, structural performance or optimality. No optimiser initialisation
+or solver replacement is involved.
+
+Each dataset saves its latest networks in `neural-compliance.json` and
+`neural-topology.json`, alongside `models.json` and `topology-models.json`. Network
+artifacts contain portable JSON weights, architecture, exact dataset fingerprint,
+all splits, preprocessing, seed, training history and selected epoch. They use no
+pickle/checkpoint deserialisation. Refresh/restart restores both model families.
+Stop cancels training and preserves the previous saved artifact; switching views
+keeps the current job running. Divergent nonfinite training fails without
+replacing saved weights. Training and structural checks share the existing worker
+lock and stream cancellation rules with other experiments.
+
+The existing fit endpoints accept `method: "neural"` with `neurons`, `epochs`,
+`learning_rate`, `weight_penalty`, `network_seed`, `validation_fraction`, and the
+existing test split/quality settings. Polynomial degree and ridge settings are
+ignored for neural training. `neural_training` NDJSON events carry epoch, training
+loss, validation loss and elapsed time. Dataset reads include `neural_models`
+with compliance/topology reports. Download at
+`/api/regression/<id>/artifacts/neural-compliance` or `neural-topology`. The topology
+evaluation endpoint accepts `model_key: "neural_network"` instead of `degree`.
+
+References: [PyTorch neural-network models](https://docs.pytorch.org/tutorials/beginner/basics/buildmodel_tutorial.html)
+and [training model parameters](https://docs.pytorch.org/tutorials/beginner/basics/optimization_tutorial.html).
 
 ### Topology regression
 

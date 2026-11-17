@@ -59,6 +59,7 @@ def _parent_gone() -> bool:
 def run_regression(configuration, messages, cancel):
     from ..regression import RegressionSettings, generate_dataset, fit_models
     from ..topology_regression import fit_topology_models, evaluate_topology_prediction
+    from ..neural_regression import fit_neural_models, NeuralSettings
     try:
         stopped = lambda: cancel.is_set() or _parent_gone()
         root = Path(configuration["root"])
@@ -76,8 +77,18 @@ def run_regression(configuration, messages, cancel):
         else:
             # This task owns the worker lock, so an old generating manifest is
             # interrupted, not a concurrently changing dataset.
-            fit = fit_topology_models if configuration["task"] == "regression_topology_fit" else fit_models
-            result = fit(directory, **configuration["options"], stop_requested=stopped, allow_interrupted=True)
+            options = dict(configuration["options"])
+            if options.get("method") == "neural":
+                for key in ("method", "ridge_alpha", "degrees"):
+                    options.pop(key, None)
+                target = "topology" if configuration["task"] == "regression_topology_fit" else "compliance"
+                result = fit_neural_models(directory, target=target, **options, emit=messages.put,
+                                           stop_requested=stopped, allow_interrupted=True)
+            else:
+                for key in NeuralSettings.__dataclass_fields__:
+                    options.pop(key, None)
+                fit = fit_topology_models if configuration["task"] == "regression_topology_fit" else fit_models
+                result = fit(directory, **options, stop_requested=stopped, allow_interrupted=True)
             cancelled = result is None
         messages.put({"event": "complete", "dataset_id": dataset_id,
                       "stop_reason": "cancelled" if cancelled else "complete"})

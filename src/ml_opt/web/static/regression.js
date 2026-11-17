@@ -1,24 +1,31 @@
 import {drawTopology} from "./viewer.js";
 import {parseProject} from "./project-io.js";
 import {createTopologyRegression} from "./topology-regression.js";
+import {predictNeural, modelName, mergeReports, selectReport, comparisonNote} from "./regression-models.js";
+import {createTrainingChart} from "./network-training.js";
 
 const el = id => document.getElementById(id);
 const generateForm = el("reg-generate-form"), fitForm = el("reg-fit-form");
 const canvas = el("reg-topology"), chart = el("reg-chart");
 const state = {ready:false, busy:false, externalBusy:false, jobId:null, dataset:null, models:null,
   selected:null, liveConfig:null, liveDensity:null, loading:0, problem:null, importing:false,
-  importSupported:false, topologySupported:false, topologyModels:null, mode:"compliance", fitOptions:{}, fitIdentity:{}};
-const topologyPanel=createTopologyRegression({run});
+  importSupported:false, topologySupported:false, topologyModels:null, mode:"compliance", fitOptions:{}, fitIdentity:{},
+  preferred:{}, liveHistory:{compliance:[],topology:[]}, trainingTarget:null};
+const learningCharts={compliance:createTrainingChart("reg"),topology:createTrainingChart("top")};
+const topologyPanel=createTopologyRegression({run,onModelChange:report=>{
+  state.topologyModels=report;restoreFitOptions();renderLearning();
+}});
 const activeReport=()=>state.mode==="topology" ? state.topologyModels : state.models;
 const number = value => Math.abs(value)>=1e6 ? Number(value).toExponential(3) : Number(value).toLocaleString("en", {maximumFractionDigits:3});
 const percent = value => `${(100*value).toFixed(2)}%`;
 const evaluate = (model, volume) => {
+  if(model.kind==="neural_network") return predictNeural(model,volume);
   const scaled = model.scaled_coefficients;
   const input = scaled ? (volume-model.input_offset)/model.input_scale : volume;
   return (scaled || model.coefficients).reduceRight((sum, coefficient) => sum*input+coefficient, 0);
 };
 const degreeOf = item => item.degree ?? item.coefficients.length-1;
-const modelLabel = item => ({1:"Linear",2:"Quadratic",3:"Cubic"}[degreeOf(item)] || `Order ${degreeOf(item)}`);
+const modelLabel = modelName;
 const model = () => state.models?.models[el("reg-model").value];
 const error = (message = "") => { el("reg-error").textContent = message; el("reg-error").hidden = !message; };
 const status = (message, kind = "ready") => { el("reg-status").textContent = message; el("reg-status").dataset.status = kind; };
@@ -37,6 +44,7 @@ function quality(item) {
 
 function useOf(item) {
   if (state.models?.test_indices.includes(item.index)) return "Test";
+  if (state.models?.validation_indices?.includes(item.index)) return "Validation";
   if (state.models?.train_indices.includes(item.index)) return "Training";
   return state.models ? "Excluded" : "Reference";
 }
@@ -61,20 +69,29 @@ function buttons() {
 }
 
 function ridgeControls() {
-  const ridge=fitForm.elements.namedItem("method").value==="ridge";
+  const method=fitForm.elements.namedItem("method").value, ridge=method==="ridge", neural=method==="neural";
   el("reg-ridge-options").hidden=!ridge;
   fitForm.elements.namedItem("ridge_alpha").disabled=!ridge;
+  el("reg-polynomial-options").hidden=neural;
+  fitForm.elements.namedItem("max_degree").disabled=neural;
+  el("reg-neural-options").hidden=!neural;
+  for(const name of ["neurons","epochs","learning_rate","weight_penalty","network_seed","validation_percent"]) fitForm.elements.namedItem(name).disabled=!neural;
 }
 
 function restoreFitOptions() {
   const report=activeReport(), options=state.fitOptions[state.mode] || {
-    test_percent:25, seed:42, include_unconverged:false, max_degree:2, method:"ols", ridge_alpha:.01};
+    test_percent:25, seed:42, include_unconverged:false, max_degree:2, method:"ols", ridge_alpha:.01,
+    neurons:8,epochs:2000,learning_rate:.01,weight_penalty:0,network_seed:42,validation_percent:20};
   const identity=`${state.dataset?.id || ""}/${report?.trained_at || JSON.stringify(report && [report.degrees,report.seed,report.test_fraction,report.method,report.ridge_alpha])}`;
   if(report && identity!==state.fitIdentity[state.mode]) {
     options.test_percent=report.test_fraction*100;options.seed=report.seed;
     options.include_unconverged=report.include_unconverged;
-    options.max_degree=Math.max(...(report.degrees || Object.values(report.models).map(degreeOf)));
+    if(report.method!=="neural") options.max_degree=Math.max(...(report.degrees || Object.values(report.models).filter(item=>item.kind!=="neural_network").map(degreeOf)));
     options.method=report.method || "ols";options.ridge_alpha=report.method==="ridge" ? report.ridge_alpha ?? .01 : .01;
+    if(report.method==="neural") {
+      for(const name of ["neurons","epochs","learning_rate","weight_penalty","network_seed"]) options[name]=report[name];
+      options.validation_percent=report.validation_fraction*100;
+    }
   }
   state.fitIdentity[state.mode]=identity;
   state.fitOptions[state.mode]={...options};
@@ -86,7 +103,8 @@ function restoreFitOptions() {
 }
 
 function rememberFitOptions() {
-  state.fitOptions[state.mode]=Object.fromEntries(["test_percent","seed","max_degree","include_unconverged","method","ridge_alpha"].map(name=>{
+  state.fitOptions[state.mode]=Object.fromEntries(["test_percent","seed","max_degree","include_unconverged","method","ridge_alpha",
+    "neurons","epochs","learning_rate","weight_penalty","network_seed","validation_percent"].map(name=>{
     const control=fitForm.elements.namedItem(name);return [name,name==="include_unconverged" ? control.checked : control.value];
   }));
 }
@@ -101,6 +119,15 @@ function selectView(view) {
   el("reg-compliance-help").hidden=view!=="compliance";
   el("reg-topology-help").hidden=view!=="topology";
   render();
+}
+
+function renderLearning() {
+  for(const target of ["compliance","topology"]) {
+    const report=target==="compliance" ? state.models : state.topologyModels;
+    const fitted=report?.method==="neural" ? report.models.neural_network : null;
+    const live=state.trainingTarget===target ? state.liveHistory[target] : [];
+    learningCharts[target].update(live.length ? live : fitted?.training_history,live.length ? null : fitted);
+  }
 }
 
 function setBusy(busy) {
@@ -218,7 +245,7 @@ function plot() {
   }
   cases.forEach(item => {
     const use = useOf(item), test = use === "Test", excluded = use === "Excluded";
-    const color = test ? "#df7a40" : excluded ? "#8b929a" : "#196964";
+    const color = test ? "#df7a40" : use==="Validation" ? "#4b7eaf" : excluded ? "#8b929a" : "#196964";
     const attrs = `class="reg-chart-point" data-case="${item.index}" tabindex="0" role="button" aria-label="Volume ${number(item.volume_fraction)}, ${objective.toLowerCase()} ${number(item.compliance)}, ${use}, ${quality(item)}" fill="${excluded ? "white" : color}" stroke="${state.selected === item.index ? "#152c40" : color}"`;
     const cx=x(item.volume_fraction), cy=y(item.compliance), radius=state.selected === item.index ? 7 : 5;
     svg += test ? `<rect x="${cx-radius}" y="${cy-radius}" width="${2*radius}" height="${2*radius}" ${attrs}/>` : `<circle cx="${cx}" cy="${cy}" r="${radius}" ${attrs}/>`;
@@ -227,18 +254,21 @@ function plot() {
   chart.innerHTML = svg;
   el("reg-train-label").textContent = fitted ? "Training" : "Reference";
   el("reg-test-legend").hidden = !fitted;
+  el("reg-validation-legend").hidden = !state.models?.validation_indices?.length;
   el("reg-curve-legend").hidden = !fitted;
   el("reg-excluded-legend").hidden = !state.models?.excluded_indices.length;
 }
 
-function scoreRow(label, training, test, active=false) {
+function scoreRow(label, training, test, active=false, validation="—") {
   const row=document.createElement("tr"); row.dataset.active=String(active);
-  for (const value of [label, training, test]) { const td=document.createElement("td"); td.textContent=value; row.append(td); }
+  for (const value of [label, training, validation, test]) { const td=document.createElement("td"); td.textContent=value; row.append(td); }
   return row;
 }
 
 function renderModels() {
-  const report=state.models, select=el("reg-model"), previous=select.value;
+  const select=el("reg-model"), previous=state.models?.selected_model || select.value;
+  state.models=selectReport(state.models,previous);
+  const report=state.models;
   select.replaceChildren();
   for (const [name, item] of Object.entries(report?.models || {})) select.add(new Option(modelLabel(item), name));
   select.value = report?.models[previous] ? previous : Object.keys(report?.models || {})[0] || "";
@@ -250,10 +280,10 @@ function renderModels() {
   el("reg-prediction-time").textContent = fitted ? `${(fitted.prediction_seconds*1000).toPrecision(3)} ms` : "Unavailable";
   if (report) {
     const count=report.unfinished_indices.length;
-    el("reg-fit-note").textContent = `${report.train_indices.length} training / ${report.test_indices.length} test / ${report.excluded_indices.length} excluded. Split seed ${report.seed}.${count ? ` Includes ${count} feasible unfinished runs.` : ""}`;
+    el("reg-fit-note").textContent = `${report.train_indices.length} training${report.validation_indices ? ` / ${report.validation_indices.length} validation` : ""} / ${report.test_indices.length} test / ${report.excluded_indices.length} excluded. Split seed ${report.seed}.${count ? ` Includes ${count} feasible unfinished runs.` : ""}${comparisonNote(report)}`;
     scores.append(scoreRow("Training mean", "-", percent(report.baseline.test.mean_relative_error)));
-    for (const [name, item] of Object.entries(report.models)) scores.append(scoreRow(modelLabel(item), percent(item.train.mean_relative_error), percent(item.test.mean_relative_error), name === el("reg-model").value));
-    (fitted.coefficients || fitted.scaled_coefficients).forEach((value,index) => {
+    for (const [name, item] of Object.entries(report.models)) scores.append(scoreRow(modelLabel(item), percent(item.train.mean_relative_error), percent(item.test.mean_relative_error), name === el("reg-model").value,item.validation ? percent(item.validation.mean_relative_error) : "—"));
+    (fitted.coefficients || fitted.scaled_coefficients || []).forEach((value,index) => {
       const div=document.createElement("div"), dt=document.createElement("dt"), dd=document.createElement("dd");
       const variable=fitted.coefficients ? "Volume" : "Scaled volume";
       dt.textContent=index===0 ? "Intercept (a)" : index===1 ? `${variable} (b)` : index===2 ? `${variable} squared (c)` : `${variable} power ${index}`; dd.textContent=number(value);
@@ -263,7 +293,7 @@ function renderModels() {
     scores.append(scoreRow("No fitted models", "-", "-"));
     el("reg-fit-note").textContent="At least six eligible cases are needed. Unfinished and infeasible runs are excluded by default.";
   }
-  prediction(); plot();
+  prediction(); plot();renderLearning();
 }
 
 function renderCases() {
@@ -299,7 +329,7 @@ function render() {
     el("reg-dataset-note").textContent=`${data.cases.length}/${data.settings.case_count} cases saved. ${good} converged and feasible. ${data.status.replaceAll("_"," ")}.`;
     el("reg-generation-time").textContent=data.status === "generating" ? "In progress" : `${number(data.generation_seconds)} s`;
     el("reg-download-data").href=`/api/regression/${data.id}/artifacts/dataset`;
-    el("reg-download-models").href=`/api/regression/${data.id}/artifacts/models`;
+    el("reg-download-models").href=`/api/regression/${data.id}/artifacts/${state.models?.method==="neural" ? "neural-compliance" : "models"}`;
     const [low,high]=domain(); el("reg-volume").min=low; el("reg-volume").max=high;
   } else {
     el("reg-dataset-note").textContent=""; el("reg-generation-time").textContent="Unavailable";
@@ -318,7 +348,12 @@ async function load(id) {
   if (!id) { state.dataset=state.models=state.topologyModels=null; state.liveConfig=state.liveDensity=null; render(); status(state.problem ? "Setup loaded" : "Ready"); return; }
   const result=await json(await fetch(`/api/regression/${id}`));
   if(token!==state.loading) return;
-  state.dataset=result.dataset; state.models=result.models; state.topologyModels=result.topology_models || null; state.liveConfig=state.liveDensity=null;
+  const same=state.dataset?.id===result.dataset.id;
+  state.dataset=result.dataset;
+  state.models=mergeReports(result.models,result.neural_models?.compliance,state.preferred.compliance || (same ? el("reg-model").value : ""));
+  state.topologyModels=mergeReports(result.topology_models,result.neural_models?.topology,state.preferred.topology || (same ? el("top-model").value : ""));
+  state.preferred={};state.liveConfig=state.liveDensity=null;
+  if(result.neural_errors?.[state.mode]) error(result.neural_errors[state.mode]);
   if(result.topology_model_error && state.mode==="topology") error(result.topology_model_error);
   state.problem=state.dataset.settings.source_problem ? {
     name:state.dataset.settings.problem_name || "Saved problem",model:state.dataset.settings.source_problem} : null;
@@ -357,6 +392,10 @@ function receive(event) {
   if(event.event === "error") throw new Error(event.message);
   if(event.event === "started") {state.jobId=event.run_id; buttons();}
   if(event.event === "topology_evaluation") topologyPanel.acceptEvaluation(event.evaluation);
+  if(event.event === "neural_training") {
+    state.liveHistory[event.target].push(event);renderLearning();
+    status(`Training network · epoch ${event.epoch}/${event.epochs}`,"running");
+  }
   if(event.event === "regression_case_started") {
     state.liveConfig=event.config; state.liveDensity=null;
     state.dataset.fixed_config ??= event.config;
@@ -374,6 +413,9 @@ function receive(event) {
 
 async function run(endpoint, payload, kind) {
   if(state.busy || state.externalBusy || state.importing || !state.ready) return;
+  state.trainingTarget=kind==="fit" && payload.method==="neural" ? state.mode : null;
+  if(state.trainingTarget) {state.liveHistory[state.trainingTarget]=[];state.preferred[state.trainingTarget]="neural_network";}
+  else if(kind==="fit" && activeReport()?.method==="neural") state.preferred[state.mode]="linear";
   ++state.loading;
   error(); state.jobId=null; setBusy(true); status(kind === "generate" ? "Generating dataset" : kind === "evaluate" ? "Checking structure" : "Training models","running");
   let completedId=null, terminal=false, cancelled=false;
@@ -407,7 +449,7 @@ async function run(endpoint, payload, kind) {
     } finally {await reader.cancel();}
   } catch(e) {error(e.message); status("Error");}
   finally {
-    state.jobId=null; setBusy(false);
+    state.jobId=null;state.trainingTarget=null; setBusy(false);
     try {await refresh(completedId || el("reg-dataset").value);} catch(e) {error(e.message);}
     await availability();
     if(terminal) status(cancelled ? "Stopped / saved progress" : kind === "generate" ? "Dataset ready" : kind === "evaluate" ? "Structure checked" : "Models ready");
@@ -446,9 +488,20 @@ el("reg-problem-file").addEventListener("change",async()=>{
 generateForm.addEventListener("invalid",event=>{const details=event.target.closest("details");if(details) details.open=true;},true);
 fitForm.addEventListener("submit",event=>{
   event.preventDefault(); if(!state.dataset?.id) return;
+  const method=fitForm.elements.namedItem("method").value;
+  const common={test_fraction:Number(fitForm.elements.namedItem("test_percent").value)/100,
+    seed:Number(fitForm.elements.namedItem("seed").value),include_unconverged:fitForm.elements.namedItem("include_unconverged").checked};
+  if(method==="neural") {
+    const options=Object.fromEntries(["neurons","epochs","learning_rate","weight_penalty","network_seed"].map(name=>[name,Number(fitForm.elements.namedItem(name).value)]));
+    options.validation_fraction=Number(fitForm.elements.namedItem("validation_percent").value)/100;
+    if(!Number.isSafeInteger(options.neurons) || options.neurons<1 || !Number.isSafeInteger(options.epochs) || options.epochs<1 ||
+       !Number.isFinite(options.learning_rate) || options.learning_rate<=0 || !Number.isFinite(options.weight_penalty) || options.weight_penalty<0) {
+      error("Choose positive integer neurons and epochs, a positive learning rate, and a nonnegative weight penalty.");return;
+    }
+    run(`/api/regression/${state.dataset.id}/${state.mode==="topology" ? "topology/fit" : "fit"}`,{...common,method,...options},"fit");return;
+  }
   const maximum=Number(fitForm.elements.namedItem("max_degree").value);
   if(!Number.isSafeInteger(maximum) || maximum<1) {error("Choose a positive integer polynomial order.");return;}
-  const method=fitForm.elements.namedItem("method").value;
   const ridgeAlpha=Number(fitForm.elements.namedItem("ridge_alpha").value);
   if(method==="ridge" && (!Number.isFinite(ridgeAlpha) || ridgeAlpha<0)) {error("Ridge penalty must be finite and nonnegative.");return;}
   run(`/api/regression/${state.dataset.id}/${state.mode==="topology" ? "topology/fit" : "fit"}`,{test_fraction:Number(fitForm.elements.namedItem("test_percent").value)/100,
@@ -458,7 +511,9 @@ fitForm.addEventListener("submit",event=>{
 });
 fitForm.addEventListener("input",rememberFitOptions);
 fitForm.addEventListener("change",()=>{rememberFitOptions();ridgeControls();});
-el("reg-model").addEventListener("change",()=>{renderModels(); renderCases();});
+el("reg-model").addEventListener("change",()=>{
+  state.models=selectReport(state.models,el("reg-model").value);restoreFitOptions();render();
+});
 el("reg-volume").addEventListener("input",()=>{prediction(); plot();});
 el("reg-case").addEventListener("change",event=>selectCase(event.target.value));
 el("reg-dataset").addEventListener("change",()=>{error();load(el("reg-dataset").value).catch(e=>error(e.message));});

@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from ..regression import (RegressionSettings, dataset_summary, read_dataset, read_models,
                           split_cases, validate_degrees)
 from ..topology_regression import read_topology_models, topology_cases
+from ..neural_regression import NeuralSettings, neural_split, read_neural_models
 from .rom import training_directory
 from .streams import stream_job
 
@@ -53,19 +54,38 @@ class FitRequest(BaseModel):
     include_unconverged: bool = Field(default=False, strict=True)
     degrees: list[Annotated[int, Field(strict=True, ge=1)]] = Field(
         default_factory=lambda: [1, 2], min_length=1)
-    method: Literal["ols", "ridge"] = "ols"
+    method: Literal["ols", "ridge", "neural"] = "ols"
     ridge_alpha: float = Field(default=.01, ge=0, strict=True)
+    neurons: int = Field(default=8, ge=1, strict=True)
+    epochs: int = Field(default=2000, ge=1, strict=True)
+    learning_rate: float = Field(default=.01, gt=0, strict=True)
+    weight_penalty: float = Field(default=0., ge=0, strict=True)
+    network_seed: int = Field(default=42, ge=0, le=2**32-1, strict=True)
+    validation_fraction: float = Field(default=.2, ge=.1, le=.5)
 
     @model_validator(mode="after")
     def valid_degrees(self):
-        validate_degrees(self.degrees, method=self.method, ridge_alpha=self.ridge_alpha)
+        if self.method == "neural":
+            NeuralSettings(**self.model_dump(include=set(NeuralSettings.__dataclass_fields__)))
+        else:
+            validate_degrees(self.degrees, method=self.method, ridge_alpha=self.ridge_alpha)
         return self
+
+    def split_options(self):
+        return self.model_dump(include={"test_fraction", "seed", "include_unconverged"})
 
 
 class TopologyPredictionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-    degree: int = Field(ge=1, strict=True)
+    degree: int | None = Field(default=None, ge=1, strict=True)
+    model_key: Literal["neural_network"] | None = None
     volume: float = Field(gt=0, lt=1)
+
+    @model_validator(mode="after")
+    def selected_model(self):
+        if (self.degree is None) == (self.model_key is None):
+            raise ValueError("Select a polynomial degree or neural_network model")
+        return self
 
 
 def create_regression_router(manager, root: Path, *, resolve_problem):
@@ -131,8 +151,14 @@ def create_regression_router(manager, root: Path, *, resolve_problem):
             topology_models, topology_error = read_topology_models(directory), None
         except ValueError as error:
             topology_models, topology_error = None, str(error)
+        neural, neural_errors = {}, {}
+        for target in ("compliance", "topology"):
+            try:
+                neural[target] = read_neural_models(directory, target)
+            except ValueError as error:
+                neural[target], neural_errors[target] = None, str(error)
         return {"dataset": data, "models": models, "topology_models": topology_models,
-                "topology_model_error": topology_error}
+                "topology_model_error": topology_error, "neural_models": neural, "neural_errors": neural_errors}
 
     @router.post("/{dataset_id}/fit")
     async def fit(dataset_id: str, request: FitRequest):
@@ -140,8 +166,11 @@ def create_regression_router(manager, root: Path, *, resolve_problem):
         if manager.active is not None and manager.active.id == dataset_id:
             raise HTTPException(409, "Wait for dataset generation to finish before training")
         try:
-            _, train, _ = split_cases(data, **request.model_dump(exclude={"degrees", "method", "ridge_alpha"}))
-            validate_degrees(request.degrees, len(train), method=request.method, ridge_alpha=request.ridge_alpha)
+            _, train, _ = split_cases(data, **request.split_options())
+            if request.method == "neural":
+                neural_split(data, **request.split_options(), validation_fraction=request.validation_fraction)
+            else:
+                validate_degrees(request.degrees, len(train), method=request.method, ridge_alpha=request.ridge_alpha)
         except ValueError as error:
             raise HTTPException(422, str(error)) from error
         return start("regression_fit", {"dataset_id": dataset_id, "options": request.model_dump()},
@@ -153,8 +182,11 @@ def create_regression_router(manager, root: Path, *, resolve_problem):
         if manager.active is not None and manager.active.id == dataset_id:
             raise HTTPException(409, "Wait for dataset generation to finish before training")
         try:
-            _, train, _, _, _ = topology_cases(data, **request.model_dump(exclude={"degrees", "method", "ridge_alpha"}))
-            validate_degrees(request.degrees, len(train), method=request.method, ridge_alpha=request.ridge_alpha)
+            _, train, _, _, _ = topology_cases(data, **request.split_options())
+            if request.method == "neural":
+                neural_split(data, **request.split_options(), validation_fraction=request.validation_fraction)
+            else:
+                validate_degrees(request.degrees, len(train), method=request.method, ridge_alpha=request.ridge_alpha)
         except (ValueError, KeyError) as error:
             raise HTTPException(422, str(error)) from error
         return start("regression_topology_fit", {"dataset_id": dataset_id, "options": request.model_dump()},
@@ -164,8 +196,8 @@ def create_regression_router(manager, root: Path, *, resolve_problem):
     async def evaluate_topology(dataset_id: str, request: TopologyPredictionRequest):
         directory, _ = read(dataset_id)
         try:
-            report = read_topology_models(directory)
-            if report is None or str(request.degree) not in report["models"]:
+            report = read_neural_models(directory, "topology") if request.model_key else read_topology_models(directory)
+            if report is None or (request.model_key or str(request.degree)) not in report["models"]:
                 raise ValueError("Train the selected topology model first")
         except ValueError as error:
             raise HTTPException(422, str(error)) from error
@@ -173,7 +205,7 @@ def create_regression_router(manager, root: Path, *, resolve_problem):
                      lambda job: {"dataset_id": dataset_id, "kind": "regression_topology_evaluate"})
 
     @router.get("/{dataset_id}/artifacts/{kind}")
-    async def artifact(dataset_id: str, kind: Literal["dataset", "models", "topology-models"]):
+    async def artifact(dataset_id: str, kind: Literal["dataset", "models", "topology-models", "neural-compliance", "neural-topology"]):
         directory, _ = read(dataset_id)
         path = directory / f"{kind}.json"
         if not path.is_file() or path.is_symlink():

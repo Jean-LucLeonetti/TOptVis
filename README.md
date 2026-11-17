@@ -11,7 +11,7 @@ results as experiments run.
 - Volume and maximum feature-size constraints with MMA and GCMMA optimisation.
 - Live topology and convergence views, with portable project files.
 - Snapshot generation, POD reduced models, and held-out validation.
-- Linear and quadratic regression experiments using optimisation results.
+- Polynomial, ridge and neural-network prediction of compliance and topology.
 
 The numerical backend uses PETSc for finite-element solves and PyTorch for
 sensitivities. Method references are available in the interface and the

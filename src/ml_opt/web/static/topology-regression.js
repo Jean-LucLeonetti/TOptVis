@@ -1,9 +1,10 @@
 import {drawTopology, drawDensityDifference} from "./viewer.js";
+import {predictNeural, modelName, selectReport, comparisonNote} from "./regression-models.js";
 
 const el = id => document.getElementById(id);
 const number = value => Number(value).toLocaleString("en", {maximumFractionDigits:4});
-const label = degree => ({1:"Linear",2:"Quadratic",3:"Cubic"}[degree] || `Order ${degree}`);
 export function predictDensity(model, volume, bounded=true) {
+  if(model.kind==="neural_network") return predictNeural(model,volume);
   const input = (volume-model.input_offset)/model.input_scale;
   return model.coefficients[0].map((_,element) => {
     const value = model.coefficients.reduceRight((sum,row)=>sum*input+row[element],0);
@@ -11,13 +12,14 @@ export function predictDensity(model, volume, bounded=true) {
   });
 }
 
-export function createTopologyRegression({run}) {
+export function createTopologyRegression({run,onModelChange=()=>{}}) {
   let dataset=null, report=null, locked=true, ready=false, evaluation=null, identity="";
   const selectedModel = () => report?.models[el("top-model").value];
   const reference = () => dataset?.cases.find(item=>String(item.index)===el("top-case").value);
   const volume = () => Number(el("top-volume").value);
   const matches = item => item && Math.abs(item.volume_fraction-volume())<1e-12;
   const use = item => report?.test_indices.includes(item.index) ? "Test" :
+    report?.validation_indices?.includes(item.index) ? "Validation" :
     report?.train_indices.includes(item.index) ? "Training" : report ? "Excluded" : "Reference";
   const row = (values, active=false) => {
     const tr=document.createElement("tr");tr.dataset.active=String(active);
@@ -33,7 +35,7 @@ export function createTopologyRegression({run}) {
   }
   function structure() {
     const target=el("top-evaluation");target.replaceChildren();
-    const current=evaluation && evaluation.degree===selectedModel()?.degree && Math.abs(evaluation.volume_fraction-volume())<1e-12;
+    const current=evaluation && (evaluation.model_key || String(evaluation.degree))===el("top-model").value && Math.abs(evaluation.volume_fraction-volume())<1e-12;
     if(!current) {
       el("top-evaluation-note").textContent="Check structure evaluates the current prediction; results are cleared when the prediction changes.";
       return;
@@ -81,9 +83,10 @@ export function createTopologyRegression({run}) {
     structure();
   }
   function render() {
-    const select=el("top-model"), previous=select.value;
+    const select=el("top-model"), previous=report?.selected_model || select.value;
+    report=selectReport(report,previous);
     select.replaceChildren();
-    for(const [key,item] of Object.entries(report?.models || {})) select.add(new Option(label(item.degree),key));
+    for(const [key,item] of Object.entries(report?.models || {})) select.add(new Option(modelName(item),key));
     select.value=report?.models[previous] ? previous : Object.keys(report?.models || {})[0] || "";
     const cases=el("top-case"), selected=cases.value;cases.replaceChildren();
     const eligible=dataset?.cases.filter(item=>item.density) || [];
@@ -92,18 +95,18 @@ export function createTopologyRegression({run}) {
       eligible.find(item=>report?.test_indices.includes(item.index))?.index ?? eligible[0]?.index ?? "");
     const scores=el("top-scores");scores.replaceChildren();
     if(report) {
-      el("top-fit-note").textContent=`${report.train_indices.length} training / ${report.test_indices.length} test / ${report.excluded_indices.length} excluded.${report.unfinished_indices.length ? ` Includes ${report.unfinished_indices.length} feasible unfinished runs.` : ""}`;
-      scores.append(row(["Mean training topology",number(report.baseline.train.mae),number(report.baseline.test.mae)]));
-      for(const [key,item] of Object.entries(report.models)) scores.append(row([label(item.degree),number(item.train.mae),number(item.test.mae)],key===select.value));
+      el("top-fit-note").textContent=`${report.train_indices.length} training${report.validation_indices ? ` / ${report.validation_indices.length} validation` : ""} / ${report.test_indices.length} test / ${report.excluded_indices.length} excluded.${report.unfinished_indices.length ? ` Includes ${report.unfinished_indices.length} feasible unfinished runs.` : ""}${comparisonNote(report)}`;
+      scores.append(row(["Mean training topology",number(report.baseline.train.mae),"—",number(report.baseline.test.mae)]));
+      for(const [key,item] of Object.entries(report.models)) scores.append(row([modelName(item),number(item.train.mae),item.validation ? number(item.validation.mae) : "—",number(item.test.mae)],key===select.value));
     } else {
       el("top-fit-note").textContent="At least six eligible cases with saved density fields are needed.";
-      scores.append(row(["No fitted models","—","—"]));
+      scores.append(row(["No fitted models","—","—","—"]));
     }
     el("top-download-models").hidden=!report;
-    if(dataset) el("top-download-models").href=`/api/regression/${dataset.id}/artifacts/topology-models`;
+    if(dataset) el("top-download-models").href=`/api/regression/${dataset.id}/artifacts/${selectedModel()?.kind==="neural_network" ? "neural-topology" : "topology-models"}`;
     preview();
   }
-  el("top-model").addEventListener("change",()=>{evaluation=null;render();});
+  el("top-model").addEventListener("change",()=>{evaluation=null;report=selectReport(report,el("top-model").value);render();onModelChange(report);});
   el("top-volume").addEventListener("input",()=>{evaluation=null;preview();});
   el("top-case").addEventListener("change",()=>{
     const item=reference();if(item) el("top-volume").value=item.volume_fraction;
@@ -112,7 +115,8 @@ export function createTopologyRegression({run}) {
   el("top-evaluate").addEventListener("click",()=>{
     if(!dataset || !selectedModel() || locked || !ready) return;
     evaluation=null;structure();
-    run(`/api/regression/${dataset.id}/topology/evaluate`,{degree:selectedModel().degree,volume:volume()},"evaluate");
+    const selection=selectedModel().kind==="neural_network" ? {model_key:"neural_network"} : {degree:selectedModel().degree};
+    run(`/api/regression/${dataset.id}/topology/evaluate`,{...selection,volume:volume()},"evaluate");
   });
   for(const id of ["top-predicted","top-reference","top-difference"]) new ResizeObserver(preview).observe(el(id).parentElement);
   return {

@@ -124,16 +124,19 @@ def read_topology_models(directory):
     return report
 
 
-def evaluate_topology_prediction(directory, *, degree, volume, stop_requested=lambda: False):
+def evaluate_topology_prediction(directory, *, degree=None, model_key=None, volume, stop_requested=lambda: False):
     from .problem import CantileverProblem
+    from .neural_regression import read_neural_models, predict_network
 
     directory = Path(directory)
-    data, report = read_dataset(directory), read_topology_models(directory)
-    if report is None or str(degree) not in report["models"]:
+    data = read_dataset(directory)
+    report = read_neural_models(directory, "topology") if model_key else read_topology_models(directory)
+    key = model_key or str(degree)
+    if report is None or key not in report["models"]:
         raise ValueError("Train the selected topology model first")
     if not np.isfinite(volume) or not 0 < volume < 1:
         raise ValueError("Prediction volume must lie between 0 and 1")
-    raw = predict_topology(report["models"][str(degree)], volume, bounded=False)
+    raw = predict_network(report["models"][key], volume) if model_key else predict_topology(report["models"][key], volume, bounded=False)
     density = np.clip(raw, 0, 1)
     # These targets are already physical, nominal fields. Do not filter/project
     # twice or reinterpret a nominal prediction as a robust three-field design.
@@ -142,7 +145,7 @@ def evaluate_topology_prediction(directory, *, degree, volume, stop_requested=la
         state_solver="fom", rom_basis_path=None, rom_basis_sha256=None, field_execution="sequential")
     reference = next((case for case in data["cases"] if case.get("density") is not None and
                       np.isclose(case["volume_fraction"], volume, atol=1e-12, rtol=0)), None)
-    result = {"dataset_id": data["id"], "degree": degree, "volume_fraction": volume,
+    result = {"dataset_id": data["id"], "degree": degree, "model_key": key, "volume_fraction": volume,
               "objective_quantity": "elastic_work" if config.imposed_motion else "compliance",
               "field": "nominal", "robust_dataset": bool(data["fixed_config"].get("robust")),
               "clipped_elements": int(np.count_nonzero((raw < -1e-10) | (raw > 1+1e-10))),

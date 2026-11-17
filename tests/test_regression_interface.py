@@ -120,6 +120,36 @@ def test_rejects_invalid_requests_and_unknown_files(tmp_path):
     assert client.get("/api/regression/" + "0"*32 + "/artifacts/dataset").status_code == 404
 
 
+def test_both_neural_targets_stream_save_and_preserve_polynomial_models(tmp_path):
+    root=tmp_path/"regression"
+    with TestClient(create_app(regression_root=root)) as client:
+        generated=events(client.post("/api/regression/generate",json=SETTINGS))
+        endpoint=f"/api/regression/{generated[0]['dataset_id']}"
+        options={"include_unconverged":True,"method":"neural","neurons":4,"epochs":30,
+                 "learning_rate":.01,"weight_penalty":.001,"network_seed":9,"validation_fraction":.25}
+        assert client.post(endpoint+"/topology/evaluate",json={"model_key":"neural_network","volume":.4}).status_code==422
+        for suffix,target,key in (("/fit","compliance","models"),("/topology/fit","topology","topology_models")):
+            events(client.post(endpoint+suffix,json={"include_unconverged":True}))
+            polynomial=client.get(endpoint).json()[key]
+            for invalid in ({"neurons":0},{"epochs":True},{"learning_rate":0},{"validation_fraction":.01}):
+                assert client.post(endpoint+suffix,json={**options,**invalid}).status_code==422
+            streamed=events(client.post(endpoint+suffix,json=options))
+            progress=[event for event in streamed if event["event"]=="neural_training"]
+            assert progress[0]["epoch"]==0 and progress[-1]["epoch"]==30
+            data=client.get(endpoint).json();neural=data["neural_models"][target]
+            assert data[key]==polynomial
+            assert neural["test_indices"]==polynomial["test_indices"]
+            assert neural["validation_indices"] and neural["models"]["neural_network"]["weights"]
+            assert client.get(endpoint+f"/artifacts/neural-{target}").json()==neural
+        checked=events(client.post(endpoint+"/topology/evaluate",json={"model_key":"neural_network","volume":.4}))
+        result=next(event["evaluation"] for event in checked if event["event"]=="topology_evaluation")
+        assert result["model_key"]=="neural_network" and result["prediction"]["residual"]<1e-8
+        assert client.post(endpoint+"/topology/evaluate",json={"model_key":"neural_network","degree":2,"volume":.4}).status_code==422
+        saved=client.get(endpoint).json()["neural_models"]
+    with TestClient(create_app(regression_root=root)) as client:
+        assert client.get(endpoint).json()["neural_models"]==saved
+
+
 def test_regression_shares_worker_lock_and_preserves_cancelled_cases(tmp_path):
     manager = RunManager()
     try:
