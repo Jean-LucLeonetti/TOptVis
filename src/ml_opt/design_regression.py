@@ -107,7 +107,8 @@ def generate_designs(source_directory, directory, settings, *, emit=lambda event
                     if not math.isfinite(evaluation.compliance) or evaluation.compliance<=0:
                         raise ValueError("Structural objective must be positive and finite")
                     case.update(compliance=evaluation.compliance,density=evaluation.density.tolist(),
-                        physical_volume=evaluation.volume_fraction,residual=evaluation.residual,status="complete")
+                        physical_volume=evaluation.volume_fraction,residual=evaluation.residual,status="complete",
+                        connection_constraints=evaluation.connection_constraints,connection_connected=evaluation.connection_connected)
                 except Exception as error:
                     case.update(status="failed",message=str(error))
                 data["cases"].append(case); save()
@@ -287,4 +288,5 @@ def evaluate_design(directory,density,*,stop_requested=lambda:False):
     if not math.isfinite(evaluation.compliance) or evaluation.compliance<=0:
         raise ValueError("Structural objective must be positive and finite")
     return {"compliance":evaluation.compliance,"physical_volume":evaluation.volume_fraction,"residual":evaluation.residual,
-            "field":"nominal","objective_quantity":data["objective_quantity"]}
+            "field":"nominal","objective_quantity":data["objective_quantity"],
+            "connection_constraints":evaluation.connection_constraints,"connection_connected":evaluation.connection_connected}

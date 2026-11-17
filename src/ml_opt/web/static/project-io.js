@@ -22,6 +22,9 @@ export function parseProject(text) {
     if (result.fields && (!model.robust || Object.keys(result.fields).length !== 3 || !["eroded","nominal","dilated"].every(key => density(result.fields[key])))) throw new Error("The saved robust fields are invalid.");
     if (model.robust && !result.fields) throw new Error("The saved robust result is missing material fields.");
     if (model.robust && !["field_compliances","field_volumes"].every(key => ["eroded","nominal","dilated"].every(field => Number.isFinite(result.history.at(-1)[key]?.[field])))) throw new Error("The saved robust result is missing field metrics.");
+    const targetKeys=Array.from({length:model.connection_targets?.length || 0},(_,i)=>`target-${i+1}`);
+    if(result.connection_temperatures && (Object.keys(result.connection_temperatures).length!==targetKeys.length || targetKeys.some(key=>!Array.isArray(result.connection_temperatures[key]) || result.connection_temperatures[key].length!==count || result.connection_temperatures[key].some(value=>!Number.isFinite(value))))) throw new Error("The saved connection temperatures do not match the mesh and targets.");
+    if(result.connection_connected && (Object.keys(result.connection_connected).length!==targetKeys.length || targetKeys.some(key=>typeof result.connection_connected[key]!=="boolean"))) throw new Error("The saved connection path checks are invalid.");
     if (result.stopping_tolerances && Object.entries(result.stopping_tolerances).some(([key,value]) => !["design_tolerance","objective_tolerance","feasibility_tolerance"].includes(key) || !Number.isFinite(value) || value <= 0)) throw new Error("The saved stopping tolerances are invalid.");
   }
   return {model,result};

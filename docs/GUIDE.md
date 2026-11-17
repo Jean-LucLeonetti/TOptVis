@@ -916,6 +916,74 @@ field's** volume; equality does not require all three fields to have equal volum
 Python: `volume_constraint="lt"`, `"gt"`, or `"eq"`.
 CLI: `--volume-constraint lt|gt|eq`.
 
+### Connections through pseudo-temperature
+
+In **Optimisation → Boundaries**, select points, lines or surfaces and
+assign a **Connection anchor** and one or more **Connection targets**. These are
+independent of the mechanical supports and forces. Each target must conduct unit
+total heat to at least one selected anchor. Additional anchors act as alternative
+sinks; they are not required to connect to one another. Only selected targets are
+constrained, so this does not eliminate every possible unselected solid island.
+
+The scalar auxiliary problem is
+
+\[
+-\nabla\cdot(k(\rho)\nabla T_j)=q_j,
+\qquad T_j=0\text{ at anchors},
+\qquad k(\rho)=\epsilon+(1-\epsilon)\rho^{p_k}.
+\]
+
+Exterior faces are insulated. Each target has its own density-independent,
+unit-total source, so removing its material cannot turn its heat source off.
+The existing PETSc backend solves a cell-centred finite-volume discretisation
+with harmonic face conductivities. Only face neighbours exchange heat, avoiding
+artificial diagonal connections. Surfaces use their enclosed cells; point/line
+selections use adjacent cells. Anchor and target cells must not overlap, and
+neither may include fixed void cells. Selections are stored in model coordinates
+and revalidated on mesh changes.
+
+For each target the constraint is
+
+\[
+g_j=\frac{\lVert T_j\rVert_{8,\Omega_j}}
+{\lambda\lVert T_{j,\mathrm{solid}}\rVert_{8,\Omega_j}}-1\le0.
+\]
+
+The reference is solved on the fully solid mesh with the same sources and sinks.
+**Maximum temperature ratio** is the allowed multiplier \(\lambda\), initially
+5. A smaller multiplier demands a stronger conducting path. This is a normalised
+8-norm response, rather than a literal maximum-temperature ratio. The norm bounds
+each source-cell temperature but does not remove geometric or parameter sensitivity.
+Conductivity exponent and void conductivity are in **Connection settings**.
+The nonzero void conductivity keeps the solve defined for disconnected designs;
+it also means the constraint is a surrogate, rather than a binary proof of connectivity.
+
+The adjoint uses the same retained PETSc matrix factors. PyTorch propagates its
+face-conductance derivatives through density interpolation, projection and the
+Helmholtz filter. Fixed solid/void variables retain zero gradients. MMA and GCMMA
+receive one smooth constraint per target, including in their feasibility and
+convergence checks. Robust optimisation evaluates connectivity on eroded material.
+Disabled connections add no diffusion solve.
+
+The result **Display** selector switches between material density and each target's
+normalised pseudo-temperature field. Its colour scale runs from zero to the
+chosen temperature limit. The status separately reports the surrogate limit and
+a geometric flood-fill check at physical density ≥ 0.5. This diagnostic requires
+all target cells to be reachable from qualifying anchor cells through face-connected
+material. A passing temperature constraint does not guarantee that the diagnostic
+passes. A failure of either check should be inspected before treating a topology
+as a suitable connected design. Projects preserve regions, settings, temperature
+snapshots and geometric checks; older projects remain supported.
+
+The implementation is a targeted solid-conduction adaptation of the virtual
+scalar-field/temperature family, not a reproduction of the global void-removal
+or nonlinear heat-source methods. Key references:
+
+- [Li, Chen, Liu & Tong (2016), Structural topology optimization considering connectivity constraint](https://doi.org/10.1007/s00158-016-1459-5): the general virtual scalar-field approach and temperature constraints.
+- [Hård, Wallin & Ristinmaa (2024), Connectivity Constraints Ensuring Continuous Electrodes in Topology Optimization of Electroactive Polymer](https://doi.org/10.1115/1.4064980): solid connectivity with a temperature norm and fully solid reference. Their density-dependent heating differs from the fixed target sources used here.
+- [Luo, Sigmund, Li & Liu (2020), Additive manufacturing oriented topology optimization of structures with self-supported enclosed voids](https://doi.org/10.1016/j.cma.2020.113385): nonlinear virtual heating for enclosed-void identification; this extension is not implemented here.
+- [Cool, Aage & Sigmund (2025), A practical review on promoting connectivity in topology optimization](https://arxiv.org/abs/2501.09402): comparisons, parameter sensitivity and the distinction between solid/void and periodic connectivity requirements.
+
 ### Morphological maximum solid size
 
 In **Constraints → Maximum solid size**, enter the maximum disk **diameter** in

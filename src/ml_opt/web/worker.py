@@ -159,12 +159,16 @@ def run_optimization(configuration: dict, messages, cancel, *, field_pool=None) 
         config = CantileverConfig(**configuration)
         if field_pool is not None and not (config.robust and config.field_execution == "parallel"):
             field_pool.clear()
-        def snapshot(entry, fields):
+        def snapshot(entry, design, evaluation):
+            fields = evaluation.field_densities or {"nominal": evaluation.density}
             event = {"event": "iteration", "history": asdict(entry), "density": fields["nominal"].tolist()}
             if config.robust:
                 event["field_densities"] = {name: density.tolist() for name, density in fields.items()}
+            if evaluation.connection_temperatures is not None:
+                event["connection_temperatures"] = {key:values.tolist() for key,values in evaluation.connection_temperatures.items()}
+                event["connection_connected"] = evaluation.connection_connected
             messages.put(event)
-        result = optimise(config, field_snapshot_callback=snapshot,
+        result = optimise(config, evaluation_callback=snapshot,
                           stop_requested=lambda: cancel.is_set() or _parent_gone(), field_pool=field_pool)
         volume_feasible = result.evaluation.constraint <= config.feasibility_tolerance
         epigraph_feasible = (not config.robust or
@@ -173,13 +177,14 @@ def run_optimization(configuration: dict, messages, cancel, *, field_pool=None) 
                             result.evaluation.max_size_constraint <= config.feasibility_tolerance)
         max_void_feasible = (result.evaluation.max_void_constraint is None or
                             result.evaluation.max_void_constraint <= config.feasibility_tolerance)
+        connection_feasible = all(value <= config.feasibility_tolerance for value in (result.evaluation.connection_constraints or {}).values())
         messages.put({"event": "complete", "stop_reason": result.stop_reason,
                       "converged": result.converged, "volume_feasible": volume_feasible,
                       "epigraph_feasible": epigraph_feasible,
                       "max_size_feasible": max_size_feasible,
-                      "max_void_feasible": max_void_feasible,
+                      "max_void_feasible": max_void_feasible, "connection_feasible": connection_feasible,
                       "state_solver": result.config.state_solver, "rom_basis": result.rom_basis,
-                      "feasible": volume_feasible and epigraph_feasible and max_size_feasible and max_void_feasible})
+                      "feasible": volume_feasible and epigraph_feasible and max_size_feasible and max_void_feasible and connection_feasible})
     except Exception as error:
         traceback.print_exc()
         messages.put({"event": "error", "message": str(error) or type(error).__name__})

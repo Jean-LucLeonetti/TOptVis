@@ -7,6 +7,7 @@ import re
 from .boundaries import (BoundaryCondition, LoadCase, normalise_conditions,
                          normalise_load_cases, resolve_boundary_data)
 from .regions import NonDesignRegion, normalise_regions, region_densities
+from .connectivity import normalise_connection_regions, connection_regions
 
 
 @dataclass(frozen=True)
@@ -62,6 +63,12 @@ class CantileverConfig:
     load_aggregation: str = "weighted"
     non_design_regions: tuple[NonDesignRegion, ...] = ()
 
+    connection_anchors: tuple = ()
+    connection_targets: tuple = ()
+    connection_max_temperature: float = 5.
+    connection_penalisation: float = 3.
+    connection_min_conductivity: float = 1e-6
+
     @property
     def extended_boundaries(self):
         return len(self.load_cases) > 1 or any(condition.kind not in ("fixed", "force")
@@ -78,6 +85,8 @@ class CantileverConfig:
         object.__setattr__(self, "boundary_conditions", normalise_conditions(self.boundary_conditions))
         object.__setattr__(self, "load_cases", normalise_load_cases(self.load_cases))
         object.__setattr__(self, "non_design_regions", normalise_regions(self.non_design_regions))
+        object.__setattr__(self, "connection_anchors", normalise_connection_regions(self.connection_anchors))
+        object.__setattr__(self, "connection_targets", normalise_connection_regions(self.connection_targets))
         if self.load_aggregation not in ("weighted", "worst"):
             raise ValueError("Load aggregation must be weighted or worst")
         if self.state_solver == "rom" and self.extended_boundaries:
@@ -124,6 +133,17 @@ class CantileverConfig:
                 raise ValueError("Fixed solid regions exceed the permitted material volume")
             if self.volume_constraint in ("gt", "eq") and maximum < self.volume_fraction * (1 - self.feasibility_tolerance):
                 raise ValueError("Fixed void regions prevent the required material volume")
+        for name, lower, upper in (("connection_max_temperature", 1., float("inf")),
+                                   ("connection_penalisation", 1., 16.),
+                                   ("connection_min_conductivity", 1e-12, .01)):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not lower <= value <= upper or value == 0:
+                raise ValueError(f"Invalid {name}")
+        anchors, targets = connection_regions(self.connection_anchors, self.connection_targets, self.nx, self.ny)
+        if len(anchors) and self.non_design_regions:
+            fixed = region_densities(self.non_design_regions, self.nx, self.ny)
+            if (fixed[anchors] == 0).any() or any((fixed[target] == 0).any() for target in targets):
+                raise ValueError("Connection regions cannot include fixed void cells")
         for size_name, beta_name, tolerance_name in (
                 ("max_solid_size", "max_size_beta", "max_size_tolerance"),
                 ("max_void_size", "max_void_beta", "max_void_tolerance")):

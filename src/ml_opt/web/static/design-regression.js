@@ -56,6 +56,11 @@ function preview() {
   el("design-check-note").textContent=check ? `Equilibrium residual ${check.residual.toExponential(2)}. ${state.dataset.source_robust ? "Nominal material checked." : ""}` : edited ? "Edited design: check structure to obtain its actual objective." : "";
   el("design-element").max=values?.length || 1;
   if(config && el("design-density").getClientRects().length) drawTopology(el("design-density"),{...config,filter_radius:0,max_solid_size:0,max_void_size:0},values);
+  const connection=check || (!edited ? item : null);
+  if(connection?.connection_constraints) {
+    const pass=Object.values(connection.connection_constraints).every(value=>value<=(state.dataset.fixed_config.feasibility_tolerance ?? 1e-4)), path=Object.keys(connection.connection_constraints).every(key=>connection.connection_connected?.[key]===true);
+    el("design-check-note").textContent+=` Connection limit ${pass ? "satisfied" : "exceeded"}; path at ρ ≥ 0.5 ${path ? "connected" : "disconnected"}.`;
+  }
   controls();
 }
 function chart() {

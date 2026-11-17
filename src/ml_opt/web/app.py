@@ -94,6 +94,12 @@ class RunRequest(BaseModel):
     load_aggregation: Literal["weighted", "worst"] = "weighted"
     non_design_regions: list[NonDesignRegionRequest] = Field(default_factory=list, max_length=128)
 
+    connection_anchors: list[SelectionRequest] = Field(default_factory=list, max_length=16)
+    connection_targets: list[SelectionRequest] = Field(default_factory=list, max_length=16)
+    connection_max_temperature: float = Field(default=5., ge=1)
+    connection_penalisation: float = Field(default=3., ge=1, le=16)
+    connection_min_conductivity: float = Field(default=1e-6, ge=1e-12, le=.01)
+
     @model_validator(mode="after")
     def valid_node(self):
         if self.boundary_conditions is None and (self.load_node_x > self.nx or self.load_node_y > self.ny):
@@ -161,6 +167,7 @@ def create_app(*, training_root: Path | None = None, regression_root: Path | Non
                 "material_schedule_supported": True,
                 "max_size_supported": True,
                 "max_void_supported": True,
+                "connection_constraints_supported": True,
                 "volume_modes_supported": True,
                 "gcmma_inner_limit_supported": True,
                 "rom_training_supported": True,

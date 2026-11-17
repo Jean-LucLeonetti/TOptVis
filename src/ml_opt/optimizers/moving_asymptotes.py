@@ -25,7 +25,7 @@ class OptimizerStep:
 class MovingAsymptotes:
     def __init__(self, initial_design: np.ndarray, method: str = "mma",
                  move_limit: float = 0.2, max_inner_iterations: int = 30, *, robust: bool = False,
-                 max_size: bool = False, max_void: bool = False,
+                 max_size: bool = False, max_void: bool = False, connections: int = 0,
                  volume_mode: str = "lt", volume_tolerance: float = 1e-4, design_mask=None):
         if method not in ("mma", "gcmma"):
             raise ValueError("Unknown moving-asymptote method")
@@ -35,10 +35,11 @@ class MovingAsymptotes:
         self.robust = robust
         self.max_size = max_size
         self.max_void = max_void
+        self.connections = connections
         if volume_mode not in ("lt", "gt", "eq") or not np.isfinite(volume_tolerance) or volume_tolerance <= 0:
             raise ValueError("Invalid volume constraint mode or tolerance")
         self.volume_mode, self.volume_tolerance = volume_mode, volume_tolerance
-        self.m = (4 if robust else 1) + int(volume_mode == "eq") + int(max_size) + int(max_void)
+        self.m = (4 if robust else 1) + int(volume_mode == "eq") + int(max_size) + int(max_void) + connections
         self.move = move_limit
         self.max_inner_iterations = max_inner_iterations
         self.design_mask = None if design_mask is None else np.asarray(design_mask, dtype=bool)
@@ -89,6 +90,10 @@ class MovingAsymptotes:
             if evaluation.max_void_constraint is None:
                 raise ValueError("Maximum-void MMA requires its evaluated constraint")
             values.append(evaluation.max_void_constraint)
+        if self.connections:
+            if evaluation.connection_constraints is None or len(evaluation.connection_constraints) != self.connections:
+                raise ValueError("Connection MMA requires every target's evaluated constraint")
+            values.extend(evaluation.connection_constraints[f"target-{i+1}"] for i in range(self.connections))
         return objective, np.asarray(values).reshape(-1, 1)
 
     def step(self, design: np.ndarray, current: Evaluation,
@@ -127,6 +132,11 @@ class MovingAsymptotes:
             if current.max_void_gradient is None:
                 raise ValueError("Maximum-void MMA requires its constraint gradient")
             constraint_gradient = np.vstack([constraint_gradient, current.max_void_gradient])
+        if self.connections:
+            if current.connection_gradients is None:
+                raise ValueError("Connection MMA requires diffusion gradients")
+            constraint_gradient = np.vstack([constraint_gradient] +
+                [current.connection_gradients[f"target-{i+1}"] for i in range(self.connections)])
         inner_iterations = 0
         def expand(candidate):
             if self.design_mask is None:

@@ -1,4 +1,4 @@
-import {drawModel, drawTopology} from "/static/viewer.js";
+import {drawModel, drawTopology, drawPseudoTemperature} from "/static/viewer.js";
 import {ConvergencePlots} from "/static/convergence.js?v=individual-log-scales";
 import {RomChoice} from "/static/rom-choice.js";
 import {BoundaryEditor} from "/static/boundary-editor.js";
@@ -8,6 +8,7 @@ import {initialiseReferences} from "/static/method-references.js";
 const byId = id => document.getElementById(id);
 const form = byId("model-form"), modelCanvas = byId("model-canvas"), topologyCanvas = byId("topology-canvas");
 const state = {model: null, density: null, fields: null, fieldRow: null, running: false, ready: false, externalBusy: false, runId: null, initial: null,
+  connectionTemperatures:null,connectionConnected:null,
   hover: null, history: [], runConfig: null, activePanel: "panel-geometry", romSupported: false};
 let boundaryEditor = null;
 let projectIO = null;
@@ -28,7 +29,9 @@ function readModel() {
   }
   if (model.state_solver !== "rom") delete model.rom_training_id;
   if (boundaryEditor?.conditions !== null && boundaryEditor?.conditions !== undefined) model.boundary_conditions = structuredClone(boundaryEditor.conditions);
-  if (boundaryEditor) { model.load_cases = structuredClone(boundaryEditor.cases); model.load_aggregation = boundaryEditor.aggregation; model.non_design_regions = structuredClone(boundaryEditor.regions); }
+  if (boundaryEditor) { model.load_cases = structuredClone(boundaryEditor.cases); model.load_aggregation = boundaryEditor.aggregation; model.non_design_regions = structuredClone(boundaryEditor.regions);
+    model.connection_anchors=boundaryEditor.connections.filter(item=>item.kind==="connection_anchor").map(item=>structuredClone(item.selection));
+    model.connection_targets=boundaryEditor.connections.filter(item=>item.kind==="connection_target").map(item=>structuredClone(item.selection)); }
   return model;
 }
 
@@ -125,11 +128,33 @@ function redraw() {
   if (!byId("model-view").hidden) {
     const viewModel = {...state.model, display_load_case: boundaryEditor?.activeCase};
     drawModel(modelCanvas, viewModel, null, boundaryEditor?.overlay);
-    drawTopology(topologyCanvas, viewModel, state.density);
+    drawResult(viewModel);
   }
   updateConvergence();
 }
 
+function drawResult(model={...state.model,display_load_case:boundaryEditor?.activeCase}) {
+  const field=byId("connection-display").value, values=state.connectionTemperatures?.[field];
+  if(values) {drawPseudoTemperature(topologyCanvas,model,values,model.connection_max_temperature);topologyCanvas.setAttribute("aria-label",`Normalised pseudo-temperature for ${field}`);}
+  else drawTopology(topologyCanvas,model,state.density);
+}
+function updateConnectionView() {
+  const model=state.runConfig || state.model, count=model?.connection_targets?.length || 0;
+  byId("connection-view").hidden=!count;
+  const select=byId("connection-display"), previous=select.value;
+  if(select.options.length!==count+1) {
+    select.replaceChildren(new Option("Material density","density"),...Array.from({length:count},(_,i)=>new Option(`Temperature · target ${i+1}`,`target-${i+1}`)));
+    select.value=[...select.options].some(option=>option.value===previous) ? previous : "density";
+  }
+  const constraints=state.history.at(-1)?.connection_constraints || {}, selected=select.value;
+  const keys=selected==="density" ? Object.keys(constraints) : [selected].filter(key=>Object.hasOwn(constraints,key));
+  const failed=keys.some(key=>constraints[key]>(state.runConfig?.feasibility_tolerance ?? 1e-4));
+  const connected=keys.every(key=>state.connectionConnected?.[key]);
+  const ratio=selected!=="density" ? state.history.at(-1)?.connection_ratios?.[selected] : null;
+  byId("connection-metrics").textContent=keys.length ? `${ratio!=null ? `Temperature ratio ${filterFormat(ratio)} · ` : ""}Limit ${failed ? "exceeded" : "satisfied"} · Path at ρ ≥ 0.5: ${connected ? "connected" : "disconnected"}` : "";
+  byId("temperature-scale").hidden=select.value==="density" || !state.connectionTemperatures;
+  byId("material-density-scale").hidden=!byId("temperature-scale").hidden;
+}
 function syncControls() {
   const gcmma = byId("optimizer").value === "gcmma";
   byId("gcmma-options").hidden = !gcmma;
@@ -164,6 +189,8 @@ function updateMaxSizeStatus() {
 
 function updateLabels(resizeFilterRange = true) {
   const m = state.model;
+  byId("connection-anchor-legend").hidden=!(m.connection_anchors || []).length;
+  byId("connection-target-legend").hidden=!(m.connection_targets || []).length;
   byId("fixed-solid-legend").hidden = !(m.non_design_regions || []).some(item => item.kind === "solid");
   byId("fixed-void-legend").hidden = !(m.non_design_regions || []).some(item => item.kind === "void");
   byId("volume-label").textContent = `${Math.round(m.volume_fraction * 100)}%`;
@@ -197,9 +224,11 @@ function updateLabels(resizeFilterRange = true) {
 
 function clearResult() {
   state.density = null; state.fields = null; state.fieldRow = null; state.initial = null;
+  state.connectionTemperatures=state.connectionConnected=null;
   byId("field-metrics").textContent = "";
   state.history = []; state.runConfig = null;
   boundaryEditor?.setResults(null);
+  updateConnectionView();
   updateMaxSizeStatus();
   byId("empty-state").hidden = false;
   byId("compliance").textContent = "—";
@@ -282,6 +311,8 @@ function receive(event) {
     state.fields = event.field_densities || null;
     state.fieldRow = row;
     state.density = event.density;
+    state.connectionTemperatures=event.connection_temperatures || null;state.connectionConnected=event.connection_connected || null;
+    updateConnectionView();
     selectField(false);
     byId("empty-state").hidden = true;
     byId("compliance").textContent = format(row.compliance);
@@ -295,7 +326,7 @@ function receive(event) {
     boundaryEditor?.setResults(row.load_case_compliances);
     resultMessage(state.model.state_solver === "rom" ? "Reduced model: approximate results" : "");
     status("Running", "running");
-    if (topologyCanvas.getClientRects().length) drawTopology(topologyCanvas, {...state.model,display_load_case:boundaryEditor?.activeCase}, state.density);
+    if (topologyCanvas.getClientRects().length) drawResult();
     updateConvergence();
     return;
   }
@@ -306,7 +337,8 @@ function receive(event) {
       event.stop_reason === "maximum_iterations" ? "Iteration limit reached." : "Stopping tolerances reached.";
     if (state.runConfig?.state_solver === "rom") message += " Reduced model: approximate results.";
     resultMessage(message);
-    if (!event.feasible) showError(event.max_size_feasible === false ?
+    if (!event.feasible) showError(event.connection_feasible === false ?
+      "The final design has not met the connection temperature limit. The last evaluated design is shown." : event.max_size_feasible === false ?
       "The final design has not met the maximum solid-size constraint. The last evaluated design is shown." : event.max_void_feasible === false ?
       "The final design has not met the maximum void-size constraint. The last evaluated design is shown." : event.volume_feasible !== false && event.epigraph_feasible === false ?
       "The final epigraph bound is below a field's compliance. Increase the iteration limit and run again." :
@@ -377,6 +409,7 @@ async function start(event) {
 
 form.addEventListener("submit", start);
 byId("display-field").addEventListener("change", () => selectField());
+byId("connection-display").addEventListener("change",()=>{updateConnectionView();redraw();});
 byId("show-model").addEventListener("click", () => selectPanel("panel-geometry", true));
 form.addEventListener("input", updateModel);
 byId("filter-slider").addEventListener("input", event => {
@@ -421,6 +454,7 @@ projectIO = new ProjectIO({isRunning: () => state.running, onError: showError,
     return structuredClone(state.model);
   },
   getResult: () => state.density ? {density:state.density,fields:state.fields,history:state.history,
+    connection_temperatures:state.connectionTemperatures,connection_connected:state.connectionConnected,
     stopping_tolerances:Object.fromEntries(["design_tolerance","objective_tolerance","feasibility_tolerance"].filter(key => Number.isFinite(state.runConfig?.[key])).map(key => [key,state.runConfig[key]]))} : null,
   load: (model, saved) => {
     for (const control of form.elements) {
@@ -432,6 +466,8 @@ projectIO = new ProjectIO({isRunning: () => state.running, onError: showError,
     boundaryEditor.loadModel(model); syncControls(); updateLabels(); clearResult(); showError(); romChoice.sync();
     if (saved) {
       state.density = saved.density; state.fields = saved.fields || null; state.history = saved.history;
+      state.connectionTemperatures=saved.connection_temperatures || null;state.connectionConnected=saved.connection_connected || null;
+      updateConnectionView();
       state.fieldRow = saved.history.at(-1); state.initial = saved.history[0].compliance;
       state.runConfig = {...model,...saved.stopping_tolerances};
       byId("empty-state").hidden = true;
@@ -441,7 +477,7 @@ projectIO = new ProjectIO({isRunning: () => state.running, onError: showError,
       for (const id of ["compliance","current-volume","iteration"]) byId(id).title = byId(id).textContent;
       byId("progress-bar").style.width = `${100*state.fieldRow.iteration/model.max_iterations}%`;
       boundaryEditor.setResults(state.fieldRow.load_case_compliances);
-      selectField(false); updateMaxSizeStatus(); updateConvergence();
+      updateConnectionView();selectField(false); updateMaxSizeStatus(); updateConvergence();
       status("Saved snapshot","ready"); resultMessage("Saved result; start a new run to recompute.");
     }
     selectPanel("panel-geometry"); updateRunAvailability(); redraw();
@@ -454,7 +490,7 @@ async function connectSolver() {
     let health = await response.json();
     state.romSupported = !!health.rom_optimisation_supported;
     await romChoice.refresh(state.romSupported);
-    if (!health.non_design_regions_supported || !health.extended_boundaries_supported || !health.multiple_load_cases_supported || !health.boundary_conditions_supported || !health.projection_supported || !health.robust_supported || !health.material_schedule_supported || !health.max_size_supported || !health.max_void_supported || !health.linear_solver_supported || !health.volume_modes_supported || !health.gcmma_inner_limit_supported) {
+    if (!health.connection_constraints_supported || !health.non_design_regions_supported || !health.extended_boundaries_supported || !health.multiple_load_cases_supported || !health.boundary_conditions_supported || !health.projection_supported || !health.robust_supported || !health.material_schedule_supported || !health.max_size_supported || !health.max_void_supported || !health.linear_solver_supported || !health.volume_modes_supported || !health.gcmma_inner_limit_supported) {
       byId("connection").lastElementChild.textContent = "Server restart needed";
       showError("Open Start TOptVis.bat again to launch the updated server with the current solver and size controls. Use the browser page it opens.");
       setRunning(false);

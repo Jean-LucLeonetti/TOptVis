@@ -256,3 +256,11 @@ input[type=range]:disabled {cursor:default}
 
 .legend-fixed-solid {background:#c8ddd4;border:1px solid #466e63}
 .legend-fixed-void {background:#f3e4d4;border:1px solid #a56b39}
+
+#connection-display {width:205px}
+#connection-view {font-size:14px}
+.temperature-scale {display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 20px;font-size:14px;color:var(--muted)}
+.temperature-scale i {width:100px;height:10px;background:linear-gradient(to right,#f2f8ff,#de353a);border:1px solid var(--line)}
+
+.legend-connection-anchor {background:#167dbe}
+.legend-connection-target {background:#924db6}

@@ -1,6 +1,8 @@
 import {pickNode} from "./viewer.js";
 import {makeSelection, selectionBounds, selectionNodes, defaultConditions, boundaryError, regionElements, nonDesignError} from "./mesh-selection.js";
 
+import {connectionError,connectionElements} from "./connections.js";
+
 const byId = id => document.getElementById(id);
 
 export class BoundaryEditor {
@@ -8,6 +10,7 @@ export class BoundaryEditor {
     Object.assign(this, {canvas, getModel, isRunning, onChange, onError, onOpen, redraw});
     this.conditions = null; this.selection = null; this.anchor = null; this.hover = null;
     this.regions = []; this.editingRegion = null;
+    this.connections = []; this.editingConnection = null;
     this.cases = [{id:"case-1",name:"Load case 1",weight:1}]; this.activeCase = "case-1"; this.results = {};
     byId("load-aggregation").value = "weighted"; byId("boundary-components").value = "xy";
     this.mode = "point"; this.editing = null; this.drag = null; this.suppressClick = false;
@@ -15,9 +18,9 @@ export class BoundaryEditor {
     this.tools = [...document.querySelectorAll('[data-selection-mode]')];
     for (const tool of this.tools) tool.addEventListener("click", () => {
       if (isRunning() || (["solid","void"].includes(byId("boundary-kind").value) && tool.dataset.selectionMode !== "surface")) return;
-      const editing = this.editing, editingRegion = this.editingRegion;
+      const editing = this.editing, editingRegion = this.editingRegion, editingConnection = this.editingConnection;
       this.mode = tool.dataset.selectionMode;
-      this.clearSelection(); this.editing = editing; this.editingRegion = editingRegion; this.render(); onOpen();
+      this.clearSelection(); this.editing = editing; this.editingRegion = editingRegion; this.editingConnection = editingConnection; this.render(); onOpen();
     });
     byId("selection-clear").addEventListener("click", () => this.clearSelection());
     byId("boundary-kind").addEventListener("change", () => {
@@ -45,7 +48,7 @@ export class BoundaryEditor {
       byId("load-aggregation").value = "weighted"; this.editing = null; this.clearSelection(); onChange();
     });
     byId("boundary-select-coordinates").addEventListener("click", () => this.selectCoordinates());
-    byId("panel-load").addEventListener("input", event => event.stopPropagation());
+    byId("panel-load").addEventListener("input", event => {if(!event.target.name?.startsWith("connection_")) event.stopPropagation();});
     byId("boundary-editor-form").addEventListener("submit", event => event.preventDefault());
     canvas.addEventListener("click", event => {
       if (this.suppressClick) { this.suppressClick = false; return; }
@@ -94,7 +97,7 @@ export class BoundaryEditor {
   }
 
   get aggregation() { return byId("load-aggregation").value; }
-  get validationError() { return boundaryError(this.conditions, {...this.getModel(),load_cases:this.cases}) || nonDesignError(this.regions,this.getModel()); }
+  get validationError() { return boundaryError(this.conditions, {...this.getModel(),load_cases:this.cases}) || nonDesignError(this.regions,this.getModel()) || connectionError(this.connections,this.getModel(),this.regions); }
   addCase() {
     if (this.isRunning() || this.cases.length >= 16) return;
     const current = this.conditions || defaultConditions(this.getModel());
@@ -117,6 +120,8 @@ export class BoundaryEditor {
   loadModel(model) {
     this.conditions = structuredClone(model.boundary_conditions || null);
     this.regions = structuredClone(model.non_design_regions || []);
+    this.connections = [...(model.connection_anchors || []).map(selection=>({kind:"connection_anchor",selection:structuredClone(selection)})),
+      ...(model.connection_targets || []).map(selection=>({kind:"connection_target",selection:structuredClone(selection)}))];
     this.cases = structuredClone(model.load_cases || [{id:"case-1",name:"Load case 1",weight:1}]);
     this.activeCase = this.cases[0].id; byId("load-aggregation").value = model.load_aggregation || "weighted";
     this.clearSelection();
@@ -133,7 +138,7 @@ export class BoundaryEditor {
   }
   clearSelection() {
     this.selection = null; this.anchor = null; this.drag = null; this.hover = null; this.editing = null;
-    this.editingRegion = null;
+    this.editingRegion = null; this.editingConnection = null;
     this.render(); this.redraw();
   }
   choose(node) {
@@ -161,6 +166,17 @@ export class BoundaryEditor {
   apply() {
     if (this.isRunning() || !this.selection) return;
     const condition = {kind: byId("boundary-kind").value, selection: structuredClone(this.selection)};
+    if (["connection_anchor","connection_target"].includes(condition.kind)) {
+      const items=structuredClone(this.connections);
+      if(this.editingConnection===null) items.push(condition);else items[this.editingConnection]=condition;
+      if(items.filter(item=>item.kind===condition.kind).length>16) {this.onError("At most 16 connection regions of each type can be assigned.");return;}
+      if(items.some(item=>item.kind==="connection_anchor") && items.some(item=>item.kind==="connection_target")) {
+        const issue=connectionError(items,this.getModel(),this.regions);if(issue) {this.onError(issue);return;}
+      }
+      this.connections=items;this.editingConnection=null;this.editingRegion=null;this.editing=null;
+      this.onChange();this.render();this.redraw();return;
+    }
+    this.editingConnection=null;
     if (["solid","void"].includes(condition.kind)) {
       const regions = structuredClone(this.regions);
       if (this.editingRegion === null && regions.length >= 128) { this.onError("At most 128 non-design regions can be assigned."); return; }
@@ -208,7 +224,7 @@ export class BoundaryEditor {
     for (const tool of this.tools) { tool.setAttribute("aria-pressed", String(tool.dataset.selectionMode === this.mode)); tool.disabled = running || (region && tool.dataset.selectionMode !== "surface"); }
     byId("selection-clear").disabled = running || (!this.selection && !this.anchor);
     byId("boundary-apply").disabled = running || !this.selection;
-    byId("boundary-apply").textContent = this.editing === null && this.editingRegion === null ? "Assign" : "Update";
+    byId("boundary-apply").textContent = this.editing === null && this.editingRegion === null && this.editingConnection === null ? "Assign" : "Update";
     byId("boundary-reset").disabled = running || (this.conditions === null && this.cases.length === 1);
     byId("selection-end-fields").hidden = this.mode === "point";
     byId("boundary-force-fields").hidden = byId("boundary-kind").value !== "force";
@@ -237,7 +253,7 @@ export class BoundaryEditor {
       edit.addEventListener("click", () => {
         if (this.isRunning()) return;
         this.editing = index; this.selection = structuredClone(condition.selection); this.anchor = null;
-        this.editingRegion = null;
+        this.editingRegion = null;this.editingConnection=null;
         this.mode = condition.selection.kind; byId("boundary-kind").value = condition.kind;
         byId("boundary-magnitude").value = condition.magnitude ?? 1; byId("boundary-angle").value = condition.angle ?? -90;
         byId("boundary-components").value = condition.components || "xy";
@@ -264,7 +280,7 @@ export class BoundaryEditor {
       edit.append(title,detail);
       edit.addEventListener("click",()=>{
         if(this.isRunning()) return;
-        this.editingRegion=index;this.editing=null;this.selection=structuredClone(item.selection);this.anchor=null;
+        this.editingRegion=index;this.editing=null;this.editingConnection=null;this.selection=structuredClone(item.selection);this.anchor=null;
         this.mode="surface";byId("boundary-kind").value=item.kind;this.render();this.redraw();
       });
       const remove=document.createElement("button");remove.type="button";remove.className="boundary-remove";remove.textContent="Remove";remove.disabled=running;
@@ -274,6 +290,23 @@ export class BoundaryEditor {
         this.regions.splice(index,1);this.editingRegion=null;this.onChange();this.render();this.redraw();
       });
       row.append(edit,remove);regionList.append(row);
+    }
+    const connectionList=byId("connection-list");connectionList.replaceChildren();
+    for(const [index,item] of this.connections.entries()) {
+      const row=document.createElement("li");row.className="boundary-row";
+      const edit=document.createElement("button");edit.type="button";edit.className="boundary-item";edit.disabled=running;
+      edit.setAttribute("aria-pressed",String(this.editingConnection===index));
+      const title=document.createElement("strong");title.textContent=item.kind==="connection_anchor" ? "Connection anchor" : "Connection target";
+      const detail=document.createElement("span");detail.textContent=`${item.selection.kind} / ${connectionElements(item.selection,model).length} cells`;
+      edit.append(title,detail);edit.addEventListener("click",()=>{
+        if(this.isRunning())return;
+        this.editingConnection=index;this.editing=this.editingRegion=null;this.selection=structuredClone(item.selection);this.anchor=null;
+        this.mode=item.selection.kind;byId("boundary-kind").value=item.kind;this.render();this.redraw();
+      });
+      const remove=document.createElement("button");remove.type="button";remove.className="boundary-remove";remove.textContent="Remove";remove.disabled=running;
+      remove.setAttribute("aria-label",`Remove ${title.textContent.toLowerCase()} ${index+1}`);
+      remove.addEventListener("click",()=>{if(this.isRunning())return;this.connections.splice(index,1);this.editingConnection=null;this.onChange();this.render();this.redraw();});
+      row.append(edit,remove);connectionList.append(row);
     }
   }
 }

@@ -151,7 +151,7 @@ def evaluate_topology_prediction(directory, *, degree=None, model_key=None, volu
               "clipped_elements": int(np.count_nonzero((raw < -1e-10) | (raw > 1+1e-10))),
               "reference_index": reference["index"] if reference else None}
     def summary(evaluation):
-        constraints = {"volume": evaluation.constraint}
+        constraints = {"volume": evaluation.constraint, **(evaluation.connection_constraints or {})}
         for name in ("max_size_constraint", "max_void_constraint"):
             value = getattr(evaluation, name)
             if value is not None:

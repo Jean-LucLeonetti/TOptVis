@@ -41,6 +41,8 @@ class HistoryEntry:
     volume_error: float | None = None
     load_case_compliances: dict[str, float] | None = None
     active_load_case: str | None = None
+    connection_constraints: dict[str, float] | None = None
+    connection_ratios: dict[str, float] | None = None
 
 
 @dataclass
@@ -85,6 +87,7 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
     optimizer = MovingAsymptotes(design, config.optimizer, config.move_limit,
                                  config.max_inner_iterations, robust=config.robust,
                                  max_size=config.max_solid_size > 0, max_void=config.max_void_size > 0,
+                                 connections=len(config.connection_targets),
                                  volume_mode=config.volume_constraint, volume_tolerance=config.feasibility_tolerance,
                                  design_mask=problem.design_mask if config.non_design_regions else None)
     history = [HistoryEntry(0, current.compliance, current.volume_fraction, current.constraint,
@@ -101,7 +104,8 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
                             max_void_constraint=current.max_void_constraint,
                             max_void_remaining_volume=current.max_void_remaining_volume,
                             volume_error=current.volume_error,
-                            load_case_compliances=current.load_case_compliances, active_load_case=current.active_load_case)]
+                            load_case_compliances=current.load_case_compliances, active_load_case=current.active_load_case,
+                            connection_constraints=current.connection_constraints, connection_ratios=current.connection_ratios)]
     if callback:
         callback(history[-1])
     if snapshot_callback:
@@ -132,6 +136,7 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
             optimizer = MovingAsymptotes(design, config.optimizer, config.move_limit,
                                          config.max_inner_iterations, robust=config.robust,
                                          max_size=config.max_solid_size > 0, max_void=config.max_void_size > 0,
+                                 connections=len(config.connection_targets),
                                          volume_mode=config.volume_constraint, volume_tolerance=config.feasibility_tolerance,
                                          design_mask=problem.design_mask if config.non_design_regions else None)
             stable_iterations = 0
@@ -161,7 +166,8 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
                                      max_void_constraint=updated.max_void_constraint,
                                      max_void_remaining_volume=updated.max_void_remaining_volume,
                                      volume_error=updated.volume_error,
-                                     load_case_compliances=updated.load_case_compliances, active_load_case=updated.active_load_case))
+                                     load_case_compliances=updated.load_case_compliances, active_load_case=updated.active_load_case,
+                                     connection_constraints=updated.connection_constraints, connection_ratios=updated.connection_ratios))
         if callback:
             callback(history[-1])
         if snapshot_callback:
@@ -181,6 +187,7 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
                   current.constraint <= config.feasibility_tolerance and
                   (current.max_size_constraint is None or current.max_size_constraint <= config.feasibility_tolerance) and
                   (current.max_void_constraint is None or current.max_void_constraint <= config.feasibility_tolerance) and
+                  all(value <= config.feasibility_tolerance for value in (current.connection_constraints or {}).values()) and
                   (current.epigraph_constraint is None or current.epigraph_constraint <= config.feasibility_tolerance))
         stable_iterations = stable_iterations + 1 if stable else 0
         if stable_iterations >= config.convergence_patience:

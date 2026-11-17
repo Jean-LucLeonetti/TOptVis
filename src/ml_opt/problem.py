@@ -16,6 +16,7 @@ from .projection import heaviside_projection
 from .material import elastic_modulus
 from .regions import region_densities
 from .morphology import MaximumSolidSize, MorphologicalSize
+from .fem.connection import ConnectionDiffusion
 
 
 @dataclass
@@ -48,6 +49,11 @@ class Evaluation:
     volume_gradient: np.ndarray | None = None
     load_case_compliances: dict[str, float] | None = None
     active_load_case: str | None = None
+    connection_constraints: dict[str, float] | None = None
+    connection_gradients: dict[str, np.ndarray] | None = None
+    connection_ratios: dict[str, float] | None = None
+    connection_temperatures: dict[str, np.ndarray] | None = None
+    connection_connected: dict[str, bool] | None = None
 
 
 class CantileverProblem:
@@ -70,7 +76,10 @@ class CantileverProblem:
         self.density_filter = None
         self.max_size = None
         self.max_void = None
+        self.connection = None
         try:
+            if config.connection_targets:
+                self.connection = ConnectionDiffusion(config)
             if config.max_solid_size > 0:
                 self.max_size = MaximumSolidSize(self.mesh, config.max_solid_size,
                                                  config.max_size_beta, config.max_size_tolerance)
@@ -86,6 +95,8 @@ class CantileverProblem:
 
     def close(self) -> None:
         self._compliance_solver.cache.clear()
+        if self.connection is not None:
+            self.connection.close()
         try:
             if self.fields is not None:
                 self.fields.close()
@@ -173,6 +184,11 @@ class CantileverProblem:
                 void_density = densities[0] if self.config.robust else density
                 void_volume = self.max_void.remaining_void(void_density).mean()
                 void_constraint = void_volume / self.config.max_void_tolerance - 1
+            connection_values = None
+            connection_gradients = None
+            if self.connection is not None:
+                connection_density = densities[0] if self.config.robust else density
+                connection_values = self.connection.apply(connection_density)
             objective_gradient = constraint_gradient = None
             max_size_gradient = None
             max_void_gradient = None
@@ -186,7 +202,7 @@ class CantileverProblem:
                     objective_gradient = torch.autograd.grad(objective, x, retain_graph=True)[0].numpy().copy()
                 volume_derivative = volume_error if self.config.volume_constraint == "eq" else constraint
                 constraint_gradient = torch.autograd.grad(volume_derivative, x,
-                    retain_graph=size_constraint is not None or void_constraint is not None)[0].numpy().copy()
+                    retain_graph=size_constraint is not None or void_constraint is not None or connection_values is not None)[0].numpy().copy()
                 if self.config.volume_constraint == "eq":
                     # MMA receives the two smooth signed rows, never abs(g)'s
                     # zero subgradient at an exactly satisfied equality.
@@ -194,9 +210,20 @@ class CantileverProblem:
                     constraint_gradient *= np.sign(float(volume_error.detach()))
                 if size_constraint is not None:
                     max_size_gradient = torch.autograd.grad(size_constraint, x,
-                        retain_graph=void_constraint is not None)[0].numpy().copy()
+                        retain_graph=void_constraint is not None or connection_values is not None)[0].numpy().copy()
                 if void_constraint is not None:
-                    max_void_gradient = torch.autograd.grad(void_constraint, x)[0].numpy().copy()
+                    max_void_gradient = torch.autograd.grad(void_constraint, x, retain_graph=connection_values is not None)[0].numpy().copy()
+                if connection_values is not None:
+                    connection_gradients = {f"target-{i+1}": torch.autograd.grad(value, x,
+                        retain_graph=i+1<len(connection_values))[0].numpy().copy()
+                        for i, value in enumerate(connection_values)}
+        connection_constraints = connection_ratios = connection_temperatures = connection_connected = None
+        if connection_values is not None:
+            connection_constraints = {f"target-{i+1}":float(value) for i,value in enumerate(connection_values.detach())}
+            connection_ratios = {key:(value+1)*self.config.connection_max_temperature for key,value in connection_constraints.items()}
+            connection_temperatures = {f"target-{i+1}": t.copy()/reference for i,(t,reference) in
+                enumerate(zip(self.connection.last_temperatures,self.connection.reference))}
+            connection_connected = dict(zip(connection_constraints, self.connection.diagnostics(connection_density.detach().numpy())))
         return Evaluation(float(objective.detach()), float(volume.detach()), float(constraint.detach()),
                           density.detach().numpy().copy(), state.displacement.copy(),
                           residual, iterations, objective_gradient, constraint_gradient,
@@ -209,4 +236,7 @@ class CantileverProblem:
                           max_void_remaining_volume=None if void_volume is None else float(void_volume.detach()),
                           max_void_gradient=max_void_gradient,
                           volume_error=float(volume_error.detach()), volume_gradient=volume_gradient,
-                          load_case_compliances=state.case_compliances, active_load_case=state.active_case)
+                          load_case_compliances=state.case_compliances, active_load_case=state.active_case,
+                          connection_constraints=connection_constraints, connection_gradients=connection_gradients,
+                          connection_ratios=connection_ratios, connection_temperatures=connection_temperatures,
+                          connection_connected=connection_connected)

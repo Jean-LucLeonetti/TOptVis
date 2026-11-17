@@ -127,7 +127,7 @@ def generate_dataset(settings, directory, *, emit=lambda event: None, stop_reque
             if (not math.isfinite(evaluation.compliance) or evaluation.compliance <= 0 or
                     not math.isfinite(evaluation.constraint) or not np.all(np.isfinite(density))):
                 raise ValueError("The solver returned a non-finite or nonpositive result")
-            constraints = {"volume": float(evaluation.constraint)}
+            constraints = {"volume": float(evaluation.constraint), **(evaluation.connection_constraints or {})}
             for name in ("epigraph_constraint", "max_size_constraint", "max_void_constraint"):
                 value = getattr(evaluation, name)
                 if value is not None:

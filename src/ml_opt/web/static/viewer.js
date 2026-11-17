@@ -184,6 +184,12 @@ function nonDesignRegions(view, model, fill = true) {
   }
 }
 
+function connectionRegions(view,model) {
+  for(const [key,color] of [["connection_anchors","#167dbe"],["connection_targets","#924db6"]]) {
+    for(const selection of model[key] || []) selectionShape(view,model,selection,color,`${color}24`);
+  }
+}
+
 export function drawModel(canvas, model, hover = null, overlay = null) {
   const view = surface(canvas, model);
   const {ctx, left, top, w, h} = view;
@@ -211,6 +217,7 @@ export function drawModel(canvas, model, hover = null, overlay = null) {
     ctx.strokeStyle = "#45978d"; ctx.lineWidth = 1.5; ctx.stroke();
   }
   boundaries(view, model);
+  connectionRegions(view,model);
   selectionOverlay(view, model, overlay);
   return view;
 }
@@ -234,6 +241,7 @@ export function drawTopology(canvas, model, density) {
   if (density) filterReference(view, model, false);
   nonDesignRegions(view,model,!density);
   boundaries(view, model, !!density);
+  connectionRegions(view,model);
   maximumSizeReference(view, model);
 }
 
@@ -267,4 +275,14 @@ export function pickElement(canvas, model, event) {
   const y=(event.clientY-rect.top)*height/rect.height;
   if(x<left || x>=left+w || y<top || y>=top+h) return null;
   return Math.min(model.ny-1,Math.floor((top+h-y)/h*model.ny))*model.nx+Math.floor((x-left)/w*model.nx);
+}
+
+export function drawPseudoTemperature(canvas,model,temperature,limit) {
+  const view=surface(canvas,model), {ctx,left,top,w,h}=view;
+  for(let y=0;y<model.ny;y++) for(let x=0;x<model.nx;x++) {
+    const value=Math.min(1,Math.max(0,temperature[y*model.nx+x]/limit));
+    ctx.fillStyle=`rgb(${Math.round(242-20*value)},${Math.round(248-195*value)},${Math.round(255-197*value)})`;
+    ctx.fillRect(left+x*w/model.nx,top+(model.ny-1-y)*h/model.ny,w/model.nx+.2,h/model.ny+.2);
+  }
+  outline(view);dimensions(view,model);connectionRegions(view,model);
 }
