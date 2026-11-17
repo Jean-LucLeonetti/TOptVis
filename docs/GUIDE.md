@@ -1001,6 +1001,11 @@ receive one smooth constraint per target, including in their feasibility and
 convergence checks. Robust optimisation evaluates connectivity on eroded material.
 Disabled connections add no diffusion solve.
 
+For optimisation behaviour, tested settings and reproducible comparisons, see
+the [connection conditioning benchmark](benchmarks/connection-conditioning.md).
+The temperature bound also limits thermal resistance; loosening it can admit
+designs that fail the separate geometric path check.
+
 The result **Display** selector switches between material density and each target's
 normalised pseudo-temperature field. Its colour scale runs from zero to the
 chosen temperature limit. The status separately reports the surrogate limit and

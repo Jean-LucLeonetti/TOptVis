@@ -1,0 +1,766 @@
+{
+  "cases": {
+    "cantilever": {
+      "nx": 30,
+      "ny": 10,
+      "length": 3.0,
+      "height": 1.0,
+      "young_modulus": 1.0,
+      "minimum_modulus": 1e-06,
+      "poisson_ratio": 0.3,
+      "thickness": 1.0,
+      "load": 1.0,
+      "load_angle": -90.0,
+      "load_node_x": null,
+      "load_node_y": null,
+      "volume_fraction": 0.4,
+      "volume_constraint": "lt",
+      "max_solid_size": 0.0,
+      "max_size_beta": 16.0,
+      "max_size_tolerance": 0.001,
+      "max_void_size": 0.0,
+      "max_void_beta": 16.0,
+      "max_void_tolerance": 0.001,
+      "material_model": "simp",
+      "penalisation": 3.0,
+      "filter_radius": 0.1,
+      "projection_beta": 2.0,
+      "projection_eta": 0.5,
+      "projection_schedule": "fixed",
+      "projection_beta_interval": 25,
+      "projection_beta_multiplier": 2.0,
+      "projection_beta_max": 16.0,
+      "robust": false,
+      "robust_eta_offset": 0.1,
+      "field_execution": "sequential",
+      "optimizer": "mma",
+      "move_limit": 0.2,
+      "max_iterations": 240,
+      "min_iterations": 20,
+      "design_tolerance": 0.005,
+      "objective_tolerance": 0.0001,
+      "feasibility_tolerance": 0.0001,
+      "convergence_patience": 5,
+      "max_inner_iterations": 30,
+      "linear_tolerance": 1e-10,
+      "linear_solver": "lu",
+      "state_solver": "fom",
+      "rom_basis_path": null,
+      "rom_basis_sha256": null,
+      "boundary_conditions": null,
+      "load_cases": [
+        {
+          "id": "case-1",
+          "name": "Load case 1",
+          "weight": 1.0
+        }
+      ],
+      "load_aggregation": "weighted",
+      "non_design_regions": [],
+      "connection_anchors": [
+        {
+          "kind": "point",
+          "start": [
+            0.0,
+            0.0
+          ],
+          "end": null
+        }
+      ],
+      "connection_targets": [
+        {
+          "kind": "point",
+          "start": [
+            1.0,
+            0.5
+          ],
+          "end": null
+        }
+      ],
+      "connection_max_temperature": 5.0,
+      "connection_penalisation": 3.0,
+      "connection_min_conductivity": 1e-06
+    },
+    "off-load target": {
+      "nx": 30,
+      "ny": 10,
+      "length": 3.0,
+      "height": 1.0,
+      "young_modulus": 1.0,
+      "minimum_modulus": 1e-06,
+      "poisson_ratio": 0.3,
+      "thickness": 1.0,
+      "load": 1.0,
+      "load_angle": -90.0,
+      "load_node_x": null,
+      "load_node_y": null,
+      "volume_fraction": 0.4,
+      "volume_constraint": "lt",
+      "max_solid_size": 0.0,
+      "max_size_beta": 16.0,
+      "max_size_tolerance": 0.001,
+      "max_void_size": 0.0,
+      "max_void_beta": 16.0,
+      "max_void_tolerance": 0.001,
+      "material_model": "simp",
+      "penalisation": 3.0,
+      "filter_radius": 0.1,
+      "projection_beta": 2.0,
+      "projection_eta": 0.5,
+      "projection_schedule": "fixed",
+      "projection_beta_interval": 25,
+      "projection_beta_multiplier": 2.0,
+      "projection_beta_max": 16.0,
+      "robust": false,
+      "robust_eta_offset": 0.1,
+      "field_execution": "sequential",
+      "optimizer": "mma",
+      "move_limit": 0.2,
+      "max_iterations": 240,
+      "min_iterations": 20,
+      "design_tolerance": 0.005,
+      "objective_tolerance": 0.0001,
+      "feasibility_tolerance": 0.0001,
+      "convergence_patience": 5,
+      "max_inner_iterations": 30,
+      "linear_tolerance": 1e-10,
+      "linear_solver": "lu",
+      "state_solver": "fom",
+      "rom_basis_path": null,
+      "rom_basis_sha256": null,
+      "boundary_conditions": null,
+      "load_cases": [
+        {
+          "id": "case-1",
+          "name": "Load case 1",
+          "weight": 1.0
+        }
+      ],
+      "load_aggregation": "weighted",
+      "non_design_regions": [],
+      "connection_anchors": [
+        {
+          "kind": "point",
+          "start": [
+            0.0,
+            0.0
+          ],
+          "end": null
+        }
+      ],
+      "connection_targets": [
+        {
+          "kind": "point",
+          "start": [
+            1.0,
+            1.0
+          ],
+          "end": null
+        }
+      ],
+      "connection_max_temperature": 5.0,
+      "connection_penalisation": 3.0,
+      "connection_min_conductivity": 1e-06
+    },
+    "MBB robust": {
+      "nx": 30,
+      "ny": 10,
+      "length": 3.0,
+      "height": 1.0,
+      "young_modulus": 1.0,
+      "minimum_modulus": 1e-06,
+      "poisson_ratio": 0.3,
+      "thickness": 1.0,
+      "load": 1.0,
+      "load_angle": -90.0,
+      "load_node_x": null,
+      "load_node_y": null,
+      "volume_fraction": 0.4,
+      "volume_constraint": "lt",
+      "max_solid_size": 0.0,
+      "max_size_beta": 16.0,
+      "max_size_tolerance": 0.001,
+      "max_void_size": 0.0,
+      "max_void_beta": 16.0,
+      "max_void_tolerance": 0.001,
+      "material_model": "simp",
+      "penalisation": 3.0,
+      "filter_radius": 0.1,
+      "projection_beta": 2.0,
+      "projection_eta": 0.5,
+      "projection_schedule": "geometric",
+      "projection_beta_interval": 25,
+      "projection_beta_multiplier": 2.0,
+      "projection_beta_max": 16.0,
+      "robust": true,
+      "robust_eta_offset": 0.1,
+      "field_execution": "sequential",
+      "optimizer": "gcmma",
+      "move_limit": 0.2,
+      "max_iterations": 240,
+      "min_iterations": 20,
+      "design_tolerance": 0.005,
+      "objective_tolerance": 0.0001,
+      "feasibility_tolerance": 0.0001,
+      "convergence_patience": 5,
+      "max_inner_iterations": 30,
+      "linear_tolerance": 1e-10,
+      "linear_solver": "lu",
+      "state_solver": "fom",
+      "rom_basis_path": null,
+      "rom_basis_sha256": null,
+      "boundary_conditions": [
+        {
+          "kind": "restrain_x",
+          "selection": {
+            "kind": "line",
+            "start": [
+              0.0,
+              0.0
+            ],
+            "end": [
+              0.0,
+              1.0
+            ]
+          },
+          "magnitude": 1.0,
+          "angle": -90.0,
+          "components": "xy",
+          "ux": 0.0,
+          "uy": 0.0,
+          "case_id": null
+        },
+        {
+          "kind": "restrain_y",
+          "selection": {
+            "kind": "point",
+            "start": [
+              1.0,
+              0.0
+            ],
+            "end": null
+          },
+          "magnitude": 1.0,
+          "angle": -90.0,
+          "components": "xy",
+          "ux": 0.0,
+          "uy": 0.0,
+          "case_id": null
+        },
+        {
+          "kind": "force",
+          "selection": {
+            "kind": "point",
+            "start": [
+              0.0,
+              1.0
+            ],
+            "end": null
+          },
+          "magnitude": 1.0,
+          "angle": -90.0,
+          "components": "xy",
+          "ux": 0.0,
+          "uy": 0.0,
+          "case_id": "case-1"
+        }
+      ],
+      "load_cases": [
+        {
+          "id": "case-1",
+          "name": "Load case 1",
+          "weight": 1.0
+        }
+      ],
+      "load_aggregation": "weighted",
+      "non_design_regions": [],
+      "connection_anchors": [
+        {
+          "kind": "point",
+          "start": [
+            1.0,
+            0.0
+          ],
+          "end": null
+        }
+      ],
+      "connection_targets": [
+        {
+          "kind": "point",
+          "start": [
+            0.0,
+            1.0
+          ],
+          "end": null
+        }
+      ],
+      "connection_max_temperature": 5.0,
+      "connection_penalisation": 3.0,
+      "connection_min_conductivity": 1e-06
+    }
+  },
+  "runs": [
+    {
+      "case": "cantilever",
+      "variant": "none",
+      "iterations": 124,
+      "converged": true,
+      "objective": 486.96327839074195,
+      "volume": 0.39999989518217094,
+      "constraint": null,
+      "ratios": null,
+      "connected": null,
+      "inner_iterations": 0,
+      "inner_limit_hits": 0,
+      "seconds": 0.5437401660019532
+    },
+    {
+      "case": "cantilever",
+      "variant": "linear",
+      "iterations": 176,
+      "converged": true,
+      "objective": 605.8537525768886,
+      "volume": 0.3999999390549297,
+      "constraint": {
+        "target-1": -3.784139941398479e-07
+      },
+      "ratios": {
+        "target-1": 4.999998107930029
+      },
+      "connected": {
+        "target-1": true
+      },
+      "inner_iterations": 0,
+      "inner_limit_hits": 0,
+      "seconds": 0.33603345799201634
+    },
+    {
+      "case": "cantilever",
+      "variant": "log",
+      "iterations": 200,
+      "converged": true,
+      "objective": 605.8632830116377,
+      "volume": 0.3999999268725349,
+      "constraint": {
+        "target-1": -4.1414859985877683e-07
+      },
+      "ratios": {
+        "target-1": 4.999997929257001
+      },
+      "connected": {
+        "target-1": true
+      },
+      "inner_iterations": 0,
+      "inner_limit_hits": 0,
+      "seconds": 0.3884328749991255
+    },
+    {
+      "case": "cantilever",
+      "variant": "root",
+      "iterations": 179,
+      "converged": true,
+      "objective": 605.6011539003599,
+      "volume": 0.3999999747476575,
+      "constraint": {
+        "target-1": -2.747457251706109e-07
+      },
+      "ratios": {
+        "target-1": 4.999998626271374
+      },
+      "connected": {
+        "target-1": true
+      },
+      "inner_iterations": 0,
+      "inner_limit_hits": 0,
+      "seconds": 0.35818779200781137
+    },
+    {
+      "case": "cantilever",
+      "variant": "initial",
+      "iterations": 228,
+      "converged": true,
+      "objective": 605.6013833153752,
+      "volume": 0.3999999731480751,
+      "constraint": {
+        "target-1": -2.759856142509065e-07
+      },
+      "ratios": {
+        "target-1": 4.999998620071929
+      },
+      "connected": {
+        "target-1": true
+      },
+      "inner_iterations": 0,
+      "inner_limit_hits": 0,
+      "seconds": 0.4646107910084538
+    },
+    {
+      "case": "cantilever",
+      "variant": "move .05",
+      "iterations": 185,
+      "converged": true,
+      "objective": 600.132481116356,
+      "volume": 0.39999994218840024,
+      "constraint": {
+        "target-1": -6.978969855353512e-07
+      },
+      "ratios": {
+        "target-1": 4.999996510515072
+      },
+      "connected": {
+        "target-1": true
+      },
+      "inner_iterations": 0,
+      "inner_limit_hits": 0,
+      "seconds": 0.40612862500711344
+    },
+    {
+      "case": "cantilever",
+      "variant": "limit 10",
+      "iterations": 206,
+      "converged": true,
+      "objective": 480.22090658597097,
+      "volume": 0.3999996933550554,
+      "constraint": {
+        "target-1": -0.13165501049350525
+      },
+      "ratios": {
+        "target-1": 8.683449895064948
+      },
+      "connected": {
+        "target-1": true
+      },
+      "inner_iterations": 0,
+      "inner_limit_hits": 0,
+      "seconds": 0.3995579590118723
+    },
+    {
+      "case": "cantilever",
+      "variant": "limit 20",
+      "iterations": 180,
+      "converged": true,
+      "objective": 486.873810109115,
+      "volume": 0.39999963166302993,
+      "constraint": {
+        "target-1": -0.5059904794560838
+      },
+      "ratios": {
+        "target-1": 9.880190410878324
+      },
+      "connected": {
+        "target-1": false
+      },
+      "inner_iterations": 0,
+      "inner_limit_hits": 0,
+      "seconds": 0.3333463750022929
+    },
+    {
+      "case": "off-load target",
+      "variant": "none",
+      "iterations": 124,
+      "converged": true,
+      "objective": 486.96327839074195,
+      "volume": 0.39999989518217094,
+      "constraint": null,
+      "ratios": null,
+      "connected": null,
+      "inner_iterations": 0,
+      "inner_limit_hits": 0,
+      "seconds": 0.5069334169966169
+    },
+    {
+      "case": "off-load target",
+      "variant": "linear",
+      "iterations": 207,
+      "converged": true,
+      "objective": 543.319640587652,
+      "volume": 0.3999999232980347,
+      "constraint": {
+        "target-1": -6.267987275876408e-07
+      },
+      "ratios": {
+        "target-1": 4.999996866006362
+      },
+      "connected": {
+        "target-1": true
+      },
+      "inner_iterations": 0,
+      "inner_limit_hits": 0,
+      "seconds": 0.44700716699298937
+    },
+    {
+      "case": "off-load target",
+      "variant": "log",
+      "iterations": 229,
+      "converged": true,
+      "objective": 543.2789655693362,
+      "volume": 0.3999999394975412,
+      "constraint": {
+        "target-1": -6.009311528387684e-07
+      },
+      "ratios": {
+        "target-1": 4.999996995344236
+      },
+      "connected": {
+        "target-1": true
+      },
+      "inner_iterations": 0,
+      "inner_limit_hits": 0,
+      "seconds": 0.4868123330088565
+    },
+    {
+      "case": "off-load target",
+      "variant": "root",
+      "iterations": 216,
+      "converged": true,
+      "objective": 538.1731796882746,
+      "volume": 0.39999994103457687,
+      "constraint": {
+        "target-1": -4.95415839019131e-07
+      },
+      "ratios": {
+        "target-1": 4.999997522920805
+      },
+      "connected": {
+        "target-1": true
+      },
+      "inner_iterations": 0,
+      "inner_limit_hits": 0,
+      "seconds": 0.43850391599698924
+    },
+    {
+      "case": "off-load target",
+      "variant": "initial",
+      "iterations": 237,
+      "converged": true,
+      "objective": 538.1738381245243,
+      "volume": 0.39999994390191274,
+      "constraint": {
+        "target-1": -5.808228543680016e-07
+      },
+      "ratios": {
+        "target-1": 4.999997095885728
+      },
+      "connected": {
+        "target-1": true
+      },
+      "inner_iterations": 0,
+      "inner_limit_hits": 0,
+      "seconds": 0.4842590410116827
+    },
+    {
+      "case": "off-load target",
+      "variant": "move .05",
+      "iterations": 148,
+      "converged": true,
+      "objective": 538.2314850947107,
+      "volume": 0.399999937735985,
+      "constraint": {
+        "target-1": -6.827657795804853e-07
+      },
+      "ratios": {
+        "target-1": 4.999996586171102
+      },
+      "connected": {
+        "target-1": true
+      },
+      "inner_iterations": 0,
+      "inner_limit_hits": 0,
+      "seconds": 0.31311854199157096
+    },
+    {
+      "case": "off-load target",
+      "variant": "limit 10",
+      "iterations": 127,
+      "converged": true,
+      "objective": 481.66371154959825,
+      "volume": 0.39999983942352024,
+      "constraint": {
+        "target-1": -2.8181563144991095e-05
+      },
+      "ratios": {
+        "target-1": 9.99971818436855
+      },
+      "connected": {
+        "target-1": false
+      },
+      "inner_iterations": 0,
+      "inner_limit_hits": 0,
+      "seconds": 0.24742483299633022
+    },
+    {
+      "case": "off-load target",
+      "variant": "limit 20",
+      "iterations": 240,
+      "converged": false,
+      "objective": 488.93244967191356,
+      "volume": 0.3999975067130144,
+      "constraint": {
+        "target-1": -5.6657762822487356e-05
+      },
+      "ratios": {
+        "target-1": 19.99886684474355
+      },
+      "connected": {
+        "target-1": false
+      },
+      "inner_iterations": 0,
+      "inner_limit_hits": 0,
+      "seconds": 0.4549373750051018
+    },
+    {
+      "case": "MBB robust",
+      "variant": "none",
+      "iterations": 131,
+      "converged": true,
+      "objective": 720.6441397269577,
+      "volume": 0.39999997483922606,
+      "constraint": null,
+      "ratios": null,
+      "connected": null,
+      "inner_iterations": 86,
+      "inner_limit_hits": 0,
+      "seconds": 0.635731250004028
+    },
+    {
+      "case": "MBB robust",
+      "variant": "linear",
+      "iterations": 122,
+      "converged": true,
+      "objective": 2074.1022345164943,
+      "volume": 0.3999999065948348,
+      "constraint": {
+        "target-1": -0.48763765563876693
+      },
+      "ratios": {
+        "target-1": 2.5618117218061656
+      },
+      "connected": {
+        "target-1": true
+      },
+      "inner_iterations": 43,
+      "inner_limit_hits": 0,
+      "seconds": 0.5875714169960702
+    },
+    {
+      "case": "MBB robust",
+      "variant": "log",
+      "iterations": 125,
+      "converged": true,
+      "objective": 2067.621823741139,
+      "volume": 0.3999999266626935,
+      "constraint": {
+        "target-1": -0.4871688914679754
+      },
+      "ratios": {
+        "target-1": 2.564155542660123
+      },
+      "connected": {
+        "target-1": true
+      },
+      "inner_iterations": 40,
+      "inner_limit_hits": 0,
+      "seconds": 0.5668768329924205
+    },
+    {
+      "case": "MBB robust",
+      "variant": "root",
+      "iterations": 126,
+      "converged": true,
+      "objective": 2067.622046270671,
+      "volume": 0.39999993693996055,
+      "constraint": {
+        "target-1": -0.4871655918806652
+      },
+      "ratios": {
+        "target-1": 2.5641720405966737
+      },
+      "connected": {
+        "target-1": true
+      },
+      "inner_iterations": 46,
+      "inner_limit_hits": 0,
+      "seconds": 0.5996143329975894
+    },
+    {
+      "case": "MBB robust",
+      "variant": "initial",
+      "iterations": 104,
+      "converged": true,
+      "objective": 2058.320573546818,
+      "volume": 0.3999998311641843,
+      "constraint": {
+        "target-1": -0.49409578570016055
+      },
+      "ratios": {
+        "target-1": 2.529521071499197
+      },
+      "connected": {
+        "target-1": true
+      },
+      "inner_iterations": 44,
+      "inner_limit_hits": 0,
+      "seconds": 0.49116224999306723
+    },
+    {
+      "case": "MBB robust",
+      "variant": "move .05",
+      "iterations": 122,
+      "converged": true,
+      "objective": 2091.36339190631,
+      "volume": 0.39999991389964096,
+      "constraint": {
+        "target-1": -0.5118003891208618
+      },
+      "ratios": {
+        "target-1": 2.440998054395691
+      },
+      "connected": {
+        "target-1": true
+      },
+      "inner_iterations": 89,
+      "inner_limit_hits": 0,
+      "seconds": 0.7440774999995483
+    },
+    {
+      "case": "MBB robust",
+      "variant": "limit 10",
+      "iterations": 141,
+      "converged": true,
+      "objective": 1904.0092099050173,
+      "volume": 0.3999999945096037,
+      "constraint": {
+        "target-1": -0.5415832583874342
+      },
+      "ratios": {
+        "target-1": 4.584167416125658
+      },
+      "connected": {
+        "target-1": true
+      },
+      "inner_iterations": 102,
+      "inner_limit_hits": 0,
+      "seconds": 0.8933392089966219
+    },
+    {
+      "case": "MBB robust",
+      "variant": "limit 20",
+      "iterations": 148,
+      "converged": true,
+      "objective": 736.2230569881688,
+      "volume": 0.39999998388806707,
+      "constraint": {
+        "target-1": -0.5677483031394577
+      },
+      "ratios": {
+        "target-1": 8.645033937210847
+      },
+      "connected": {
+        "target-1": false
+      },
+      "inner_iterations": 96,
+      "inner_limit_hits": 0,
+      "seconds": 0.8648669999965932
+    }
+  ]
+}
