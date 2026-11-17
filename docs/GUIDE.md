@@ -615,24 +615,46 @@ research example that regresses compressed topology representations, see
 
 ### Predicting compliance from a design
 
-Choose **Regression → Design → compliance**. This experiment maps the full
-physical density field to its structural objective, with the mesh, geometry,
-material, supports and loads fixed. It is separate from volume-to-compliance and
-volume-to-topology regression.
+Open **Machine learning → Datasets** to prepare one saved dataset from one or
+more optimisation cases:
 
-1. Select an existing regression dataset as **Base designs**. Generate at least
-   three distinct designs in the existing views first if none are saved.
-2. Set the number and size of density variations, then **Generate dataset**.
-   The original designs and their smooth, bounded perturbations are all solved
-   afresh. Fixed solid and void regions stay unchanged.
-3. Train polynomial regression, ridge, or the existing one-hidden-layer tanh NN.
-   Artifacts for all three methods coexist. Compare training and validation
-   errors; keep test results for final assessment.
-4. Select points in the actual-versus-predicted plot to inspect their designs.
-   Click the density canvas or enter an element number, change its density and
-   **Apply density**. Prediction updates immediately. **Check structure** obtains
-   the edited field's actual objective; **Reset design** restores the saved case.
-   Edits and checks are temporary and never change training labels.
+1. **Load saved cases** imports the JSON project files saved from Optimisation.
+   Select the source cases to include and choose one loaded case as the **Target
+   case**. The target can also be a source.
+2. Enter a dataset name and choose the volume range and number of volumes per
+   source case. One source case can supply multiple independent base designs.
+   Density variations and the sampling seed are available under **Density
+   variations**.
+3. **Generate and save** optimises each selected source setup at each sampled
+   volume, then evaluates every final nominal design and its variations under
+   the target case. Source compliance never becomes a target training label.
+   The source mesh, physical domain dimensions and fixed solid/void regions must
+   match the target; loads, supports and other source settings remain those of
+   the saved optimisation setup. Each source keeps its saved iteration limit.
+4. The named dataset appears in **Saved datasets**. Download its JSON artifact
+   or choose **Use for training** to open **Regression → Design → compliance**.
+   Datasets remain available after restarting the server. Stopped runs retain
+   their partial results, and failed evaluations are reported separately.
+
+The experiment maps the full physical density field to its structural objective
+under the fixed target geometry, material, supports and loads. It is separate
+from volume-to-compliance and volume-to-topology regression. The saved dataset
+contains the target setup and source configurations, convergence, feasibility
+and original optimisation objectives for provenance.
+
+Train polynomial regression, ridge, or the existing one-hidden-layer tanh NN.
+Artifacts for all three methods coexist. Compare training and validation errors;
+keep test results for final assessment. Training requires at least three
+independent design families; density variations do not replace base designs.
+
+Select points in the actual-versus-predicted plot to inspect their designs.
+Click the density canvas or enter an element number, change its density and
+**Apply density**. Prediction updates immediately. **Check structure** obtains
+the edited field's actual objective; **Reset design** restores the saved case.
+Edits and checks are temporary and never change training labels.
+
+**Datasets → Other generation methods** retains perturbation of an existing
+regression dataset and automatic optimisation of alternative cases.
 
 Generation evaluates physical densities directly, with no second filter or
 projection. Robust sources are evaluated as nominal material, rather than using
@@ -649,7 +671,8 @@ partitions for identical settings; the NN selects its checkpoint using validatio
 loss only. The comparison explicitly flags saved models with different splits.
 The training-mean and volume-only linear baselines use fitting cases only.
 
-To broaden the base layouts, set **Generation method → Optimise other cases**.
+To generate alternative layouts automatically, open **Datasets → Other generation
+methods** and set **Generation method → Optimise other cases**.
 Select a saved regression experiment as **Original case**, or first prepare its
 connections in Optimisation and click **Use current optimisation setup**. This
 copies settings; the current result is not used as a training label.

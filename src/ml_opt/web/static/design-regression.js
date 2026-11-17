@@ -6,13 +6,14 @@ const el=id=>document.getElementById(id), generate=el("design-generate-form"), f
 const input=(form,name)=>form.elements.namedItem(name);
 const number=value=>Number.isFinite(value) ? value.toLocaleString("en",{maximumFractionDigits:3}) : "Unavailable";
 const percent=value=>Number.isFinite(value) ? `${(value*100).toFixed(2)}%` : "—";
-const state={dataset:null,reports:{},models:new Map(),busy:false,externalBusy:false,ready:false,runId:null,problem:null,originalDatasetId:null,crossSupported:false,drafts:new Map(),checks:new Map(),history:[],active:false};
+const state={dataset:null,reports:{},models:new Map(),busy:false,externalBusy:false,ready:false,runId:null,problem:null,originalDatasetId:null,crossSupported:false,drafts:new Map(),checks:new Map(),loading:null,history:[],active:false};
 const learning=createTrainingChart("design");
 const selected=()=>state.models.get(el("design-model").value);
 const reference=()=>state.dataset?.cases.find(item=>String(item.index)===el("design-case").value);
 const density=()=>state.drafts.get(reference()?.index) || reference()?.density;
 const use=(report,index)=>report?.test_indices.includes(index) ? "Test" : report?.validation_indices.includes(index) ? "Validation" : report?.train_indices.includes(index) ? "Training" : "Reference";
-function error(message="") {el("design-error").textContent=message;el("design-error").hidden=!message;}
+function error(message="") {el("design-error").textContent=message;el("design-error").hidden=!message;el("dataset-legacy-error").textContent=message;el("dataset-legacy-error").hidden=!message;}
+function status(message) {el("design-status").textContent=message;el("dataset-legacy-status").textContent=message;}
 async function json(response) {
   const result=await response.json();
   if(!response.ok) throw new Error(typeof result.detail==="string" ? result.detail : "Check the experiment settings");
@@ -32,6 +33,7 @@ function controls() {
   input(generate,"source_id").required=!(cross && (state.problem || state.originalDatasetId));
   el("design-fit").disabled=locked || !state.dataset;
   el("design-stop").disabled=!state.busy || !state.runId;
+  el("dataset-legacy-stop").disabled=el("design-stop").disabled;
   for(const id of ["design-dataset","design-refresh"]) el(id).disabled=state.busy;
   el("design-case").disabled=state.busy || !reference();
   el("design-model").disabled=state.busy || !state.models.size;
@@ -148,7 +150,8 @@ function selectCase() {
 }
 async function load(id) {
   if(!id) {state.dataset=null;state.reports={};state.drafts.clear();state.checks.clear();render();return;}
-  const result=await json(await fetch(`/api/design-regression/${id}`));
+  state.loading=id;
+  const result=await json(await fetch(`/api/design-regression/${id}`)).finally(()=>{if(state.loading===id) state.loading=null;});
   if(state.dataset?.id!==id) {
     state.drafts.clear();state.checks.clear();
     if(result.dataset.source_kind==="cross_cases") {
@@ -168,17 +171,17 @@ async function refresh(autoload=false) {
   state.ready=!!health.design_regression_supported;state.crossSupported=!!health.cross_case_designs_supported;
   if(!state.busy) state.externalBusy=!!health.running;
   const saved=state.dataset?.id || el("design-dataset").value;
-  options(el("design-dataset"),[["","New experiment"],...designs.datasets.map(d=>[d.id,`${d.id.slice(0,8)} · ${d.case_count} cases`])],saved);
+  options(el("design-dataset"),[["","New experiment"],...designs.datasets.map(d=>[d.id,`${d.name || d.id.slice(0,8)} · ${d.case_count} cases`])],saved);
   options(input(generate,"source_id"),[["","Select a saved regression dataset"],...sources.datasets.map(d=>[d.id,`${d.id.slice(0,8)} · ${d.completed_cases} designs`])],input(generate,"source_id").value);
-  if(autoload && !state.dataset && designs.datasets.length) {el("design-dataset").value=designs.datasets[0].id;await load(designs.datasets[0].id);}
-  if(!state.ready) el("design-status").textContent="Restart TOptVis to enable this experiment";
+  if(autoload && !state.dataset && !state.loading && designs.datasets.length) {el("design-dataset").value=designs.datasets[0].id;await load(designs.datasets[0].id);}
+  if(!state.ready) status("Restart TOptVis to enable this experiment");
   controls();
 }
 async function run(path,payload,kind) {
   error();state.busy=true;state.runId=null;
   if(kind==="fit") state.history=[];
   controls();document.dispatchEvent(new CustomEvent("solveractivity",{detail:{workspace:"design-regression",running:true}}));
-  el("design-status").textContent=kind==="generate" ? "Generating designs…" : kind==="fit" ? "Training…" : "Checking structure…";
+  status(kind==="generate" ? "Generating designs…" : kind==="fit" ? "Training…" : "Checking structure…");
   let datasetId=null,terminal=false,cancelled=false,failure="";
   try {
     const response=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
@@ -189,8 +192,8 @@ async function run(path,payload,kind) {
       const event=JSON.parse(line);
       if(event.event==="error") throw new Error(event.message);
       if(event.event==="started") {state.runId=event.run_id;datasetId=event.dataset_id;controls();}
-      if(event.event==="design_optimization") el("design-status").textContent=`Optimising case ${event.family+1} / ${event.family_count} · iteration ${event.iteration} / ${event.max_iterations}`;
-      if(event.event==="design_case") el("design-status").textContent=`Evaluated ${event.completed_cases} / ${event.case_count} designs`;
+      if(event.event==="design_optimization") status(`Optimising case ${event.family+1} / ${event.family_count} · iteration ${event.iteration} / ${event.max_iterations}`);
+      if(event.event==="design_case") status(`Evaluated ${event.completed_cases} / ${event.case_count} designs`);
       if(event.event==="neural_training") {state.history.push(event);learning.update(state.history);}
       if(event.event==="design_evaluation") state.checks.set(reference().index,event.evaluation);
       if(event.event==="complete") {terminal=true;cancelled=event.stop_reason==="cancelled";}
@@ -204,8 +207,8 @@ async function run(path,payload,kind) {
       if(buffer.trim()) receive(buffer);
       if(!terminal) throw new Error("Connection closed before completion; saved results are retained");
     } finally {await reader.cancel();}
-    el("design-status").textContent=cancelled ? "Stopped" : "Complete";
-  } catch(e) {failure=e.message;error(failure);el("design-status").textContent="Error";}
+    status(cancelled ? "Stopped" : "Complete");
+  } catch(e) {failure=e.message;error(failure);status("Error");}
   finally {
     state.busy=false;state.runId=null;state.history=[];
     document.dispatchEvent(new CustomEvent("solveractivity",{detail:{workspace:"design-regression",running:false}}));
@@ -238,6 +241,7 @@ fit.addEventListener("submit",event=>{
   }
   run(`/api/design-regression/${state.dataset.id}/fit`,payload,"fit");
 });
+el("dataset-legacy-stop").addEventListener("click",()=>el("design-stop").click());
 input(fit,"method").addEventListener("change",method);
 input(generate,"source_id").addEventListener("change",()=>{state.problem=null;state.originalDatasetId=null;el("design-original-note").textContent="";controls();});
 input(generate,"generation_mode").addEventListener("change",generationMode);
@@ -266,8 +270,10 @@ el("design-edit-form").addEventListener("submit",event=>{
 });
 el("design-reset").addEventListener("click",()=>{state.drafts.delete(reference().index);state.checks.delete(reference().index);error();selectCase();});
 el("design-evaluate").addEventListener("click",()=>{if(!state.busy && !state.externalBusy && density()) run(`/api/design-regression/${state.dataset.id}/evaluate`,{density:density()},"evaluate");});
-el("design-stop").addEventListener("click",async()=>{try {await json(await fetch(`/api/run/${state.runId}/stop`,{method:"POST"}));el("design-status").textContent="Stopping…";} catch(e) {error(e.message);}});
+el("design-stop").addEventListener("click",async()=>{try {await json(await fetch(`/api/run/${state.runId}/stop`,{method:"POST"}));status("Stopping…");} catch(e) {error(e.message);}});
 document.addEventListener("solveractivity",event=>{if(event.detail.workspace!=="design-regression") {state.externalBusy=event.detail.running;controls();}});
+document.addEventListener("datasetprepared",event=>load(event.detail).then(()=>refresh()).catch(e=>error(e.message)));
+document.addEventListener("mlmethodchange",event=>{if(event.detail==="datasets") refresh().catch(e=>error(e.message));});
 document.addEventListener("regressionviewchange",event=>{state.active=event.detail==="design";if(state.active) {render();if(!state.busy) refresh(true).catch(e=>error(e.message));}});
 new ResizeObserver(()=>{if(state.active) {chart();preview();}}).observe(el("design-chart").parentElement);
 method();generationMode();controls();

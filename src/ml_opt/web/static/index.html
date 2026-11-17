@@ -269,6 +269,7 @@
     </section>
     <section id="workspace-ml" class="workspace-page" role="tabpanel" aria-labelledby="tab-ml" tabindex="0" hidden>
       <nav class="ml-method-tabs" role="tablist" aria-label="ML methods">
+        <button id="tab-datasets" class="ml-method-tab" type="button" role="tab" aria-selected="false" aria-controls="workspace-datasets" data-method="datasets" tabindex="-1">Datasets</button>
         <div class="ml-method-dropdown">
           <button id="tab-regression" class="ml-method-tab" type="button" role="tab" aria-selected="true" aria-controls="workspace-regression" aria-haspopup="menu" aria-expanded="false" data-method="regression" tabindex="0">Regression <span aria-hidden="true">▾</span></button>
           <div id="regression-menu" class="regression-menu" role="menu" aria-label="Regression views" hidden>
@@ -279,6 +280,32 @@
         </div>
         <button id="tab-rom-training" class="ml-method-tab" type="button" role="tab" aria-selected="false" aria-controls="workspace-rom-training" data-method="rom" tabindex="-1">Reduced models</button>
       </nav>
+      <section id="workspace-datasets" class="ml-method-panel" role="tabpanel" aria-labelledby="tab-datasets" tabindex="0" hidden>
+        <div class="page-heading"><h1>Datasets</h1><div class="run-actions"><span id="dataset-status" role="status">Ready</span><button id="dataset-stop" class="button secondary" type="button" disabled>Stop</button><button id="dataset-prepare" class="button primary" type="submit" form="dataset-form" disabled>Generate and save</button></div></div>
+        <div id="dataset-error" class="error-banner" role="alert" hidden></div>
+        <div class="dataset-layout">
+          <section class="panel dataset-preparation">
+            <div class="panel-heading"><h2>Prepare dataset</h2><button id="dataset-load-cases" class="button secondary" type="button">Load saved cases</button><input id="dataset-case-files" type="file" accept=".json,application/json" multiple hidden></div>
+            <form id="dataset-form" class="control-section"><fieldset id="dataset-settings">
+              <label>Dataset name<input name="name" type="text" maxlength="120" required></label>
+              <fieldset class="dataset-sources"><legend>Source cases</legend><div id="dataset-sources"></div><p id="dataset-no-cases" class="model-message">Load cases saved from Optimisation.</p></fieldset>
+              <label>Target case<select id="dataset-target" required><option value="">Load a saved case</option></select></label>
+              <div class="input-grid"><label>Minimum volume<input name="volume_min" type="number" min="0.001" max="0.999" step="any" value="0.2" required></label><label>Maximum volume<input name="volume_max" type="number" min="0.001" max="0.999" step="any" value="0.6" required></label><label>Volumes per case<input name="volume_count" type="number" min="1" max="100" step="1" value="5" required></label></div>
+              <details class="dataset-advanced"><summary>Density variations</summary><div class="input-grid"><label>Variations per design<input name="variants" type="number" min="0" step="1" value="4" required></label><label>Perturbation size<input name="amplitude" type="number" min="0" max="1" step="any" value="0.2" required></label><label>Sampling seed<input name="seed" type="number" min="0" max="4294967295" step="1" value="42" required></label></div></details>
+            </fieldset></form>
+            <details class="reg-help control-section"><summary>About dataset preparation</summary><p>Selected cases generate designs across the volume range. Every design is evaluated under the target case's supports, loads and material. Source optimisation objectives are kept separately. Cases must share the target mesh, domain dimensions and fixed solid and void regions.</p><p>A single source case is supported. Training needs at least three independent base designs; variations of a base design stay together when splitting data.</p></details>
+          </section>
+          <section class="panel dataset-library"><div class="panel-heading"><h2>Saved datasets</h2><button id="dataset-refresh" class="button secondary" type="button">Refresh</button></div><div id="dataset-library" class="control-section"></div></section>
+          <details class="panel dataset-legacy"><summary>Other generation methods</summary><div id="dataset-legacy-error" class="error-banner" role="alert" hidden></div><div class="reg-settings">
+              <form id="design-generate-form" class="control-section"><fieldset id="design-generate-settings">
+                <label class="reg-order">Generation method<select name="generation_mode"><option value="perturb">Perturb saved designs</option><option value="cross">Optimise other cases</option></select></label>
+                <label class="reg-order"><span id="design-source-label">Base designs</span><select name="source_id" required><option value="">Select a saved regression dataset</option></select></label>
+                <div id="design-cross-options" hidden><button id="design-use-current" class="button secondary" type="button">Use current optimisation setup</button><p id="design-original-note" class="model-message" role="status"></p><div class="input-grid"><label>Optimisation cases<input name="case_count" type="number" min="3" step="1" value="12" required disabled></label><label>Iterations per case<input name="max_iterations" type="number" min="1" max="1000" step="1" value="150" required disabled></label></div></div>
+                <div class="input-grid"><label>Variations per design<input name="variants" type="number" min="0" step="1" value="4" required></label><label>Perturbation size<input name="amplitude" type="number" min="0" max="1" step="any" value="0.2" required></label><label>Sampling seed<input name="seed" type="number" min="0" max="4294967295" step="1" value="42" required></label></div>
+              </fieldset></form>
+              <button id="design-generate" class="button primary" type="submit" form="design-generate-form" disabled>Generate dataset</button><button id="dataset-legacy-stop" type="button" class="button secondary" disabled>Stop</button><p id="dataset-legacy-status" class="model-message" role="status"></p></div></details>
+        </div>
+      </section>
       <section id="workspace-regression" class="ml-method-panel" role="tabpanel" aria-labelledby="tab-regression" tabindex="0">
         <div id="reg-existing-view" class="design-workspace">
         <div class="page-heading">
@@ -458,18 +485,12 @@
         </div>
         </div>
         <div id="reg-design-view" class="design-workspace" hidden>
-          <div class="page-heading"><h1>Regression · Design → compliance</h1><div class="run-actions"><span id="design-status" role="status">Ready</span><button id="design-stop" class="button secondary" type="button" disabled>Stop</button><button id="design-generate" class="button primary" type="submit" form="design-generate-form" disabled>Generate dataset</button></div></div>
+          <div class="page-heading"><h1>Regression · Design → compliance</h1><div class="run-actions"><span id="design-status" role="status">Ready</span><button id="design-stop" class="button secondary" type="button" disabled>Stop</button></div></div>
           <div id="design-error" class="error-banner" role="alert" hidden></div>
           <div class="reg-workspace">
             <aside class="panel reg-settings">
               <div class="controls-title"><h2>Dataset</h2></div>
               <div class="control-section reg-saved"><label>Saved experiment<select id="design-dataset"><option value="">New experiment</option></select></label><button id="design-refresh" class="button secondary" type="button">Refresh</button><p id="design-dataset-note" class="model-message"></p></div>
-              <form id="design-generate-form" class="control-section"><fieldset id="design-generate-settings">
-                <label class="reg-order">Generation method<select name="generation_mode"><option value="perturb">Perturb saved designs</option><option value="cross">Optimise other cases</option></select></label>
-                <label class="reg-order"><span id="design-source-label">Base designs</span><select name="source_id" required><option value="">Select a saved regression dataset</option></select></label>
-                <div id="design-cross-options" hidden><button id="design-use-current" class="button secondary" type="button">Use current optimisation setup</button><p id="design-original-note" class="model-message" role="status"></p><div class="input-grid"><label>Optimisation cases<input name="case_count" type="number" min="3" step="1" value="12" required disabled></label><label>Iterations per case<input name="max_iterations" type="number" min="1" max="1000" step="1" value="150" required disabled></label></div></div>
-                <div class="input-grid"><label>Variations per design<input name="variants" type="number" min="0" step="1" value="4" required></label><label>Perturbation size<input name="amplitude" type="number" min="0" max="1" step="any" value="0.2" required></label><label>Sampling seed<input name="seed" type="number" min="0" max="4294967295" step="1" value="42" required></label></div>
-              </fieldset></form>
               <div class="controls-title"><h2>Training</h2></div>
               <form id="design-fit-form" class="control-section"><fieldset id="design-fit-settings">
                 <label class="reg-order">Fitting method<select name="method"><option value="ols">Polynomial regression</option><option value="ridge" selected>Ridge regression</option><option value="neural">Neural network</option></select></label>
@@ -497,7 +518,7 @@
               </section>
               <section id="design-learning-panel" class="panel" hidden><div class="panel-heading"><h2>Neural network training</h2></div><svg id="design-learning-chart" class="network-learning-chart" viewBox="0 0 720 250" role="img" aria-label="Training and validation loss by epoch"></svg><div class="reg-legend"><span><i class="reg-dot reg-train"></i>Training</span><span><i class="reg-dot reg-validation"></i>Validation</span></div><p id="design-learning-note" class="reg-note" role="status"></p></section>
               <section class="panel viewer-panel"><div class="panel-heading"><h2>Inspect design</h2><label class="reg-case-label">Case<select id="design-case" disabled></select></label></div>
-                <div id="design-setup-view" class="field-view" hidden><label>Show loads and supports<select id="design-view-setup"><option value="original">Original case</option><option value="source">Optimisation case</option></select></label></div>
+                <div id="design-setup-view" class="field-view" hidden><label>Show loads and supports<select id="design-view-setup"><option value="original">Target case</option><option value="source">Optimisation case</option></select></label></div>
                 <div class="canvas-wrap top-canvas-wrap"><canvas id="design-density" role="img" aria-label="Selected physical density. Click an element to select it for editing."></canvas><p id="design-density-empty" class="design-empty">No design selected</p></div>
                 <form id="design-edit-form" class="design-edit"><label>Element<input id="design-element" type="number" min="1" step="1" value="1" required></label><label>Density<input id="design-value" type="number" min="0" max="1" step="any" value="1" required></label><button id="design-apply" class="button secondary" type="submit" disabled>Apply density</button><button id="design-reset" class="button secondary" type="button" disabled>Reset design</button><button id="design-evaluate" class="button secondary" type="button" disabled>Check structure</button></form>
                 <p id="design-case-note" class="reg-note" role="status"></p><div class="design-values"><span>Prediction <strong id="design-prediction">Unavailable</strong></span><span>Actual <strong id="design-actual">Unavailable</strong></span><span>Relative error <strong id="design-relative">Unavailable</strong></span><span>Material volume <strong id="design-volume">Unavailable</strong></span></div><p id="design-check-note" class="reg-note" role="status"></p>

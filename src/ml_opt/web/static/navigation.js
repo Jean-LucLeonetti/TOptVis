@@ -3,7 +3,7 @@ const tabs = Array.from(document.querySelectorAll('.workspace-tabs [role="tab"]'
 const workspaces = new Map(tabs.map(tab => [tab.dataset.workspace, tab]));
 const methodTabs = Array.from(document.querySelectorAll('.ml-method-tabs [role="tab"]'));
 const methods = new Map(methodTabs.map(tab => [tab.dataset.method, tab]));
-let activeMethod = methodTabs[0];
+let activeMethod = methods.get("regression") || methodTabs[0];
 let regressionView="compliance";
 const regressionTab=document.getElementById("tab-regression");
 const regressionMenu=document.getElementById("regression-menu");

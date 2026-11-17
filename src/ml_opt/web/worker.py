@@ -110,7 +110,11 @@ def run_design_regression(configuration, messages, cancel):
         if task == "design_cross_generate":
             from ..cross_case_designs import CrossCaseSettings,generate_cross_designs
             result=generate_cross_designs(CantileverConfig(**configuration["configuration"]),directory,
-                CrossCaseSettings(**configuration["settings"]),emit=messages.put,stop_requested=stopped)
+                (DesignSettings if "selected_cases" in configuration else CrossCaseSettings)(**configuration["settings"]),
+                emit=messages.put,stop_requested=stopped,
+                configurations=[(item["name"],CantileverConfig(**item["configuration"]))
+                    for item in configuration["selected_cases"]] if "selected_cases" in configuration else None,
+                dataset_name=configuration.get("dataset_name"),target_name=configuration.get("target_name"))
             cancelled=result["status"]=="cancelled"
         elif task == "design_generate":
             result = generate_designs(configuration["source_directory"], directory,

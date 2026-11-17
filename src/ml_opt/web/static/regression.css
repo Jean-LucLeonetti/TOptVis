@@ -110,3 +110,18 @@
 
 #design-cross-options {margin-bottom:18px}
 #design-view-setup select {width:170px}
+
+.dataset-layout {display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);gap:20px;overflow:auto;align-items:start;padding-bottom:20px}
+.dataset-preparation .control-section,.dataset-library .control-section,.dataset-legacy .control-section {padding:20px}
+.dataset-layout label,.dataset-layout summary,.dataset-layout legend {font-size:14px}
+.dataset-sources {border:1px solid var(--line);border-radius:6px;padding:12px;margin:16px 0}
+.dataset-source {display:flex;align-items:center;gap:10px;margin:8px 0}
+.dataset-source input {width:auto;margin:0}
+.dataset-advanced summary,.dataset-legacy>summary {cursor:pointer;padding:16px 0}
+.dataset-advanced .input-grid {margin-top:16px}
+.dataset-legacy {grid-column:1/-1;padding:0 20px}
+.dataset-record {padding:14px 0;border-bottom:1px solid var(--line)}
+.dataset-record h3 {margin:0 0 8px;font-size:16px}
+.dataset-record p {font-size:14px;color:var(--muted);margin:8px 0}
+.dataset-record .run-actions {justify-content:flex-start}
+@media(max-width:800px) {.dataset-layout {grid-template-columns:1fr}}

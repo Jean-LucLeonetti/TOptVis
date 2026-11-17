@@ -34,6 +34,25 @@ class EvaluateRequest(BaseModel):
     density: list[float] = Field(min_length=1)
 
 
+class SavedCaseRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    name: str = Field(min_length=1, max_length=120)
+    problem: dict
+
+
+class PrepareRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    name: str = Field(min_length=1, max_length=120)
+    target: SavedCaseRequest
+    sources: list[SavedCaseRequest] = Field(min_length=1, max_length=100)
+    volume_min: float = Field(default=.2, gt=0, lt=1)
+    volume_max: float = Field(default=.6, gt=0, lt=1)
+    volume_count: int = Field(default=5, ge=1, le=100, strict=True)
+    variants: int = Field(default=4, ge=0, strict=True)
+    amplitude: float = Field(default=.2, ge=0, le=1)
+    seed: int = Field(default=42, ge=0, le=2**32-1, strict=True)
+
+
 class CrossCaseRequest(BaseModel):
     original_dataset_id: str | None = Field(default=None,pattern=r"^[0-9a-f]{32}$")
     model_config=ConfigDict(extra="forbid",allow_inf_nan=False)
@@ -81,12 +100,48 @@ def create_design_regression_router(manager, root: Path, source_root: Path, *, r
                     data=read_design_dataset(directory)
                     record={key:data[key] for key in ("id","created_at","status","family_count","expected_cases")}
                     record["case_count"]=len(data["cases"])
+                    record["name"]=data.get("name", data["id"][:8])
+                    record["usable_cases"]=sum(case.get("status")=="complete" for case in data["cases"])
+                    record["failed_cases"]=sum(case.get("status")=="failed" for case in data["cases"])
+                    record["failed_families"]=sum(family.get("status")=="failed" for family in data.get("families",[]))
                     if record["status"]=="generating" and (manager.active is None or manager.active.id!=record["id"]):
                         record["status"]="interrupted"
                     records.append(record)
                 except (OSError, ValueError, KeyError):
                     continue
         return {"datasets":sorted(records,key=lambda row:row["created_at"],reverse=True)}
+
+    @router.post("/prepare")
+    async def prepare(request: PrepareRequest):
+        from dataclasses import asdict, replace
+        import numpy as np
+        from ..regions import region_densities
+        try:
+            if not request.name.strip():
+                raise ValueError("Enter a dataset name")
+            if request.volume_min > request.volume_max:
+                raise ValueError("Minimum volume must not exceed maximum volume")
+            if request.volume_count > 1 and request.volume_min == request.volume_max:
+                raise ValueError("Choose distinct volume bounds for multiple samples")
+            _, target=resolve_problem(request.target.problem)
+            fixed=region_densities(target.non_design_regions,target.nx,target.ny)
+            selected=[]
+            for source in request.sources:
+                _, config=resolve_problem(source.problem)
+                if any(getattr(config,key)!=getattr(target,key) for key in ("nx","ny","length","height")):
+                    raise ValueError(f"{source.name}: mesh and domain dimensions must match the target case")
+                source_fixed=region_densities(config.non_design_regions,config.nx,config.ny)
+                if not np.array_equal(fixed,source_fixed,equal_nan=True):
+                    raise ValueError(f"{source.name}: fixed solid and void regions must match the target case")
+                for volume in np.linspace(request.volume_min,request.volume_max,request.volume_count):
+                    candidate=replace(config,volume_fraction=float(volume),state_solver="fom",
+                        rom_basis_path=None,rom_basis_sha256=None,field_execution="sequential")
+                    selected.append({"name":f"{source.name} · volume {volume:.3g}","configuration":asdict(candidate)})
+            settings=DesignSettings(variants=request.variants,amplitude=request.amplitude,seed=request.seed)
+        except (ValueError,OSError) as error:
+            raise HTTPException(422,str(error)) from error
+        return start("design_cross_generate",{"configuration":asdict(target),"settings":asdict(settings),
+            "selected_cases":selected,"dataset_name":request.name.strip(),"target_name":request.target.name})
 
     @router.post("/generate")
     async def generate(request: GenerateRequest):

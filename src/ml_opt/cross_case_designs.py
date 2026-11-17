@@ -69,12 +69,13 @@ def alternative_cases(original, settings):
     return result
 
 
-def generate_cross_designs(original, directory, settings, *, emit=lambda event:None,stop_requested=lambda:False):
+def generate_cross_designs(original, directory, settings, *, emit=lambda event:None,stop_requested=lambda:False,
+                           configurations=None, dataset_name=None, target_name=None):
     from .problem import CantileverProblem
     from .runner import optimise
-    from .design_regression import perturbed_density
+    from .design_regression import perturbed_density, validate_density
 
-    configurations=alternative_cases(original,settings)
+    configurations=alternative_cases(original,settings) if configurations is None else configurations
     target=analysis_config({"fixed_config":asdict(original)})
     directory=Path(directory);directory.mkdir(parents=True,exist_ok=False)
     canonical=json.dumps(asdict(original),sort_keys=True)
@@ -85,6 +86,8 @@ def generate_cross_designs(original, directory, settings, *, emit=lambda event:N
         "settings":asdict(settings),"objective_quantity":"elastic_work" if target.imposed_motion else "compliance",
         "field":"nominal","family_count":len(configurations),"expected_cases":len(configurations)*(settings.variants+1),
         "cases":[],"families":[],"generation_seconds":0.}
+    if dataset_name is not None:
+        data.update(name=dataset_name, source_kind="saved_cases", target_name=target_name)
     started=perf_counter();generator=torch.Generator().manual_seed(settings.seed)
     def save():
         data['generation_seconds']=perf_counter()-started;_save_json(directory/'dataset.json',data)
@@ -100,15 +103,16 @@ def generate_cross_designs(original, directory, settings, *, emit=lambda event:N
                 constraints=[result.evaluation.constraint,*((result.evaluation.connection_constraints or {}).values())]
                 constraints.extend(value for value in (result.evaluation.max_size_constraint,
                     result.evaluation.max_void_constraint,result.evaluation.epigraph_constraint) if value is not None)
+                base=validate_density(result.evaluation.density,target)
                 metadata={"index":family,"name":name,"config":json.loads(json.dumps(asdict(configuration))),
                     "converged":result.converged,"stop_reason":result.stop_reason,
                     "feasible":all(value<=configuration.feasibility_tolerance for value in constraints),
                     "source_objective":result.evaluation.compliance,"iterations":result.history[-1].iteration}
                 data['families'].append(metadata);save()
                 if stop_requested():break
-                base=result.evaluation.density
             except Exception as error:
-                data['families'].append({"index":family,"name":name,"status":"failed","message":str(error)})
+                data['families'].append({"index":family,"name":name,"status":"failed","message":str(error),
+                    "config":json.loads(json.dumps(asdict(configuration)))})
                 save();emit({"event":"design_family_failed","family":family,"message":str(error)});continue
             for variant in range(settings.variants+1):
                 if stop_requested():break
