@@ -66,7 +66,7 @@ def main(argv: list[str] | None = None) -> int:
                     size_note += f"  max_void_g={entry.max_void_constraint:.5g}"
                 print(f"{entry.iteration:4d}  compliance={entry.compliance:.6f}  "
                       f"volume={entry.volume_fraction:.5f}  change={entry.design_change:.4f}  "
-                      f"inner={entry.inner_iterations}  beta={entry.projection_beta:g}  solver={entry.state_solver.upper()}{size_note}", flush=True)
+                      f"inner={entry.inner_iterations}{'*' if entry.gcmma_inner_limit_reached else ''}  beta={entry.projection_beta:g}  solver={entry.state_solver.upper()}{size_note}", flush=True)
         result = optimise(config, None if quiet else progress)
         destination = save_results(result, output or Path("outputs") / f"cantilever-{config.optimizer}")
     except (ValueError, RuntimeError) as error:

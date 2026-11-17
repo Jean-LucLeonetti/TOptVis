@@ -96,6 +96,8 @@ def test_api_streams_real_topology_frames(method, radius):
         assert events[0]["config"]["max_inner_iterations"] == 5
         assert events[-1]["event"] == "complete"
         frames = [event for event in events if event["event"] == "iteration"]
+        assert events[-1]["gcmma_inner_limit_hits"] == sum(
+            frame["history"]["gcmma_inner_limit_reached"] for frame in frames)
         assert [frame["history"]["iteration"] for frame in frames] == [0, 1, 2, 3, 4]
         elapsed = [frame["history"]["elapsed_seconds"] for frame in frames]
         assert np.all(np.isfinite(elapsed)) and elapsed[0] > 0

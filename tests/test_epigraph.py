@@ -38,9 +38,14 @@ def test_epigraph_converges_at_crossing_with_two_active_fields(method):
 def test_gcmma_checks_an_inactive_epigraph_row_before_accepting():
     design = np.array([.3])
     optimizer = MovingAsymptotes(design, "gcmma", max_inner_iterations=1, robust=True)
+    trials=[]
     def bad_trial(design, sensitivities):
+        trials.append(design.copy())
         trial = crossing_fields(design, sensitivities)
         # Keep the scalar reporting objective unchanged to detect a max-only check.
         return replace(trial, field_compliances={**trial.field_compliances, "dilated": 1e20})
-    with pytest.raises(RuntimeError, match="conservative"):
-        optimizer.step(design, crossing_fields(design), bad_trial)
+    step=optimizer.step(design, crossing_fields(design), bad_trial)
+    assert step.inner_limit_reached and step.inner_iterations==1
+    assert len(trials)==2
+    np.testing.assert_array_equal(step.design,trials[-1])
+    assert np.isfinite(step.epigraph_compliance)

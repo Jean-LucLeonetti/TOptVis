@@ -131,15 +131,38 @@ def test_optimisers_reduce_compliance_and_respect_volume(method):
         assert result.history[-1].state_solves > len(result.history)
 
 
-def test_gcmma_never_accepts_a_nonconservative_trial():
+def test_gcmma_accepts_last_evaluated_trial_at_inner_limit():
     problem = CantileverProblem(CantileverConfig(nx=4, ny=2))
     design = problem.initial_design()
     current = problem.evaluate(design)
     optimizer = MovingAsymptotes(design, "gcmma", max_inner_iterations=1)
+    trials=[]
     def nonconservative_trial(design, sensitivities):
+        trials.append(design.copy())
         return replace(current, compliance=1e20, constraint=1e10)
-    with pytest.raises(RuntimeError, match="conservative"):
-        optimizer.step(design, current, nonconservative_trial)
+    step=optimizer.step(design, current, nonconservative_trial)
+    assert step.inner_limit_reached and step.inner_iterations==1
+    assert len(trials)==2
+    np.testing.assert_array_equal(step.design,trials[-1])
+    assert np.max(np.abs(step.design-design))<=.2+1e-12
+    problem.close()
+
+
+def test_gcmma_runner_continues_and_records_inner_limit_fallback(monkeypatch):
+    import ml_opt.optimizers.moving_asymptotes as moving_asymptotes
+
+    monkeypatch.setattr(moving_asymptotes, "concheck", lambda *args: False)
+    config = CantileverConfig(nx=6, ny=2, optimizer="gcmma",
+                              max_inner_iterations=1, max_iterations=3)
+    result = optimise(config)
+    assert len(result.history) == 4
+    assert not result.history[0].gcmma_inner_limit_reached
+    assert all(row.gcmma_inner_limit_reached and row.inner_iterations == 1
+               for row in result.history[1:])
+    with CantileverProblem(config) as problem:
+        actual = problem.evaluate(result.design, False)
+    np.testing.assert_allclose(result.history[-1].compliance, actual.compliance)
+    np.testing.assert_allclose(result.history[-1].constraint, actual.constraint)
 
 
 @pytest.mark.parametrize("options", [{"volume_fraction": 0}, {"move_limit": -0.1},

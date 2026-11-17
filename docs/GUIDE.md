@@ -1309,15 +1309,20 @@ one state solve. PyTorch DDP does not distribute this custom PETSc operator.
 **MMA is the default** for this basic, single-load compliance problem. It takes
 one moving-asymptote step per outer iteration. **GCMMA** adds trial evaluations
 and updates the approximation curvature until the objective and constraint
-approximations are conservative. It is useful when more conservative updates
+approximations are conservative, or the inner iteration limit is reached.
+It is useful when more conservative updates
 are wanted and can require more state solves. Both use the same volume
 constraint, move limit, and initial-compliance scaling.
 
 Both backends use [`mmapy` 0.3.1](https://github.com/arjendeetman/GCMMA-MMA-Python),
 which is distributed under **GPL-3.0-or-later**; its implementation remains an
 external dependency. The backend credits Krister Svanberg's original MMA/GCMMA
-methods and Arjen Deetman's Python implementation. GCMMA raises an error if it
-cannot obtain a conservative trial within the configured inner iteration limit.
+methods and Arjen Deetman's Python implementation. If GCMMA reaches its inner
+iteration limit without a conservative approximation, it accepts the last
+evaluated trial and continues. That step is not certified conservative. History
+records `gcmma_inner_limit_reached`, the interface reports the fallback, and the
+CLI marks its inner count with `*`. Feasibility and convergence still use the
+actual evaluated objective and constraints.
 In the interface, select GCMMA in **Optimiser** to set its **inner iteration
 limit** (default 30). This counts retries after the initial trial, so a limit
 of 30 permits up to 31 trial solves per outer iteration. The minimum is 1;

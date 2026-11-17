@@ -325,7 +325,8 @@ function receive(event) {
     for (const id of ["compliance", "current-volume", "iteration", "improvement"]) byId(id).title = byId(id).textContent;
     byId("progress-bar").style.width = `${100 * row.iteration / state.model.max_iterations}%`;
     boundaryEditor?.setResults(row.load_case_compliances);
-    resultMessage(state.model.state_solver === "rom" ? "Reduced model: approximate results" : "");
+    resultMessage(row.gcmma_inner_limit_reached ? "GCMMA accepted the last trial at its inner limit." :
+      state.model.state_solver === "rom" ? "Reduced model: approximate results" : "");
     status("Running", "running");
     if (topologyCanvas.getClientRects().length) drawResult();
     updateConvergence();
@@ -337,6 +338,7 @@ function receive(event) {
     let message = event.stop_reason === "cancelled" ? "Stopped at the last evaluated design." :
       event.stop_reason === "maximum_iterations" ? "Iteration limit reached." : "Stopping tolerances reached.";
     if (state.runConfig?.state_solver === "rom") message += " Reduced model: approximate results.";
+    if(event.gcmma_inner_limit_hits) message+=` Last trial accepted at the inner limit in ${event.gcmma_inner_limit_hits} iterations.`;
     resultMessage(message);
     if (!event.feasible) showError(event.connection_feasible === false ?
       "The final design has not met the connection temperature limit. The last evaluated design is shown." : event.max_size_feasible === false ?

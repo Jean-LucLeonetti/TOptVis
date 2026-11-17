@@ -185,6 +185,7 @@ def run_optimization(configuration: dict, messages, cancel, *, field_pool=None) 
         connection_feasible = all(value <= config.feasibility_tolerance for value in (result.evaluation.connection_constraints or {}).values())
         messages.put({"event": "complete", "stop_reason": result.stop_reason,
                       "converged": result.converged, "volume_feasible": volume_feasible,
+                      "gcmma_inner_limit_hits":sum(row.gcmma_inner_limit_reached for row in result.history),
                       "epigraph_feasible": epigraph_feasible,
                       "max_size_feasible": max_size_feasible,
                       "max_void_feasible": max_void_feasible, "connection_feasible": connection_feasible,

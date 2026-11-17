@@ -1,7 +1,7 @@
 """Moving asymptotes for compliance or a three-field compliance epigraph.
 
 The numerical subproblem routines come from mmapy (GPL-3.0-or-later).
-GCMMA accepts a trial only after checking its conservative approximations.
+GCMMA checks conservative approximations and accepts its last trial at the inner limit.
 """
 
 from collections.abc import Callable
@@ -20,6 +20,7 @@ class OptimizerStep:
     design: np.ndarray
     inner_iterations: int = 0
     epigraph_compliance: float | None = None
+    inner_limit_reached: bool = False
 
 
 class MovingAsymptotes:
@@ -138,6 +139,7 @@ class MovingAsymptotes:
             constraint_gradient = np.vstack([constraint_gradient] +
                 [current.connection_gradients[f"target-{i+1}"] for i in range(self.connections)])
         inner_iterations = 0
+        inner_limit_reached = False
         def expand(candidate):
             if self.design_mask is None:
                 return candidate.ravel()
@@ -179,7 +181,8 @@ class MovingAsymptotes:
                             constraint_approximation, trial_constraint):
                     break
                 if inner_iterations == self.max_inner_iterations:
-                    raise RuntimeError("GCMMA failed to find a conservative trial within the inner iteration limit")
+                    inner_limit_reached = True
+                    break
                 self.raa0, self.raa = raaupdate(
                     candidate, x, lower, upper, self.low, self.upp,
                     trial_objective, trial_constraint, approximation,
@@ -192,4 +195,4 @@ class MovingAsymptotes:
         epigraph = float(np.asarray(result[2]).item()) * self.scale if self.robust else None
         if epigraph is not None and (not np.isfinite(epigraph) or epigraph < 0):
             raise RuntimeError("Optimizer returned an invalid epigraph value")
-        return OptimizerStep(expand(candidate).copy(), inner_iterations, epigraph)
+        return OptimizerStep(expand(candidate).copy(), inner_iterations, epigraph, inner_limit_reached)

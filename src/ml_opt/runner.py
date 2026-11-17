@@ -43,6 +43,7 @@ class HistoryEntry:
     active_load_case: str | None = None
     connection_constraints: dict[str, float] | None = None
     connection_ratios: dict[str, float] | None = None
+    gcmma_inner_limit_reached: bool = False
 
 
 @dataclass
@@ -167,7 +168,8 @@ def _optimise_problem(problem, callback, snapshot_callback, stop_requested, star
                                      max_void_remaining_volume=updated.max_void_remaining_volume,
                                      volume_error=updated.volume_error,
                                      load_case_compliances=updated.load_case_compliances, active_load_case=updated.active_load_case,
-                                     connection_constraints=updated.connection_constraints, connection_ratios=updated.connection_ratios))
+                                     connection_constraints=updated.connection_constraints, connection_ratios=updated.connection_ratios,
+                                     gcmma_inner_limit_reached=step.inner_limit_reached))
         if callback:
             callback(history[-1])
         if snapshot_callback:
