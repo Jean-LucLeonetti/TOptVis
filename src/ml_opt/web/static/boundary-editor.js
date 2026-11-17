@@ -11,6 +11,7 @@ export class BoundaryEditor {
     this.conditions = null; this.selection = null; this.anchor = null; this.hover = null;
     this.regions = []; this.editingRegion = null;
     this.connections = []; this.editingConnection = null;
+    this.assignmentContext=null;this.assignmentKinds={boundaries:"fixed",connections:"connection_anchor"};
     this.cases = [{id:"case-1",name:"Load case 1",weight:1}]; this.activeCase = "case-1"; this.results = {};
     byId("load-aggregation").value = "weighted"; byId("boundary-components").value = "xy";
     this.mode = "point"; this.editing = null; this.drag = null; this.suppressClick = false;
@@ -20,7 +21,7 @@ export class BoundaryEditor {
       if (isRunning() || (["solid","void"].includes(byId("boundary-kind").value) && tool.dataset.selectionMode !== "surface")) return;
       const editing = this.editing, editingRegion = this.editingRegion, editingConnection = this.editingConnection;
       this.mode = tool.dataset.selectionMode;
-      this.clearSelection(); this.editing = editing; this.editingRegion = editingRegion; this.editingConnection = editingConnection; this.render(); onOpen();
+      this.clearSelection(); this.editing = editing; this.editingRegion = editingRegion; this.editingConnection = editingConnection; this.render(); this.openPanel();
     });
     byId("selection-clear").addEventListener("click", () => this.clearSelection());
     byId("boundary-kind").addEventListener("change", () => {
@@ -48,7 +49,8 @@ export class BoundaryEditor {
       byId("load-aggregation").value = "weighted"; this.editing = null; this.clearSelection(); onChange();
     });
     byId("boundary-select-coordinates").addEventListener("click", () => this.selectCoordinates());
-    byId("panel-load").addEventListener("input", event => {if(!event.target.name?.startsWith("connection_")) event.stopPropagation();});
+    byId("panel-load").addEventListener("input", event => event.stopPropagation());
+    byId("mesh-assignment-editor").addEventListener("input", event => event.stopPropagation());
     byId("boundary-editor-form").addEventListener("submit", event => event.preventDefault());
     canvas.addEventListener("click", event => {
       if (this.suppressClick) { this.suppressClick = false; return; }
@@ -78,7 +80,7 @@ export class BoundaryEditor {
       this.suppressClick = true;
       if (node) {
         this.selection = makeSelection(this.mode, this.mode === "point" ? node : drag.node, node, getModel());
-        this.anchor = null; this.render(); redraw(); onOpen();
+        this.anchor = null; this.render(); redraw(); this.openPanel();
       } else { this.render(); redraw(); }
     });
     canvas.addEventListener("pointercancel", () => { this.drag = null; this.suppressClick = true; this.anchor = null; redraw(); });
@@ -93,7 +95,28 @@ export class BoundaryEditor {
         this.hover = {...this.cursor}; redraw();
       } else if (event.key === "Enter" || event.key === " ") { event.preventDefault(); this.choose(this.cursor); }
     });
+    this.setPanel("panel-load");
+  }
+
+  setPanel(panelId) {
+    const context=panelId==="panel-constraints" ? "connections" : "boundaries";
+    if(context===this.assignmentContext) return;
+    const select=byId("boundary-kind");
+    if(this.assignmentContext) this.assignmentKinds[this.assignmentContext]=select.value;
+    this.assignmentContext=context;this.editing=this.editingRegion=this.editingConnection=null;
+    this.anchor=this.drag=null;
+    const choices=context==="connections" ? [["connection_anchor","Connection anchor"],["connection_target","Connection target"]] :
+      [["fixed","Fixed support"],["restrain_x","Restrain x"],["restrain_y","Restrain y"],["displacement","Prescribed displacement"],["force","Force"],["solid","Non-design: solid"],["void","Non-design: void"]];
+    select.replaceChildren(...choices.map(([value,label])=>{const option=document.createElement("option");option.value=value;option.textContent=label;return option;}));
+    select.value=this.assignmentKinds[context];
+    byId(context==="connections" ? "connection-selection-slot" : "boundary-selection-slot").append(byId("mesh-assignment-editor"));
+    if(context==="connections" && this.connections.length) byId("connection-constraints").open=true;
     this.render();
+  }
+  openPanel() {
+    const connection=this.assignmentContext==="connections";
+    if(connection) byId("connection-constraints").open=true;
+    this.onOpen(connection ? "panel-constraints" : "panel-load");
   }
 
   get aggregation() { return byId("load-aggregation").value; }
@@ -149,7 +172,7 @@ export class BoundaryEditor {
       const selection = makeSelection(this.mode, this.anchor, node, this.getModel());
       if (selection) { this.selection = selection; this.anchor = null; }
     }
-    this.render(); this.redraw(); this.onOpen();
+    this.render(); this.redraw(); this.openPanel();
   }
   selectCoordinates() {
     if (this.isRunning()) return;

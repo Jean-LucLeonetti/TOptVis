@@ -951,8 +951,8 @@ CLI: `--volume-constraint lt|gt|eq`.
 
 ### Connections through pseudo-temperature
 
-In **Optimisation → Boundaries**, select points, lines or surfaces and
-assign a **Connection anchor** and one or more **Connection targets**. These are
+In **Optimisation → Constraints → Connections**, select points, lines or surfaces
+and assign a **Connection anchor** and one or more **Connection targets**. These are
 independent of the mechanical supports and forces. Each target must conduct unit
 total heat to at least one selected anchor. Additional anchors act as alternative
 sinks; they are not required to connect to one another. Only selected targets are

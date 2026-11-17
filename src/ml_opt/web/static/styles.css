@@ -266,3 +266,6 @@ input[type=range]:disabled {cursor:default}
 .legend-connection-target {background:#924db6}
 
 @media(min-width:701px) {#model-view[data-connections=true] .canvas-wrap {min-height:220px}}
+
+.connection-constraints>summary {cursor:pointer;font-size:15px;font-weight:600;color:var(--ink)}
+.connection-constraints #mesh-assignment-editor {margin-top:16px}

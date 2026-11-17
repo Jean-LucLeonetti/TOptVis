@@ -50,6 +50,7 @@ function updateSolverControls() {
 const configTabs = Array.from(document.querySelectorAll('#workspace-cantilever .config-tabs [role="tab"]'));
 function selectPanel(panelId, focus = false) {
   state.activePanel = panelId;
+  boundaryEditor?.setPanel(panelId);
   for (const tab of configTabs) {
     const selected = tab.dataset.panel === panelId;
     tab.setAttribute("aria-selected", String(selected));
@@ -444,7 +445,7 @@ document.addEventListener("workspacechange", event => {
 });
 syncControls(); state.model = readModel();
 boundaryEditor = new BoundaryEditor({canvas: modelCanvas, getModel: () => state.model, isRunning: () => state.running,
-  onChange: () => updateModel(), onError: showError, onOpen: () => selectPanel("panel-load"), redraw});
+  onChange: () => updateModel(), onError: showError, onOpen: panel => selectPanel(panel), redraw});
 updateLabels(); clearResult(); redraw();
 initialiseReferences();
 document.addEventListener("designregressionuseproblem",event=>{

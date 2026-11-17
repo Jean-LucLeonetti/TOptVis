@@ -43,9 +43,9 @@ test("selection, assignment, editing, deletion, keyboard control, and run lockin
     const view=drawModel(canvas,model);
     return {clientX:view.left+view.w*node.x/model.nx,clientY:view.top+view.h*(1-node.y/model.ny)};
   };
-  let running=false,changes=0,error="";
+  let running=false,changes=0,error="",opened="";
   const editor=new BoundaryEditor({canvas,getModel:()=>model,isRunning:()=>running,
-    onChange:()=>{changes++; model.boundary_conditions=editor.conditions;},onError:value=>{error=value;},onOpen(){},redraw(){}});
+    onChange:()=>{changes++; model.boundary_conditions=editor.conditions;},onError:value=>{error=value;},onOpen:panel=>{opened=panel;},redraw(){}});
   assert.equal(node("boundary-list").children.length,2);
   assert.equal(editor.validationError,"");
 
@@ -139,9 +139,14 @@ test("selection, assignment, editing, deletion, keyboard control, and run lockin
   editor.loadModel(persisted);assert.deepEqual(editor.regions,persisted.non_design_regions);
   node("non-design-list").children[0].children[1].emit("click");
   assert.equal(editor.regions.length,0);
+  assert.ok(!node("boundary-kind").children.some(option=>option.value.startsWith("connection_")));
+  editor.setPanel("panel-constraints");
+  assert.deepEqual(node("boundary-kind").children.map(option=>option.value),["connection_anchor","connection_target"]);
+  assert.equal(node("connection-selection-slot").children.at(-1),node("mesh-assignment-editor"));
   node("boundary-kind").value="connection_anchor";node("boundary-kind").emit("change");tools[0].emit("click");
   editor.choose({x:0,y:4});node("boundary-apply").emit("click");
   assert.equal(editor.connections.length,1);assert.match(editor.validationError,/target/);
+  assert.equal(opened,"panel-constraints");assert.equal(node("connection-constraints").open,true);
   node("boundary-kind").value="connection_target";node("boundary-kind").emit("change");
   editor.choose({x:16,y:4});node("boundary-apply").emit("click");
   assert.equal(editor.connections.length,2);assert.equal(editor.validationError,"");
@@ -152,6 +157,11 @@ test("selection, assignment, editing, deletion, keyboard control, and run lockin
   const connected={...model,connection_anchors:[editor.connections[0].selection],connection_targets:[editor.connections[1].selection]};
   editor.loadModel(connected);assert.equal(editor.connections.length,2);
   node("connection-list").children[1].children[1].emit("click");assert.match(editor.validationError,/target/);
+  editor.setPanel("panel-load");assert.ok(!node("boundary-kind").children.some(option=>option.value.startsWith("connection_")));
+  editor.choose({x:8,y:4});assert.equal(opened,"panel-load");
+  assert.equal(node("boundary-selection-slot").children.at(-1),node("mesh-assignment-editor"));
+  editor.setPanel("panel-constraints");assert.equal(node("boundary-kind").value,"connection_target");
+  editor.choose({x:16,y:4});assert.equal(opened,"panel-constraints");
   delete globalThis.document;
   delete globalThis.window;
 });
